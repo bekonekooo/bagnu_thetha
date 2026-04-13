@@ -1,14 +1,26 @@
-import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import '../features/auth/presentation/pages/login_page.dart';
-import '../features/auth/presentation/pages/register_page.dart';
+import 'package:flutter_application_1/features/auth/presentation/pages/login_page.dart';
+import 'package:flutter_application_1/features/auth/presentation/pages/register_page.dart';
+import 'package:flutter_application_1/features/auth/presentation/pages/onboarding_page.dart';
+import 'package:flutter_application_1/features/home/presentation/pages/home_page.dart';
+
+
+import 'package:flutter_application_1/features/profile/presentation/pages/profile_page.dart';
+import 'package:flutter_application_1/features/sessions/presentation/pages/sessions_page.dart';
+import 'package:flutter_application_1/features/teachers/presentation/pages/teachers_page.dart';
+import 'package:flutter_application_1/features/trainings/presentation/pages/trainings_page.dart';
+import 'package:flutter_application_1/features/guidance/presentation/pages/guidance_page.dart';
+import 'package:flutter_application_1/features/community/presentation/pages/community_page.dart';
+
+
+import 'package:flutter_application_1/features/main/presentation/pages/main_shell_page.dart';
 
 final GoRouter appRouter = GoRouter(
-  initialLocation: '/',
+  initialLocation: '/login',
   routes: [
     GoRoute(
-      path: '/',
-      builder: (context, state) => const SplashPage(),
+      path: '/onboarding',
+      builder: (context, state) => const OnboardingPage(),
     ),
     GoRoute(
       path: '/login',
@@ -18,35 +30,40 @@ final GoRouter appRouter = GoRouter(
       path: '/register',
       builder: (context, state) => const RegisterPage(),
     ),
+
+    ShellRoute(
+      builder: (context, state, child) => MainShellPage(child: child),
+      routes: [
+        GoRoute(
+          path: '/home',
+          builder: (context, state) => const HomePage(),
+        ),
+        GoRoute(
+          path: '/sessions',
+          builder: (context, state) => const SessionsPage(),
+        ),
+        GoRoute(
+          path: '/profile',
+          builder: (context, state) => const ProfilePage(),
+        ),
+      ],
+    ),
+
     GoRoute(
-      path: '/home',
-      builder: (context, state) => const HomePage(),
+      path: '/teachers',
+      builder: (context, state) => const TeachersPage(),
+    ),
+    GoRoute(
+      path: '/trainings',
+      builder: (context, state) => const TrainingsPage(),
+    ),
+    GoRoute(
+      path: '/guidance',
+      builder: (context, state) => const GuidancePage(),
+    ),
+    GoRoute(
+      path: '/community',
+      builder: (context, state) => const CommunityPage(),
     ),
   ],
 );
-
-class SplashPage extends StatelessWidget {
-  const SplashPage({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    Future.delayed(const Duration(seconds: 2), () {
-      context.go('/login');
-    });
-
-    return const Scaffold(
-      body: Center(child: Text("BagnuTheta")),
-    );
-  }
-}
-
-class HomePage extends StatelessWidget {
-  const HomePage({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return const Scaffold(
-      body: Center(child: Text("Ana Sayfa")),
-    );
-  }
-}

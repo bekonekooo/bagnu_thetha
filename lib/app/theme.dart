@@ -18,9 +18,9 @@ class AppTheme {
       ),
       appBarTheme: const AppBarTheme(
         backgroundColor: softCream,
+        foregroundColor: textDark,
         elevation: 0,
         centerTitle: true,
-        foregroundColor: textDark,
       ),
       textTheme: const TextTheme(
         headlineMedium: TextStyle(
@@ -39,6 +39,27 @@ class AppTheme {
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
           borderSide: BorderSide.none,
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: BorderSide.none,
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: const BorderSide(
+            color: primaryPurple,
+            width: 1.5,
+          ),
+        ),
+      ),
+      elevatedButtonTheme: ElevatedButtonThemeData(
+        style: ElevatedButton.styleFrom(
+          backgroundColor: primaryPurple,
+          foregroundColor: Colors.white,
+          padding: const EdgeInsets.symmetric(vertical: 16),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
         ),
       ),
     );
