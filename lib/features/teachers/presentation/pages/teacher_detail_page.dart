@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_application_1/features/booking/presentation/pages/booking_page.dart';
+import 'package:go_router/go_router.dart';
 
 class TeacherDetailPage extends StatelessWidget {
   final Map<String, dynamic> teacher;
@@ -94,14 +94,15 @@ class TeacherDetailPage extends StatelessWidget {
             SizedBox(
               width: double.infinity,
               child: ElevatedButton.icon(
-               onPressed: () {
-  Navigator.push(
-    context,
-    MaterialPageRoute(
-      builder: (context) => BookingPage(teacher: teacher),
-    ),
-  );
-},
+                onPressed: () {
+                  context.push(
+                    '/booking',
+                    extra: {
+                      'teacherId': teacher['id'].toString(),
+                      'teacherName': teacher['name'].toString(),
+                    },
+                  );
+                },
                 icon: const Icon(Icons.calendar_month),
                 label: const Text('Seans Al'),
                 style: ElevatedButton.styleFrom(

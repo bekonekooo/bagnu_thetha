@@ -1,52 +1,58 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
-
-import 'package:flutter_application_1/features/sessions/data/mock_sessions.dart';
-import '../widgets/session_card.dart';
-import '../widgets/session_empty_state.dart';
-import '../widgets/session_section_title.dart';
+import '../../data/services/session_service.dart';
+import '../../data/models/session_model.dart';
 
 class SessionsPage extends StatelessWidget {
-  const SessionsPage({super.key});
+  SessionsPage({super.key});
 
-  void goToTeachers(BuildContext context) {
-    context.go('/teachers');
-  }
+  final sessionService = SessionService();
 
   @override
   Widget build(BuildContext context) {
-    final hasSessions = mockSessions.isNotEmpty;
-
     return Scaffold(
       appBar: AppBar(
         title: const Text('Seanslarım'),
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const SessionSectionTitle(
-              title: 'Seanslarım',
-              subtitle: 'Yaklaşan ve geçmiş seanslarını burada takip edebilirsin.',
-            ),
-            const SizedBox(height: 24),
-            if (!hasSessions)
-              SessionEmptyState(
-                onFindTeacher: () => goToTeachers(context),
-              )
-            else
-              ...mockSessions.map(
-                (session) => SessionCard(
-                  teacherName: session['teacherName'],
-                  specialty: session['specialty'],
-                  date: session['date'],
-                  time: session['time'],
-                  status: session['status'],
+      body: FutureBuilder<List<SessionModel>>(
+        future: sessionService.fetchMySessions(),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(
+              child: CircularProgressIndicator(),
+            );
+          }
+
+          if (snapshot.hasError) {
+            return Center(
+              child: Text('Hata: ${snapshot.error}'),
+            );
+          }
+
+          final sessions = snapshot.data ?? [];
+
+          if (sessions.isEmpty) {
+            return const Center(
+              child: Text('Henüz bir seansınız yok'),
+            );
+          }
+
+          return ListView.builder(
+            itemCount: sessions.length,
+            itemBuilder: (context, index) {
+              final session = sessions[index];
+
+              return Card(
+                margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                child: ListTile(
+                  title: Text(session.teacherName),
+                  subtitle: Text(
+                    '${session.sessionDate} - ${session.sessionTime}\nDurum: ${session.status}',
+                  ),
                 ),
-              ),
-          ],
-        ),
+              );
+            },
+          );
+        },
       ),
     );
   }
