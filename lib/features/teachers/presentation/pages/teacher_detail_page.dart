@@ -17,6 +17,7 @@ class TeacherDetailPage extends StatelessWidget {
     final rating = teacher['rating']?.toString() ?? '';
     final bio = teacher['bio'] ?? '';
     final category = teacher['category'] ?? '';
+    final imageUrl = teacher['image_url'] ?? '';
 
     return Scaffold(
       appBar: AppBar(
@@ -43,10 +44,16 @@ class TeacherDetailPage extends StatelessWidget {
               ),
               child: Column(
                 children: [
-                  const CircleAvatar(
-                    radius: 40,
-                    child: Icon(Icons.person, size: 40),
-                  ),
+CircleAvatar(
+  radius: 40,
+  backgroundColor: Colors.deepPurple.shade50,
+  backgroundImage: imageUrl.isNotEmpty
+      ? NetworkImage(imageUrl)
+      : null,
+  child: imageUrl.isEmpty
+      ? const Icon(Icons.person, size: 40)
+      : null,
+),
                   const SizedBox(height: 16),
                   Text(
                     name,

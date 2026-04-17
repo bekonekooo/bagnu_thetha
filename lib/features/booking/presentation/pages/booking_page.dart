@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../../sessions/data/services/session_service.dart';
+import '../../data/services/availability_service.dart';
 
 class BookingPage extends StatefulWidget {
   final String teacherId;
@@ -20,19 +21,19 @@ class _BookingPageState extends State<BookingPage> {
   DateTime? selectedDate;
   String? selectedTime;
   bool isLoading = false;
+  bool isLoadingTimes = false;
 
   final sessionService = SessionService();
+  final availabilityService = AvailabilityService();
+  final notesController = TextEditingController();
 
-  final List<String> availableTimes = [
-    '10:00',
-    '11:00',
-    '12:00',
-    '14:00',
-    '15:00',
-    '16:00',
-    '17:00',
-    '18:00',
-  ];
+  List<String> availableTimes = [];
+
+  @override
+  void dispose() {
+    notesController.dispose();
+    super.dispose();
+  }
 
   Future<void> pickDate() async {
     final now = DateTime.now();
@@ -47,6 +48,54 @@ class _BookingPageState extends State<BookingPage> {
     if (pickedDate != null) {
       setState(() {
         selectedDate = pickedDate;
+        selectedTime = null;
+      });
+
+      await fetchAvailableTimes(pickedDate);
+    }
+  }
+
+  Future<void> fetchAvailableTimes(DateTime date) async {
+    setState(() {
+      isLoadingTimes = true;
+      availableTimes = [];
+    });
+
+    try {
+      final availabilityList =
+          await availabilityService.fetchTeacherAvailability(
+        teacherId: widget.teacherId,
+        weekday: date.weekday,
+      );
+
+      final bookedTimes = await sessionService.fetchBookedTimes(
+        teacherId: widget.teacherId,
+        sessionDate: date,
+      );
+
+      final allAvailableTimes =
+          availabilityList.map((item) => item.timeSlot).toList();
+
+      final filteredTimes = allAvailableTimes
+          .where((time) => !bookedTimes.contains(time))
+          .toList();
+
+      if (!mounted) return;
+
+      setState(() {
+        availableTimes = filteredTimes;
+      });
+    } catch (e) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Saatler yüklenemedi: $e')),
+      );
+    } finally {
+      if (!mounted) return;
+
+      setState(() {
+        isLoadingTimes = false;
       });
     }
   }
@@ -69,6 +118,9 @@ class _BookingPageState extends State<BookingPage> {
         teacherName: widget.teacherName,
         sessionDate: selectedDate!,
         sessionTime: selectedTime!,
+        notes: notesController.text.trim().isEmpty
+            ? null
+            : notesController.text.trim(),
       );
 
       if (!mounted) return;
@@ -142,7 +194,6 @@ class _BookingPageState extends State<BookingPage> {
               ),
             ),
             const SizedBox(height: 24),
-
             const Text(
               'Tarih Seç',
               style: TextStyle(
@@ -151,7 +202,6 @@ class _BookingPageState extends State<BookingPage> {
               ),
             ),
             const SizedBox(height: 12),
-
             SizedBox(
               width: double.infinity,
               child: OutlinedButton.icon(
@@ -163,9 +213,7 @@ class _BookingPageState extends State<BookingPage> {
                 ),
               ),
             ),
-
             const SizedBox(height: 24),
-
             const Text(
               'Saat Seç',
               style: TextStyle(
@@ -174,27 +222,51 @@ class _BookingPageState extends State<BookingPage> {
               ),
             ),
             const SizedBox(height: 12),
+            if (selectedDate == null)
+              const Text('Önce tarih seçmelisin.')
+            else if (isLoadingTimes)
+              const Center(child: CircularProgressIndicator())
+            else if (availableTimes.isEmpty)
+              const Text('Bu gün için müsait saat bulunmuyor.')
+            else
+              Wrap(
+                spacing: 10,
+                runSpacing: 10,
+                children: availableTimes.map((time) {
+                  final isSelected = selectedTime == time;
 
-            Wrap(
-              spacing: 10,
-              runSpacing: 10,
-              children: availableTimes.map((time) {
-                final isSelected = selectedTime == time;
-
-                return ChoiceChip(
-                  label: Text(time),
-                  selected: isSelected,
-                  onSelected: (_) {
-                    setState(() {
-                      selectedTime = time;
-                    });
-                  },
-                );
-              }).toList(),
+                  return ChoiceChip(
+                    label: Text(time),
+                    selected: isSelected,
+                    onSelected: (_) {
+                      setState(() {
+                        selectedTime = time;
+                      });
+                    },
+                  );
+                }).toList(),
+              ),
+            const SizedBox(height: 24),
+            const Text(
+              'Not (İsteğe Bağlı)',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+              ),
             ),
-
+            const SizedBox(height: 12),
+            TextField(
+              controller: notesController,
+              maxLines: 4,
+              decoration: InputDecoration(
+                hintText: 'Seansla ilgili kısa bir not yazabilirsin...',
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                contentPadding: const EdgeInsets.all(16),
+              ),
+            ),
             const SizedBox(height: 32),
-
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(

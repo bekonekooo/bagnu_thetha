@@ -7,6 +7,7 @@ class TeacherCard extends StatelessWidget {
   final double rating;
   final String bio;
   final VoidCallback onTap;
+  final String? imageUrl; // ✅ EKLENDİ
 
   const TeacherCard({
     super.key,
@@ -16,6 +17,7 @@ class TeacherCard extends StatelessWidget {
     required this.rating,
     required this.bio,
     required this.onTap,
+    this.imageUrl, // ✅ EKLENDİ
   });
 
   @override
@@ -34,9 +36,16 @@ class TeacherCard extends StatelessWidget {
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const CircleAvatar(
+                CircleAvatar(
                   radius: 30,
-                  child: Icon(Icons.person, size: 30),
+                  backgroundColor: Colors.deepPurple.shade50,
+                  backgroundImage:
+                      imageUrl != null && imageUrl!.isNotEmpty
+                          ? NetworkImage(imageUrl!)
+                          : null,
+                  child: imageUrl == null || imageUrl!.isEmpty
+                      ? const Icon(Icons.person, size: 30)
+                      : null,
                 ),
                 const SizedBox(width: 16),
                 Expanded(
