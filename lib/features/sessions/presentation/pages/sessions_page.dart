@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import '../../data/services/session_service.dart';
 import '../../data/models/session_model.dart';
-
-import 'package:intl/intl.dart';
+import '../../utils/session_utils.dart';
 
 class SessionsPage extends StatefulWidget {
   const SessionsPage({super.key});
@@ -13,12 +13,6 @@ class SessionsPage extends StatefulWidget {
 
 class _SessionsPageState extends State<SessionsPage> {
   final sessionService = SessionService();
-
-
-  String formatDate(String date) {
-  final parsedDate = DateTime.parse(date);
-  return DateFormat('d MMMM yyyy', 'tr_TR').format(parsedDate);
-}
 
   late Future<List<SessionModel>> sessionsFuture;
 
@@ -92,6 +86,71 @@ class _SessionsPageState extends State<SessionsPage> {
     }
   }
 
+DateTime? safeParseDate(String date) {
+  try {
+    return DateTime.parse(date);
+  } catch (_) {
+    return null;
+  }
+}
+
+String formatDate(String date) {
+  final parsedDate = safeParseDate(date);
+  if (parsedDate == null) return date;
+
+  return DateFormat('d MMMM yyyy', 'tr_TR').format(parsedDate);
+}
+
+DateTime normalizeDate(DateTime date) {
+  return DateTime(date.year, date.month, date.day);
+}
+
+DateTime? combineDateAndTime(String date, String time) {
+  final parsedDate = safeParseDate(date);
+  if (parsedDate == null) return null;
+
+  final cleanDate = normalizeDate(parsedDate);
+
+  final parts = time.split(':');
+  if (parts.length != 2) return null;
+
+  final hour = int.tryParse(parts[0]);
+  final minute = int.tryParse(parts[1]);
+
+  if (hour == null || minute == null) return null;
+
+  return DateTime(
+    cleanDate.year,
+    cleanDate.month,
+    cleanDate.day,
+    hour,
+    minute,
+  );
+}
+
+bool isPastSession(SessionModel session) {
+  final sessionDateTime = combineDateAndTime(
+    session.sessionDate,
+    session.sessionTime,
+  );
+
+  if (sessionDateTime == null) return false;
+
+  return sessionDateTime.isBefore(DateTime.now());
+}
+
+String getRealStatus(SessionModel session) {
+  if (session.status == 'cancelled') return 'cancelled';
+  if (session.status == 'completed') return 'completed';
+
+  if (isPastSession(session)) {
+    return 'completed';
+  }
+
+  return 'upcoming';
+}
+
+
   Color getStatusColor(String status) {
     switch (status) {
       case 'upcoming':
@@ -135,7 +194,10 @@ class _SessionsPageState extends State<SessionsPage> {
     List<SessionModel> sessions,
     String status,
   ) {
-    return sessions.where((session) => session.status == status).toList();
+ return sessions.where((session) {
+  final realStatus = SessionUtils.resolveStatus(session);
+  return realStatus == status;
+}).toList();
   }
 
   Widget buildEmptyState({
@@ -213,7 +275,8 @@ class _SessionsPageState extends State<SessionsPage> {
   }
 
   Widget buildSessionCard(SessionModel session) {
-    final isUpcoming = session.status == 'upcoming';
+    final realStatus = getRealStatus(session);
+    final isUpcoming = realStatus == 'upcoming';
 
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -257,7 +320,7 @@ class _SessionsPageState extends State<SessionsPage> {
                         ),
                       ),
                       const SizedBox(height: 6),
-                      buildStatusBadge(session.status),
+                      buildStatusBadge(realStatus),
                     ],
                   ),
                 ),
@@ -277,9 +340,11 @@ class _SessionsPageState extends State<SessionsPage> {
                     children: [
                       const Icon(Icons.calendar_today_outlined, size: 18),
                       const SizedBox(width: 8),
-                      Text(
-                       'Tarih: ${formatDate(session.sessionDate)} - ${session.sessionTime}',
-                        style: const TextStyle(fontSize: 15),
+                      Expanded(
+                        child: Text(
+                          'Tarih: ${formatDate(session.sessionDate)}',
+                          style: const TextStyle(fontSize: 15),
+                        ),
                       ),
                     ],
                   ),
@@ -412,15 +477,13 @@ class _SessionsPageState extends State<SessionsPage> {
                 buildSessionList(
                   completedSessions,
                   emptyTitle: 'Tamamlanmış seans yok',
-                  emptySubtitle:
-                      'Geçmiş seansların burada listelenecek.',
+                  emptySubtitle: 'Geçmiş seansların burada listelenecek.',
                   emptyIcon: Icons.check_circle_outline,
                 ),
                 buildSessionList(
                   cancelledSessions,
                   emptyTitle: 'İptal edilen seans yok',
-                  emptySubtitle:
-                      'İptal ettiğin seanslar burada görünecek.',
+                  emptySubtitle: 'İptal ettiğin seanslar burada görünecek.',
                   emptyIcon: Icons.cancel_outlined,
                 ),
               ],
