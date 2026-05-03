@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-
 import 'package:flutter_application_1/features/booking/data/models/availability_model.dart';
 import 'package:flutter_application_1/features/booking/data/services/availability_service.dart';
 
@@ -14,10 +13,12 @@ class TeacherAvailabilityPage extends StatefulWidget {
   });
 
   @override
-  State<TeacherAvailabilityPage> createState() => _TeacherAvailabilityPageState();
+  State<TeacherAvailabilityPage> createState() =>
+      _TeacherAvailabilityPageState();
 }
 
-class _TeacherAvailabilityPageState extends State<TeacherAvailabilityPage> {
+class _TeacherAvailabilityPageState
+    extends State<TeacherAvailabilityPage> {
   final availabilityService = AvailabilityService();
 
   bool isLoading = true;
@@ -29,18 +30,9 @@ class _TeacherAvailabilityPageState extends State<TeacherAvailabilityPage> {
   String selectedTime = '09:00';
 
   final List<String> timeOptions = const [
-    '09:00',
-    '10:00',
-    '11:00',
-    '12:00',
-    '13:00',
-    '14:00',
-    '15:00',
-    '16:00',
-    '17:00',
-    '18:00',
-    '19:00',
-    '20:00',
+    '09:00','10:00','11:00','12:00',
+    '13:00','14:00','15:00','16:00',
+    '17:00','18:00','19:00','20:00',
   ];
 
   @override
@@ -50,12 +42,11 @@ class _TeacherAvailabilityPageState extends State<TeacherAvailabilityPage> {
   }
 
   Future<void> loadAvailability() async {
-    setState(() {
-      isLoading = true;
-    });
+    setState(() => isLoading = true);
 
     try {
-      final response = await availabilityService.fetchAllTeacherAvailability(
+      final response =
+          await availabilityService.fetchAllTeacherAvailability(
         teacherId: widget.teacherId,
       );
 
@@ -72,17 +63,12 @@ class _TeacherAvailabilityPageState extends State<TeacherAvailabilityPage> {
       );
     } finally {
       if (!mounted) return;
-
-      setState(() {
-        isLoading = false;
-      });
+      setState(() => isLoading = false);
     }
   }
 
   Future<void> addAvailability() async {
-    setState(() {
-      isSubmitting = true;
-    });
+    setState(() => isSubmitting = true);
 
     try {
       await availabilityService.addAvailability(
@@ -96,77 +82,102 @@ class _TeacherAvailabilityPageState extends State<TeacherAvailabilityPage> {
       if (!mounted) return;
 
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Uygunluk saati eklendi')),
+        const SnackBar(content: Text('Saat eklendi')),
       );
     } catch (e) {
       if (!mounted) return;
 
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Eklenemedi: $e')),
+        SnackBar(content: Text('Hata: $e')),
       );
     } finally {
       if (!mounted) return;
-
-      setState(() {
-        isSubmitting = false;
-      });
+      setState(() => isSubmitting = false);
     }
   }
 
-  Future<void> deleteAvailability(String id) async {
+  Future<void> addTemplateHours() async {
+    setState(() => isSubmitting = true);
+
     try {
-      await availabilityService.deleteAvailability(id);
+      final template = [
+        '10:00','11:00','12:00','13:00',
+        '14:00','15:00','16:00','17:00','18:00'
+      ];
+
+      await availabilityService.addMultipleAvailability(
+        teacherId: widget.teacherId,
+        weekday: selectedWeekday,
+        timeSlots: template,
+      );
+
       await loadAvailability();
 
       if (!mounted) return;
 
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Saat silindi')),
+        const SnackBar(content: Text('Şablon eklendi')),
       );
     } catch (e) {
       if (!mounted) return;
 
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Silinemedi: $e')),
+        SnackBar(content: Text('Hata: $e')),
+      );
+    } finally {
+      if (!mounted) return;
+      setState(() => isSubmitting = false);
+    }
+  }
+
+  Future<void> clearDay() async {
+    try {
+      await availabilityService.clearDayAvailability(
+        teacherId: widget.teacherId,
+        weekday: selectedWeekday,
+      );
+
+      await loadAvailability();
+
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Gün temizlendi')),
+      );
+    } catch (e) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Hata: $e')),
       );
     }
   }
 
-  String weekdayName(int weekday) {
-    switch (weekday) {
-      case 1:
-        return 'Pazartesi';
-      case 2:
-        return 'Salı';
-      case 3:
-        return 'Çarşamba';
-      case 4:
-        return 'Perşembe';
-      case 5:
-        return 'Cuma';
-      case 6:
-        return 'Cumartesi';
-      case 7:
-        return 'Pazar';
-      default:
-        return 'Bilinmiyor';
-    }
+  Future<void> deleteAvailability(String id) async {
+    await availabilityService.deleteAvailability(id);
+    await loadAvailability();
   }
 
-  Map<int, List<AvailabilityModel>> groupedAvailability() {
-    final Map<int, List<AvailabilityModel>> grouped = {};
+  String weekdayName(int day) {
+    const days = [
+      'Pazartesi','Salı','Çarşamba',
+      'Perşembe','Cuma','Cumartesi','Pazar'
+    ];
+    return days[day - 1];
+  }
 
-    for (final item in availabilityList) {
-      grouped.putIfAbsent(item.weekday, () => []);
-      grouped[item.weekday]!.add(item);
+  Map<int, List<AvailabilityModel>> grouped() {
+    final map = <int, List<AvailabilityModel>>{};
+    for (var item in availabilityList) {
+      map.putIfAbsent(item.weekday, () => []);
+      map[item.weekday]!.add(item);
     }
-
-    return grouped;
+    return map;
   }
 
   @override
   Widget build(BuildContext context) {
-    final grouped = groupedAvailability();
+    final data = grouped();
 
     return Scaffold(
       appBar: AppBar(
@@ -177,144 +188,102 @@ class _TeacherAvailabilityPageState extends State<TeacherAvailabilityPage> {
         child: ListView(
           padding: const EdgeInsets.all(16),
           children: [
+            /// ADD PANEL
             Card(
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
-              ),
               child: Padding(
                 padding: const EdgeInsets.all(16),
                 child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
-                      'Yeni Uygunluk Ekle',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    DropdownButtonFormField<int>(
+                    DropdownButtonFormField(
                       value: selectedWeekday,
-                      decoration: const InputDecoration(
-                        labelText: 'Gün seç',
-                        border: OutlineInputBorder(),
-                      ),
-                      items: List.generate(7, (index) {
-                        final day = index + 1;
+                      items: List.generate(7, (i) {
+                        final d = i + 1;
                         return DropdownMenuItem(
-                          value: day,
-                          child: Text(weekdayName(day)),
+                          value: d,
+                          child: Text(weekdayName(d)),
                         );
                       }),
-                      onChanged: (value) {
-                        if (value == null) return;
-                        setState(() {
-                          selectedWeekday = value;
-                        });
-                      },
+                      onChanged: (v) =>
+                          setState(() => selectedWeekday = v!),
                     ),
-                    const SizedBox(height: 16),
-                    DropdownButtonFormField<String>(
+                    const SizedBox(height: 12),
+                    DropdownButtonFormField(
                       value: selectedTime,
-                      decoration: const InputDecoration(
-                        labelText: 'Saat seç',
-                        border: OutlineInputBorder(),
-                      ),
-                      items: timeOptions.map((time) {
-                        return DropdownMenuItem(
-                          value: time,
-                          child: Text(time),
-                        );
-                      }).toList(),
-                      onChanged: (value) {
-                        if (value == null) return;
-                        setState(() {
-                          selectedTime = value;
-                        });
-                      },
+                      items: timeOptions
+                          .map((t) => DropdownMenuItem(
+                                value: t,
+                                child: Text(t),
+                              ))
+                          .toList(),
+                      onChanged: (v) =>
+                          setState(() => selectedTime = v!),
                     ),
-                    const SizedBox(height: 16),
-                    SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton(
-                        onPressed: isSubmitting ? null : addAvailability,
-                        child: isSubmitting
-                            ? const SizedBox(
-                                height: 20,
-                                width: 20,
-                                child: CircularProgressIndicator(strokeWidth: 2),
-                              )
-                            : const Text('Saati Ekle'),
-                      ),
+                    const SizedBox(height: 12),
+
+                    /// ADD BUTTON
+                    ElevatedButton(
+                      onPressed: isSubmitting ? null : addAvailability,
+                      child: const Text('Saat Ekle'),
+                    ),
+
+                    const SizedBox(height: 8),
+
+                    /// TEMPLATE + CLEAR
+                    Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton(
+                            onPressed:
+                                isSubmitting ? null : addTemplateHours,
+                            child: const Text('Şablon'),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: OutlinedButton(
+                            onPressed: clearDay,
+                            child: const Text('Temizle'),
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),
               ),
             ),
-            const SizedBox(height: 24),
-            const Text(
-              'Mevcut Uygunluklar',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 12),
+
+            const SizedBox(height: 20),
+
+            /// LIST
             if (isLoading)
-              const Center(
-                child: Padding(
-                  padding: EdgeInsets.all(24),
-                  child: CircularProgressIndicator(),
-                ),
-              )
-            else if (availabilityList.isEmpty)
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(16),
-                  color: Colors.grey.shade100,
-                ),
-                child: const Text(
-                  'Henüz uygun saat eklenmedi.',
-                ),
-              )
+              const Center(child: CircularProgressIndicator())
             else
-              ...List.generate(7, (index) {
-                final weekday = index + 1;
-                final items = grouped[weekday] ?? [];
+              ...List.generate(7, (i) {
+                final day = i + 1;
+                final list = data[day] ?? [];
 
                 return Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const SizedBox(height: 16),
                     Text(
-                      weekdayName(weekday),
+                      weekdayName(day),
                       style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                      ),
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold),
                     ),
                     const SizedBox(height: 8),
-                    if (items.isEmpty)
-                      Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(12),
-                          color: Colors.grey.shade100,
-                        ),
-                        child: const Text('Saat yok'),
-                      )
+
+                    if (list.isEmpty)
+                      const Text('Saat yok')
                     else
                       Wrap(
                         spacing: 8,
-                        runSpacing: 8,
-                        children: items.map((item) {
+                        children: list.map((e) {
                           return Chip(
-                            label: Text(item.timeSlot),
-                            deleteIcon: const Icon(Icons.close),
-                            onDeleted: () => deleteAvailability(item.id),
+                            label: Text(e.timeSlot),
+                            onDeleted: () =>
+                                deleteAvailability(e.id),
                           );
                         }).toList(),
                       ),

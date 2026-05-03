@@ -12,6 +12,7 @@ import 'package:flutter_application_1/features/community/presentation/pages/comm
 import 'package:flutter_application_1/features/main/presentation/pages/main_shell_page.dart';
 import 'package:flutter_application_1/features/booking/presentation/pages/booking_page.dart';
 import 'package:flutter_application_1/features/teachers/presentation/pages/teacher_availability_page.dart';
+import 'package:flutter_application_1/features/teachers/presentation/pages/teacher_dashboard_page.dart';
 
 final GoRouter appRouter = GoRouter(
   initialLocation: '/login',
@@ -20,17 +21,26 @@ final GoRouter appRouter = GoRouter(
       path: '/onboarding',
       builder: (context, state) => const OnboardingPage(),
     ),
-    GoRoute(
-  path: '/teacher-availability',
-  builder: (context, state) {
-    final extra = state.extra as Map<String, dynamic>;
 
-    return TeacherAvailabilityPage(
-      teacherId: extra['teacherId'] as String,
-      teacherName: extra['teacherName'] as String,
-    );
-  },
-),
+    /// 🔥 TEACHER DASHBOARD (EKLEDİK)
+    GoRoute(
+      path: '/teacher-dashboard',
+      builder: (context, state) => const TeacherDashboardPage(),
+    ),
+
+    /// AVAILABILITY
+    GoRoute(
+      path: '/teacher-availability',
+      builder: (context, state) {
+        final extra = state.extra as Map<String, dynamic>;
+
+        return TeacherAvailabilityPage(
+          teacherId: extra['teacherId'] as String,
+          teacherName: extra['teacherName'] as String,
+        );
+      },
+    ),
+
     GoRoute(
       path: '/login',
       builder: (context, state) => const LoginPage(),

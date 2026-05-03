@@ -60,10 +60,56 @@ class AvailabilityService {
     });
   }
 
+  Future<void> addMultipleAvailability({
+    required String teacherId,
+    required int weekday,
+    required List<String> timeSlots,
+  }) async {
+    final existingResponse = await supabase
+        .from('teacher_availability')
+        .select('time_slot')
+        .eq('teacher_id', teacherId)
+        .eq('weekday', weekday)
+        .eq('is_active', true);
+
+    final existingTimes = (existingResponse as List)
+        .map((item) => item['time_slot'].toString())
+        .toSet();
+
+    final newSlots = timeSlots
+        .where((time) => !existingTimes.contains(time))
+        .map((time) {
+      return {
+        'teacher_id': teacherId,
+        'weekday': weekday,
+        'time_slot': time,
+        'is_active': true,
+      };
+    }).toList();
+
+    if (newSlots.isEmpty) {
+      throw Exception('Seçilen saatlerin hepsi zaten ekli');
+    }
+
+    await supabase.from('teacher_availability').insert(newSlots);
+  }
+
   Future<void> deleteAvailability(String availabilityId) async {
     await supabase
         .from('teacher_availability')
         .update({'is_active': false})
         .eq('id', availabilityId);
+  }
+
+  Future<void> clearDayAvailability({
+    required String teacherId,
+    required int weekday,
+  }) async {
+    await supabase
+        .from('teacher_availability')
+        .update({'is_active': false})
+        .eq('teacher_id', teacherId)
+        .eq('weekday', weekday)
+        .eq('is_active', true);
   }
 }

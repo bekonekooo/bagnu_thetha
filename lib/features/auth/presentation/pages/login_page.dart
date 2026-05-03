@@ -17,19 +17,42 @@ class _LoginPageState extends State<LoginPage> {
 
   bool isLoading = false;
 
+  Future<String> fetchUserRole(String userId) async {
+    final response = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', userId)
+        .single();
+
+    return response['role']?.toString() ?? 'student';
+  }
+
   Future<void> signIn() async {
     setState(() {
       isLoading = true;
     });
 
     try {
-      await supabase.auth.signInWithPassword(
+      final authResponse = await supabase.auth.signInWithPassword(
         email: emailController.text.trim(),
         password: passwordController.text.trim(),
       );
 
+      final user = authResponse.user;
+
+      if (user == null) {
+        throw Exception('Kullanıcı bulunamadı');
+      }
+
+      final role = await fetchUserRole(user.id);
+
       if (!mounted) return;
-      context.go('/home');
+
+      if (role == 'teacher') {
+        context.go('/teacher-dashboard');
+      } else {
+        context.go('/home');
+      }
     } catch (e) {
       if (!mounted) return;
 

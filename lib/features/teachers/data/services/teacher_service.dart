@@ -13,4 +13,25 @@ class TeacherService {
         .map((item) => TeacherModel.fromMap(item))
         .toList();
   }
+
+  /// 🔥 YENİ METHOD (HATA BURADAN GELİYORDU)
+  Future<TeacherModel?> fetchMyTeacherProfile() async {
+    final user = supabase.auth.currentUser;
+
+    if (user == null) {
+      throw Exception('User not logged in');
+    }
+
+    final response = await supabase
+        .from('teachers')
+        .select()
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+    if (response == null) {
+      return null;
+    }
+
+    return TeacherModel.fromMap(response);
+  }
 }
