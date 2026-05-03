@@ -44,16 +44,15 @@ class TeacherDetailPage extends StatelessWidget {
               ),
               child: Column(
                 children: [
-CircleAvatar(
-  radius: 40,
-  backgroundColor: Colors.deepPurple.shade50,
-  backgroundImage: imageUrl.isNotEmpty
-      ? NetworkImage(imageUrl)
-      : null,
-  child: imageUrl.isEmpty
-      ? const Icon(Icons.person, size: 40)
-      : null,
-),
+                  CircleAvatar(
+                    radius: 40,
+                    backgroundColor: Colors.deepPurple.shade50,
+                    backgroundImage:
+                        imageUrl.isNotEmpty ? NetworkImage(imageUrl) : null,
+                    child: imageUrl.isEmpty
+                        ? const Icon(Icons.person, size: 40)
+                        : null,
+                  ),
                   const SizedBox(height: 16),
                   Text(
                     name,
@@ -98,6 +97,29 @@ CircleAvatar(
               value: bio,
             ),
             const SizedBox(height: 24),
+
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                onPressed: () {
+                  context.push(
+                    '/teacher-availability',
+                    extra: {
+                      'teacherId': teacher['id'].toString(),
+                      'teacherName': teacher['name'].toString(),
+                    },
+                  );
+                },
+                icon: const Icon(Icons.schedule),
+                label: const Text('Uygunlukları Yönet'),
+                style: OutlinedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                ),
+              ),
+            ),
+
+            const SizedBox(height: 12),
+
             SizedBox(
               width: double.infinity,
               child: ElevatedButton.icon(
