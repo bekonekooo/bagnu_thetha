@@ -13,6 +13,7 @@ import 'package:flutter_application_1/features/main/presentation/pages/main_shel
 import 'package:flutter_application_1/features/booking/presentation/pages/booking_page.dart';
 import 'package:flutter_application_1/features/teachers/presentation/pages/teacher_availability_page.dart';
 import 'package:flutter_application_1/features/teachers/presentation/pages/teacher_dashboard_page.dart';
+import 'package:flutter_application_1/features/sessions/presentation/pages/teacher_sessions_page.dart';
 
 final GoRouter appRouter = GoRouter(
   initialLocation: '/login',
@@ -28,6 +29,10 @@ final GoRouter appRouter = GoRouter(
       builder: (context, state) => const TeacherDashboardPage(),
     ),
 
+GoRoute(
+  path: '/teacher-sessions',
+  builder: (context, state) => const TeacherSessionsPage(),
+),
     /// AVAILABILITY
     GoRoute(
       path: '/teacher-availability',

@@ -144,6 +144,135 @@ class SessionService {
     }
   }
 
+  Future<String> fetchMyTeacherId() async {
+  final user = supabase.auth.currentUser;
+
+  if (user == null) {
+    throw Exception('User not logged in');
+  }
+
+  final teacherResponse = await supabase
+      .from('teachers')
+      .select('id')
+      .eq('user_id', user.id)
+      .maybeSingle();
+
+  if (teacherResponse == null) {
+    throw Exception(
+      'Bu hesaba bağlı öğretmen profili yok.\nSupabase → teachers.user_id kontrol et.',
+    );
+  }
+
+  return teacherResponse['id'].toString();
+}
+
+Future<void> cancelTeacherSession(String sessionId) async {
+  final user = supabase.auth.currentUser;
+
+  if (user == null) {
+    throw Exception('User not logged in');
+  }
+
+  final teacherResponse = await supabase
+      .from('teachers')
+      .select('id')
+      .eq('user_id', user.id)
+      .limit(1);
+
+  if ((teacherResponse as List).isEmpty) {
+    throw Exception(
+      'Bu hesaba bağlı öğretmen profili yok. teachers.user_id alanını kontrol et.',
+    );
+  }
+
+  final teacherId = teacherResponse.first['id'].toString();
+
+  final updatedSessions = await supabase
+      .from('sessions')
+      .update({
+        'status': 'cancelled',
+      })
+      .eq('id', sessionId)
+      .eq('teacher_id', teacherId)
+      .select();
+
+  if ((updatedSessions as List).isEmpty) {
+    throw Exception(
+      'Seans güncellenemedi. sessions.teacher_id ile teachers.id eşleşmiyor olabilir veya RLS UPDATE izni eksik.',
+    );
+  }
+}
+
+
+Future<List<SessionModel>> fetchTeacherSessions() async {
+  final user = supabase.auth.currentUser;
+
+  if (user == null) {
+    throw Exception('User not logged in');
+  }
+
+  final teacherResponse = await supabase
+      .from('teachers')
+      .select('id')
+      .eq('user_id', user.id)
+      .maybeSingle();
+
+  if (teacherResponse == null) {
+    throw Exception(
+      'Bu hesaba bağlı öğretmen profili yok.\nSupabase → teachers.user_id kontrol et.',
+    );
+  }
+
+  final teacherId = teacherResponse['id'].toString();
+
+  final sessionsResponse = await supabase
+      .from('sessions')
+      .select()
+      .eq('teacher_id', teacherId)
+      .order('session_date', ascending: true)
+      .order('session_time', ascending: true);
+
+  final sessions = List<Map<String, dynamic>>.from(sessionsResponse);
+
+  final userIds = sessions
+      .map((session) => session['user_id']?.toString())
+      .where((id) => id != null && id.isNotEmpty)
+      .cast<String>()
+      .toSet()
+      .toList();
+
+  if (userIds.isEmpty) {
+    return sessions.map((item) => SessionModel.fromMap(item)).toList();
+  }
+
+  final profilesResponse = await supabase
+      .from('profiles')
+      .select('id, full_name')
+     .inFilter(
+  'id',
+  userIds.map((id) => id.toString()).toList(),
+);
+  final profiles = List<Map<String, dynamic>>.from(profilesResponse);
+
+  final profileMap = {
+    for (final profile in profiles)
+      profile['id'].toString(): profile['full_name']?.toString(),
+  };
+
+  final sessionsWithStudentNames = sessions.map((session) {
+    return {
+      ...session,
+      'student_name': profileMap[session['user_id'].toString()],
+    };
+  }).toList();
+
+  return sessionsWithStudentNames
+      .map((item) => SessionModel.fromMap(item))
+      .toList();
+}
+
+
+
   RealtimeChannel subscribeToTeacherSessions({
     required String teacherId,
     required VoidCallback onChange,

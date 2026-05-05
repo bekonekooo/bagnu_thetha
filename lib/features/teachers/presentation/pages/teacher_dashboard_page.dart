@@ -50,13 +50,6 @@ class _TeacherDashboardPageState extends State<TeacherDashboardPage> {
     }
   }
 
-  Future<void> signOut() async {
-    await teacherService.fetchMyTeacherProfile();
-
-    if (!mounted) return;
-    context.go('/login');
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -141,6 +134,7 @@ class _TeacherDashboardPageState extends State<TeacherDashboardPage> {
                         ),
                       ),
                       const SizedBox(height: 24),
+
                       SizedBox(
                         width: double.infinity,
                         child: ElevatedButton.icon(
@@ -155,6 +149,22 @@ class _TeacherDashboardPageState extends State<TeacherDashboardPage> {
                           },
                           icon: const Icon(Icons.schedule),
                           label: const Text('Uygunluklarımı Yönet'),
+                          style: ElevatedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                          ),
+                        ),
+                      ),
+
+                      const SizedBox(height: 12),
+
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton.icon(
+                          onPressed: () {
+                            context.push('/teacher-sessions');
+                          },
+                          icon: const Icon(Icons.list_alt),
+                          label: const Text('Seanslarım'),
                           style: ElevatedButton.styleFrom(
                             padding: const EdgeInsets.symmetric(vertical: 14),
                           ),

@@ -9,6 +9,9 @@ class SessionModel {
   final String? notes;
   final String? createdAt;
 
+  // 🔥 EKLEDİK
+  final String? studentName;
+
   SessionModel({
     required this.id,
     required this.userId,
@@ -19,6 +22,7 @@ class SessionModel {
     required this.status,
     this.notes,
     this.createdAt,
+    this.studentName,
   });
 
   factory SessionModel.fromMap(Map<String, dynamic> map) {
@@ -32,6 +36,9 @@ class SessionModel {
       status: map['status'] ?? '',
       notes: map['notes'],
       createdAt: map['created_at'],
+
+      // 🔥 BURASI JOIN
+    studentName: map['student_name']?.toString(),
     );
   }
 
