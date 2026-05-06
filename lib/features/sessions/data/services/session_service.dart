@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter_application_1/core/services/supabase_service.dart';
+import 'package:flutter_application_1/features/notifications/data/services/notification_service.dart';
 import '../models/session_model.dart';
 
 class SessionService {
@@ -27,6 +28,24 @@ class SessionService {
         'status': 'upcoming',
         'notes': notes,
       });
+
+      final teacherResponse = await supabase
+          .from('teachers')
+          .select('user_id')
+          .eq('id', teacherId)
+          .maybeSingle();
+
+      final teacherUserId = teacherResponse?['user_id']?.toString();
+
+      if (teacherUserId != null && teacherUserId.isNotEmpty) {
+        await NotificationService().createNotification(
+          userId: teacherUserId,
+          title: 'Yeni Seans Rezervasyonu',
+          message:
+              '$teacherName için ${sessionDate.toIso8601String().split('T').first} - $sessionTime saatinde yeni bir seans oluşturuldu.',
+          type: 'booking',
+        );
+      }
     } catch (e) {
       throw Exception('Bu saat dolmuş olabilir, lütfen başka bir saat seçin');
     }
@@ -76,20 +95,51 @@ class SessionService {
       throw Exception('User not logged in');
     }
 
-    await supabase
+    final updatedSessions = await supabase
         .from('sessions')
-        .update({
-          'status': 'cancelled',
-        })
+        .update({'status': 'cancelled'})
         .eq('id', sessionId)
-        .eq('user_id', user.id);
+        .eq('user_id', user.id)
+        .eq('status', 'upcoming')
+        .select();
+
+    if ((updatedSessions as List).isEmpty) {
+      throw Exception('Seans iptal edilemedi veya zaten iptal edilmiş.');
+    }
+
+    final session = updatedSessions.first;
+
+    final teacherId = session['teacher_id']?.toString();
+    final teacherName = session['teacher_name']?.toString() ?? 'Öğretmen';
+    final sessionDate = session['session_date']?.toString() ?? '';
+    final sessionTime = session['session_time']?.toString() ?? '';
+
+    if (teacherId == null || teacherId.isEmpty) return;
+
+    final teacherResponse = await supabase
+        .from('teachers')
+        .select('user_id')
+        .eq('id', teacherId)
+        .maybeSingle();
+
+    final teacherUserId = teacherResponse?['user_id']?.toString();
+
+    if (teacherUserId != null && teacherUserId.isNotEmpty) {
+      await NotificationService().createNotification(
+        userId: teacherUserId,
+        title: 'Seans Öğrenci Tarafından İptal Edildi',
+        message:
+            '$teacherName için $sessionDate - $sessionTime seansı öğrenci tarafından iptal edildi.',
+        type: 'student_cancelled',
+      );
+    }
   }
 
   DateTime? _combineDateAndTime(String date, String time) {
     try {
       final parsedDate = DateTime.parse(date);
-
       final parts = time.split(':');
+
       if (parts.length != 2) return null;
 
       final hour = int.tryParse(parts[0]);
@@ -145,133 +195,140 @@ class SessionService {
   }
 
   Future<String> fetchMyTeacherId() async {
-  final user = supabase.auth.currentUser;
+    final user = supabase.auth.currentUser;
 
-  if (user == null) {
-    throw Exception('User not logged in');
+    if (user == null) {
+      throw Exception('User not logged in');
+    }
+
+    final teacherResponse = await supabase
+        .from('teachers')
+        .select('id')
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+    if (teacherResponse == null) {
+      throw Exception(
+        'Bu hesaba bağlı öğretmen profili yok.\nSupabase → teachers.user_id kontrol et.',
+      );
+    }
+
+    return teacherResponse['id'].toString();
   }
 
-  final teacherResponse = await supabase
-      .from('teachers')
-      .select('id')
-      .eq('user_id', user.id)
-      .maybeSingle();
+  Future<void> cancelTeacherSession(String sessionId) async {
+    final user = supabase.auth.currentUser;
 
-  if (teacherResponse == null) {
-    throw Exception(
-      'Bu hesaba bağlı öğretmen profili yok.\nSupabase → teachers.user_id kontrol et.',
-    );
+    if (user == null) {
+      throw Exception('User not logged in');
+    }
+
+    final teacherResponse = await supabase
+        .from('teachers')
+        .select('id')
+        .eq('user_id', user.id)
+        .limit(1);
+
+    if ((teacherResponse as List).isEmpty) {
+      throw Exception(
+        'Bu hesaba bağlı öğretmen profili yok. teachers.user_id alanını kontrol et.',
+      );
+    }
+
+    final teacherId = teacherResponse.first['id'].toString();
+
+    final updatedSessions = await supabase
+        .from('sessions')
+        .update({'status': 'cancelled'})
+        .eq('id', sessionId)
+        .eq('teacher_id', teacherId)
+        .eq('status', 'upcoming')
+        .select();
+
+    if ((updatedSessions as List).isEmpty) {
+      throw Exception(
+        'Seans güncellenemedi. sessions.teacher_id ile teachers.id eşleşmiyor olabilir veya RLS UPDATE izni eksik.',
+      );
+    }
+
+    final session = updatedSessions.first;
+    final studentUserId = session['user_id']?.toString();
+
+    if (studentUserId != null && studentUserId.isNotEmpty) {
+      await NotificationService().createNotification(
+        userId: studentUserId,
+        title: 'Seans İptal Edildi',
+        message:
+            '${session['session_date']} - ${session['session_time']} seansınız öğretmen tarafından iptal edildi.',
+        type: 'cancelled',
+      );
+    }
   }
 
-  return teacherResponse['id'].toString();
-}
+  Future<List<SessionModel>> fetchTeacherSessions() async {
+    final user = supabase.auth.currentUser;
 
-Future<void> cancelTeacherSession(String sessionId) async {
-  final user = supabase.auth.currentUser;
+    if (user == null) {
+      throw Exception('User not logged in');
+    }
 
-  if (user == null) {
-    throw Exception('User not logged in');
-  }
+    final teacherResponse = await supabase
+        .from('teachers')
+        .select('id')
+        .eq('user_id', user.id)
+        .maybeSingle();
 
-  final teacherResponse = await supabase
-      .from('teachers')
-      .select('id')
-      .eq('user_id', user.id)
-      .limit(1);
+    if (teacherResponse == null) {
+      throw Exception(
+        'Bu hesaba bağlı öğretmen profili yok.\nSupabase → teachers.user_id kontrol et.',
+      );
+    }
 
-  if ((teacherResponse as List).isEmpty) {
-    throw Exception(
-      'Bu hesaba bağlı öğretmen profili yok. teachers.user_id alanını kontrol et.',
-    );
-  }
+    final teacherId = teacherResponse['id'].toString();
 
-  final teacherId = teacherResponse.first['id'].toString();
+    final sessionsResponse = await supabase
+        .from('sessions')
+        .select()
+        .eq('teacher_id', teacherId)
+        .order('session_date', ascending: true)
+        .order('session_time', ascending: true);
 
-  final updatedSessions = await supabase
-      .from('sessions')
-      .update({
-        'status': 'cancelled',
-      })
-      .eq('id', sessionId)
-      .eq('teacher_id', teacherId)
-      .select();
+    final sessions = List<Map<String, dynamic>>.from(sessionsResponse);
 
-  if ((updatedSessions as List).isEmpty) {
-    throw Exception(
-      'Seans güncellenemedi. sessions.teacher_id ile teachers.id eşleşmiyor olabilir veya RLS UPDATE izni eksik.',
-    );
-  }
-}
+    final userIds = sessions
+        .map((session) => session['user_id']?.toString())
+        .where((id) => id != null && id.isNotEmpty)
+        .cast<String>()
+        .toSet()
+        .toList();
 
+    if (userIds.isEmpty) {
+      return sessions.map((item) => SessionModel.fromMap(item)).toList();
+    }
 
-Future<List<SessionModel>> fetchTeacherSessions() async {
-  final user = supabase.auth.currentUser;
+    final profilesResponse = await supabase
+        .from('profiles')
+        .select('id, full_name')
+        .inFilter('id', userIds);
 
-  if (user == null) {
-    throw Exception('User not logged in');
-  }
+    final profiles = List<Map<String, dynamic>>.from(profilesResponse);
 
-  final teacherResponse = await supabase
-      .from('teachers')
-      .select('id')
-      .eq('user_id', user.id)
-      .maybeSingle();
-
-  if (teacherResponse == null) {
-    throw Exception(
-      'Bu hesaba bağlı öğretmen profili yok.\nSupabase → teachers.user_id kontrol et.',
-    );
-  }
-
-  final teacherId = teacherResponse['id'].toString();
-
-  final sessionsResponse = await supabase
-      .from('sessions')
-      .select()
-      .eq('teacher_id', teacherId)
-      .order('session_date', ascending: true)
-      .order('session_time', ascending: true);
-
-  final sessions = List<Map<String, dynamic>>.from(sessionsResponse);
-
-  final userIds = sessions
-      .map((session) => session['user_id']?.toString())
-      .where((id) => id != null && id.isNotEmpty)
-      .cast<String>()
-      .toSet()
-      .toList();
-
-  if (userIds.isEmpty) {
-    return sessions.map((item) => SessionModel.fromMap(item)).toList();
-  }
-
-  final profilesResponse = await supabase
-      .from('profiles')
-      .select('id, full_name')
-     .inFilter(
-  'id',
-  userIds.map((id) => id.toString()).toList(),
-);
-  final profiles = List<Map<String, dynamic>>.from(profilesResponse);
-
-  final profileMap = {
-    for (final profile in profiles)
-      profile['id'].toString(): profile['full_name']?.toString(),
-  };
-
-  final sessionsWithStudentNames = sessions.map((session) {
-    return {
-      ...session,
-      'student_name': profileMap[session['user_id'].toString()],
+    final profileMap = {
+      for (final profile in profiles)
+        profile['id'].toString(): profile['full_name']?.toString(),
     };
-  }).toList();
 
-  return sessionsWithStudentNames
-      .map((item) => SessionModel.fromMap(item))
-      .toList();
-}
+    final sessionsWithStudentNames = sessions.map((session) {
+      return {
+        ...session,
+        'student_name': profileMap[session['user_id'].toString()],
+      };
+    }).toList();
 
-
+    return sessionsWithStudentNames
+        .map((item) => SessionModel.fromMap(item))
+        .toList();
+  }
 
   RealtimeChannel subscribeToTeacherSessions({
     required String teacherId,
@@ -284,10 +341,6 @@ Future<List<SessionModel>> fetchTeacherSessions() async {
       schema: 'public',
       table: 'sessions',
       callback: (payload) {
-        debugPrint('Realtime payload event: ${payload.eventType}');
-        debugPrint('Realtime newRecord: ${payload.newRecord}');
-        debugPrint('Realtime oldRecord: ${payload.oldRecord}');
-
         final newTeacherId = payload.newRecord['teacher_id']?.toString();
         final oldTeacherId = payload.oldRecord['teacher_id']?.toString();
 
@@ -297,12 +350,7 @@ Future<List<SessionModel>> fetchTeacherSessions() async {
       },
     );
 
-    channel.subscribe((status, [error]) {
-      debugPrint('Realtime status: $status');
-      if (error != null) {
-        debugPrint('Realtime error: $error');
-      }
-    });
+    channel.subscribe();
 
     return channel;
   }
