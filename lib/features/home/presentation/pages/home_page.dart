@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_application_1/core/services/supabase_service.dart';
+import 'package:flutter_application_1/features/notifications/data/presentation/widgets/notification_badge_button.dart';
 
 import '../widgets/home_header.dart';
 import '../widgets/home_menu_grid.dart';
@@ -65,6 +66,7 @@ class _HomePageState extends State<HomePage> {
       appBar: AppBar(
         title: const Text('BagnuTheta'),
         actions: [
+          const NotificationBadgeButton(),
           IconButton(
             onPressed: signOut,
             icon: const Icon(Icons.logout),

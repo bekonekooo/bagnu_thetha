@@ -8,10 +8,6 @@ class NotificationService {
   Future<List<NotificationModel>> fetchMyNotifications() async {
     final user = supabase.auth.currentUser;
 
-    // DEBUG:
-    // debugPrint('NOTIFICATION CURRENT USER ID: ${user?.id}');
-    // debugPrint('NOTIFICATION CURRENT USER EMAIL: ${user?.email}');
-
     if (user == null) {
       throw Exception('User not logged in');
     }
@@ -21,9 +17,6 @@ class NotificationService {
         .select()
         .eq('user_id', user.id)
         .order('created_at', ascending: false);
-
-    // DEBUG:
-    // debugPrint('NOTIFICATION RESPONSE: $response');
 
     return (response as List)
         .map((item) => NotificationModel.fromMap(item))
@@ -47,10 +40,17 @@ class NotificationService {
   }
 
   Future<void> markAsRead(String notificationId) async {
+    final user = supabase.auth.currentUser;
+
+    if (user == null) {
+      throw Exception('User not logged in');
+    }
+
     await supabase
         .from('notifications')
         .update({'is_read': true})
-        .eq('id', notificationId);
+        .eq('id', notificationId)
+        .eq('user_id', user.id);
   }
 
   Future<void> markAllAsRead() async {
@@ -65,6 +65,33 @@ class NotificationService {
         .update({'is_read': true})
         .eq('user_id', user.id)
         .eq('is_read', false);
+  }
+
+  Future<void> deleteNotification(String notificationId) async {
+    final user = supabase.auth.currentUser;
+
+    if (user == null) {
+      throw Exception('User not logged in');
+    }
+
+    await supabase
+        .from('notifications')
+        .delete()
+        .eq('id', notificationId)
+        .eq('user_id', user.id);
+  }
+
+  Future<void> deleteAllMyNotifications() async {
+    final user = supabase.auth.currentUser;
+
+    if (user == null) {
+      throw Exception('User not logged in');
+    }
+
+    await supabase
+        .from('notifications')
+        .delete()
+        .eq('user_id', user.id);
   }
 
   Future<void> createNotification({
@@ -87,10 +114,6 @@ class NotificationService {
   }) {
     final user = supabase.auth.currentUser;
 
-    // DEBUG:
-    // debugPrint('REALTIME NOTIFICATION USER ID: ${user?.id}');
-    // debugPrint('REALTIME NOTIFICATION USER EMAIL: ${user?.email}');
-
     if (user == null) {
       throw Exception('User not logged in');
     }
@@ -107,21 +130,11 @@ class NotificationService {
         value: user.id,
       ),
       callback: (payload) {
-        // DEBUG:
-        // debugPrint('Notification realtime: ${payload.eventType}');
-        // debugPrint('Notification payload: ${payload.newRecord}');
-
         onChange();
       },
     );
 
-    channel.subscribe((status, [error]) {
-      // DEBUG:
-      // debugPrint('Notification realtime status: $status');
-      // if (error != null) {
-      //   debugPrint('Notification realtime error: $error');
-      // }
-    });
+    channel.subscribe();
 
     return channel;
   }

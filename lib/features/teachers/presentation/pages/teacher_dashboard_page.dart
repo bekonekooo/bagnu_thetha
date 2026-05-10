@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:flutter_application_1/features/notifications/data/presentation/widgets/notification_badge_button.dart';
+
 import '../../data/models/teacher_model.dart';
 import '../../data/services/teacher_service.dart';
 
@@ -55,6 +57,9 @@ class _TeacherDashboardPageState extends State<TeacherDashboardPage> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Öğretmen Paneli'),
+        actions: const [
+          NotificationBadgeButton(),
+        ],
       ),
       body: isLoading
           ? const Center(child: CircularProgressIndicator())
@@ -134,7 +139,6 @@ class _TeacherDashboardPageState extends State<TeacherDashboardPage> {
                         ),
                       ),
                       const SizedBox(height: 24),
-
                       SizedBox(
                         width: double.infinity,
                         child: ElevatedButton.icon(
@@ -154,9 +158,7 @@ class _TeacherDashboardPageState extends State<TeacherDashboardPage> {
                           ),
                         ),
                       ),
-
                       const SizedBox(height: 12),
-
                       SizedBox(
                         width: double.infinity,
                         child: ElevatedButton.icon(
