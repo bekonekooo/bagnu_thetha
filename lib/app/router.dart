@@ -17,6 +17,7 @@ import 'package:flutter_application_1/features/teachers/presentation/pages/teach
 import 'package:flutter_application_1/features/teachers/data/models/teacher_model.dart';
 import 'package:flutter_application_1/features/sessions/presentation/pages/teacher_sessions_page.dart';
 import 'package:flutter_application_1/features/notifications/data/presentation/pages/notifications_page.dart';
+import 'package:flutter_application_1/features/profile/presentation/pages/profile_edit_page.dart';
 
 final GoRouter appRouter = GoRouter(
   initialLocation: '/login',
@@ -36,9 +37,7 @@ final GoRouter appRouter = GoRouter(
       builder: (context, state) {
         final teacher = state.extra as TeacherModel;
 
-        return TeacherEditProfilePage(
-          teacher: teacher,
-        );
+        return TeacherEditProfilePage(teacher: teacher);
       },
     ),
 
@@ -64,10 +63,7 @@ final GoRouter appRouter = GoRouter(
       },
     ),
 
-    GoRoute(
-      path: '/login',
-      builder: (context, state) => const LoginPage(),
-    ),
+    GoRoute(path: '/login', builder: (context, state) => const LoginPage()),
 
     GoRoute(
       path: '/register',
@@ -77,17 +73,19 @@ final GoRouter appRouter = GoRouter(
     ShellRoute(
       builder: (context, state, child) => MainShellPage(child: child),
       routes: [
-        GoRoute(
-          path: '/home',
-          builder: (context, state) => const HomePage(),
-        ),
-        GoRoute(
-          path: '/sessions',
-          builder: (context, state) => SessionsPage(),
-        ),
+        GoRoute(path: '/home', builder: (context, state) => const HomePage()),
+        GoRoute(path: '/sessions', builder: (context, state) => SessionsPage()),
         GoRoute(
           path: '/profile',
           builder: (context, state) => const ProfilePage(),
+        ),
+        GoRoute(
+          path: '/profile-edit',
+          builder: (context, state) {
+            final profile = state.extra as Map<String, dynamic>;
+
+            return ProfileEditPage(profile: profile);
+          },
         ),
       ],
     ),

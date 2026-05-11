@@ -82,11 +82,7 @@ class _ProfilePageState extends State<ProfilePage> {
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
         boxShadow: const [
-          BoxShadow(
-            blurRadius: 8,
-            color: Colors.black12,
-            offset: Offset(0, 3),
-          ),
+          BoxShadow(blurRadius: 8, color: Colors.black12, offset: Offset(0, 3)),
         ],
         border: Border.all(color: Colors.grey.shade200),
       ),
@@ -100,10 +96,7 @@ class _ProfilePageState extends State<ProfilePage> {
               children: [
                 Text(
                   title,
-                  style: const TextStyle(
-                    fontSize: 13,
-                    color: Colors.grey,
-                  ),
+                  style: const TextStyle(fontSize: 13, color: Colors.grey),
                 ),
                 const SizedBox(height: 4),
                 Text(
@@ -124,25 +117,16 @@ class _ProfilePageState extends State<ProfilePage> {
   @override
   Widget build(BuildContext context) {
     if (isLoading) {
-      return const Scaffold(
-        body: Center(
-          child: CircularProgressIndicator(),
-        ),
-      );
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
     if (errorMessage != null) {
       return Scaffold(
-        appBar: AppBar(
-          title: const Text('Profilim'),
-        ),
+        appBar: AppBar(title: const Text('Profilim')),
         body: Center(
           child: Padding(
             padding: const EdgeInsets.all(16),
-            child: Text(
-              errorMessage!,
-              textAlign: TextAlign.center,
-            ),
+            child: Text(errorMessage!, textAlign: TextAlign.center),
           ),
         ),
       );
@@ -153,9 +137,7 @@ class _ProfilePageState extends State<ProfilePage> {
     final createdAt = formatDate(profile?['created_at']);
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Profilim'),
-      ),
+      appBar: AppBar(title: const Text('Profilim')),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -193,10 +175,7 @@ class _ProfilePageState extends State<ProfilePage> {
                   const SizedBox(height: 8),
                   Text(
                     email,
-                    style: const TextStyle(
-                      fontSize: 15,
-                      color: Colors.grey,
-                    ),
+                    style: const TextStyle(fontSize: 15, color: Colors.grey),
                     textAlign: TextAlign.center,
                   ),
                 ],
@@ -219,12 +198,22 @@ class _ProfilePageState extends State<ProfilePage> {
               value: createdAt,
             ),
             const SizedBox(height: 24),
+
             SizedBox(
               width: double.infinity,
               child: ElevatedButton.icon(
-                onPressed: signOut,
-                icon: const Icon(Icons.logout),
-                label: const Text('Çıkış Yap'),
+                onPressed: () async {
+                  final result = await context.push(
+                    '/profile-edit',
+                    extra: profile,
+                  );
+
+                  if (result == true) {
+                    getProfile();
+                  }
+                },
+                icon: const Icon(Icons.edit),
+                label: const Text('Profili Düzenle'),
                 style: ElevatedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: 14),
                 ),
