@@ -158,20 +158,28 @@ class _TeacherDashboardPageState extends State<TeacherDashboardPage> {
                           ),
                         ),
                       ),
-                      const SizedBox(height: 12),
-                      SizedBox(
-                        width: double.infinity,
-                        child: ElevatedButton.icon(
-                          onPressed: () {
-                            context.push('/teacher-sessions');
-                          },
-                          icon: const Icon(Icons.list_alt),
-                          label: const Text('Seanslarım'),
-                          style: ElevatedButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(vertical: 14),
-                          ),
-                        ),
-                      ),
+                const SizedBox(height: 12),
+
+SizedBox(
+  width: double.infinity,
+  child: ElevatedButton.icon(
+    onPressed: () async {
+      final result = await context.push(
+        '/teacher-edit-profile',
+        extra: teacher,
+      );
+
+      if (result == true) {
+        loadTeacher();
+      }
+    },
+    icon: const Icon(Icons.edit),
+    label: const Text('Profilimi Düzenle'),
+    style: ElevatedButton.styleFrom(
+      padding: const EdgeInsets.symmetric(vertical: 14),
+    ),
+  ),
+),
                     ],
                   ),
                 ),

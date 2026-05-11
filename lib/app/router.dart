@@ -13,9 +13,10 @@ import 'package:flutter_application_1/features/main/presentation/pages/main_shel
 import 'package:flutter_application_1/features/booking/presentation/pages/booking_page.dart';
 import 'package:flutter_application_1/features/teachers/presentation/pages/teacher_availability_page.dart';
 import 'package:flutter_application_1/features/teachers/presentation/pages/teacher_dashboard_page.dart';
+import 'package:flutter_application_1/features/teachers/presentation/pages/teacher_edit_profile_page.dart';
+import 'package:flutter_application_1/features/teachers/data/models/teacher_model.dart';
 import 'package:flutter_application_1/features/sessions/presentation/pages/teacher_sessions_page.dart';
 import 'package:flutter_application_1/features/notifications/data/presentation/pages/notifications_page.dart';
-
 
 final GoRouter appRouter = GoRouter(
   initialLocation: '/login',
@@ -25,23 +26,32 @@ final GoRouter appRouter = GoRouter(
       builder: (context, state) => const OnboardingPage(),
     ),
 
-    /// 🔥 TEACHER DASHBOARD (EKLEDİK)
     GoRoute(
       path: '/teacher-dashboard',
       builder: (context, state) => const TeacherDashboardPage(),
     ),
 
-GoRoute(
-  path: '/notifications',
-  builder: (context, state) => const NotificationsPage(),
-),
+    GoRoute(
+      path: '/teacher-edit-profile',
+      builder: (context, state) {
+        final teacher = state.extra as TeacherModel;
 
+        return TeacherEditProfilePage(
+          teacher: teacher,
+        );
+      },
+    ),
 
-GoRoute(
-  path: '/teacher-sessions',
-  builder: (context, state) => const TeacherSessionsPage(),
-),
-    /// AVAILABILITY
+    GoRoute(
+      path: '/notifications',
+      builder: (context, state) => const NotificationsPage(),
+    ),
+
+    GoRoute(
+      path: '/teacher-sessions',
+      builder: (context, state) => const TeacherSessionsPage(),
+    ),
+
     GoRoute(
       path: '/teacher-availability',
       builder: (context, state) {
@@ -58,6 +68,7 @@ GoRoute(
       path: '/login',
       builder: (context, state) => const LoginPage(),
     ),
+
     GoRoute(
       path: '/register',
       builder: (context, state) => const RegisterPage(),
@@ -102,10 +113,12 @@ GoRoute(
       path: '/trainings',
       builder: (context, state) => const TrainingsPage(),
     ),
+
     GoRoute(
       path: '/guidance',
       builder: (context, state) => const GuidancePage(),
     ),
+
     GoRoute(
       path: '/community',
       builder: (context, state) => const CommunityPage(),

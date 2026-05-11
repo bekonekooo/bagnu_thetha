@@ -14,7 +14,6 @@ class TeacherService {
         .toList();
   }
 
-  /// 🔥 YENİ METHOD (HATA BURADAN GELİYORDU)
   Future<TeacherModel?> fetchMyTeacherProfile() async {
     final user = supabase.auth.currentUser;
 
@@ -33,5 +32,36 @@ class TeacherService {
     }
 
     return TeacherModel.fromMap(response);
+  }
+
+  Future<void> updateMyTeacherProfile({
+    required String teacherId,
+    required String name,
+    required String specialty,
+    required String category,
+    required String experience,
+    required String bio,
+    required String imageUrl,
+    required bool isActive,
+  }) async {
+    final user = supabase.auth.currentUser;
+
+    if (user == null) {
+      throw Exception('User not logged in');
+    }
+
+    await supabase
+        .from('teachers')
+        .update({
+          'name': name,
+          'specialty': specialty,
+          'category': category,
+          'experience': experience,
+          'bio': bio,
+          'image_url': imageUrl,
+          'is_active': isActive,
+        })
+        .eq('id', teacherId)
+        .eq('user_id', user.id);
   }
 }
