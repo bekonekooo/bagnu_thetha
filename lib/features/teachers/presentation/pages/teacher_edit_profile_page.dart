@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import 'package:flutter_application_1/core/services/image_upload_service.dart';
 import '../../data/models/teacher_model.dart';
 import '../../data/services/teacher_service.dart';
 
@@ -13,13 +14,12 @@ class TeacherEditProfilePage extends StatefulWidget {
   });
 
   @override
-  State<TeacherEditProfilePage> createState() =>
-      _TeacherEditProfilePageState();
+  State<TeacherEditProfilePage> createState() => _TeacherEditProfilePageState();
 }
 
-class _TeacherEditProfilePageState
-    extends State<TeacherEditProfilePage> {
+class _TeacherEditProfilePageState extends State<TeacherEditProfilePage> {
   final TeacherService teacherService = TeacherService();
+  final ImageUploadService imageUploadService = ImageUploadService();
 
   late TextEditingController nameController;
   late TextEditingController specialtyController;
@@ -30,30 +30,77 @@ class _TeacherEditProfilePageState
 
   bool isActive = true;
   bool isLoading = false;
+  bool isUploadingImage = false;
 
   @override
   void initState() {
     super.initState();
 
-    nameController =
-        TextEditingController(text: widget.teacher.name);
-
+    nameController = TextEditingController(text: widget.teacher.name);
     specialtyController =
         TextEditingController(text: widget.teacher.specialty);
-
     categoryController =
         TextEditingController(text: widget.teacher.category);
-
     experienceController =
         TextEditingController(text: widget.teacher.experience);
-
-    bioController =
-        TextEditingController(text: widget.teacher.bio);
-
+    bioController = TextEditingController(text: widget.teacher.bio);
     imageUrlController =
         TextEditingController(text: widget.teacher.imageUrl);
 
     isActive = widget.teacher.isActive;
+  }
+
+  @override
+  void dispose() {
+    nameController.dispose();
+    specialtyController.dispose();
+    categoryController.dispose();
+    experienceController.dispose();
+    bioController.dispose();
+    imageUrlController.dispose();
+    super.dispose();
+  }
+
+  Future<void> pickAndUploadImage() async {
+    setState(() {
+      isUploadingImage = true;
+    });
+
+    try {
+      final uploadedUrl = await imageUploadService.pickAndUploadAvatar(
+        folderName: 'teachers',
+      );
+
+      if (!mounted) return;
+
+      if (uploadedUrl == null) {
+        return;
+      }
+
+      setState(() {
+        imageUrlController.text = uploadedUrl;
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Fotoğraf yüklendi. Kaydetmeyi unutma.'),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Fotoğraf yüklenemedi: $e'),
+        ),
+      );
+    } finally {
+      if (!mounted) return;
+
+      setState(() {
+        isUploadingImage = false;
+      });
+    }
   }
 
   Future<void> saveProfile() async {
@@ -119,6 +166,45 @@ class _TeacherEditProfilePageState
     );
   }
 
+  Widget buildImagePreview() {
+    final imageUrl = imageUrlController.text.trim();
+
+    return Column(
+      children: [
+        CircleAvatar(
+          radius: 44,
+          backgroundImage: imageUrl.isNotEmpty ? NetworkImage(imageUrl) : null,
+          child: imageUrl.isEmpty
+              ? const Icon(
+                  Icons.person,
+                  size: 44,
+                )
+              : null,
+        ),
+        const SizedBox(height: 12),
+        SizedBox(
+          width: double.infinity,
+          child: OutlinedButton.icon(
+            onPressed: isUploadingImage ? null : pickAndUploadImage,
+            icon: isUploadingImage
+                ? const SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Icon(Icons.image),
+            label: Text(
+              isUploadingImage ? 'Yükleniyor...' : 'Galeriden Fotoğraf Seç',
+            ),
+            style: OutlinedButton.styleFrom(
+              padding: const EdgeInsets.symmetric(vertical: 14),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -129,6 +215,8 @@ class _TeacherEditProfilePageState
         padding: const EdgeInsets.all(16),
         child: Column(
           children: [
+            buildImagePreview(),
+            const SizedBox(height: 24),
             buildTextField(
               label: 'İsim',
               controller: nameController,
@@ -179,13 +267,10 @@ class _TeacherEditProfilePageState
                       )
                     : const Icon(Icons.save),
                 label: Text(
-                  isLoading
-                      ? 'Kaydediliyor...'
-                      : 'Kaydet',
+                  isLoading ? 'Kaydediliyor...' : 'Kaydet',
                 ),
                 style: ElevatedButton.styleFrom(
-                  padding:
-                      const EdgeInsets.symmetric(vertical: 14),
+                  padding: const EdgeInsets.symmetric(vertical: 14),
                 ),
               ),
             ),

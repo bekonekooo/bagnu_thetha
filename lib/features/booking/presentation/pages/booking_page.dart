@@ -257,10 +257,17 @@ class _BookingPageState extends State<BookingPage> {
 
       if (!mounted) return;
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Seans başarıyla oluşturuldu')),
-      );
-
+context.go(
+  '/booking-success',
+  extra: {
+    'teacherName': widget.teacherName,
+    'sessionDate': formattedDate,
+    'sessionTime': selectedTime!,
+    'notes': notesController.text.trim().isEmpty
+        ? null
+        : notesController.text.trim(),
+  },
+);
       context.go('/sessions');
     } catch (e) {
       if (!mounted) return;

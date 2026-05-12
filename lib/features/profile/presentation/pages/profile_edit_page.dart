@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import 'package:flutter_application_1/core/services/image_upload_service.dart';
 import '../../data/services/profile_service.dart';
 
 class ProfileEditPage extends StatefulWidget {
@@ -12,13 +13,12 @@ class ProfileEditPage extends StatefulWidget {
   });
 
   @override
-  State<ProfileEditPage> createState() =>
-      _ProfileEditPageState();
+  State<ProfileEditPage> createState() => _ProfileEditPageState();
 }
 
-class _ProfileEditPageState
-    extends State<ProfileEditPage> {
+class _ProfileEditPageState extends State<ProfileEditPage> {
   final ProfileService profileService = ProfileService();
+  final ImageUploadService imageUploadService = ImageUploadService();
 
   late TextEditingController fullNameController;
   late TextEditingController phoneController;
@@ -26,6 +26,7 @@ class _ProfileEditPageState
   late TextEditingController imageUrlController;
 
   bool isLoading = false;
+  bool isUploadingImage = false;
 
   @override
   void initState() {
@@ -46,6 +47,57 @@ class _ProfileEditPageState
     imageUrlController = TextEditingController(
       text: widget.profile['image_url'] ?? '',
     );
+  }
+
+  @override
+  void dispose() {
+    fullNameController.dispose();
+    phoneController.dispose();
+    bioController.dispose();
+    imageUrlController.dispose();
+    super.dispose();
+  }
+
+  Future<void> pickAndUploadImage() async {
+    setState(() {
+      isUploadingImage = true;
+    });
+
+    try {
+      final uploadedUrl = await imageUploadService.pickAndUploadAvatar(
+        folderName: 'profiles',
+      );
+
+      if (!mounted) return;
+
+      if (uploadedUrl == null) {
+        return;
+      }
+
+      setState(() {
+        imageUrlController.text = uploadedUrl;
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Fotoğraf yüklendi. Kaydetmeyi unutma.'),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Fotoğraf yüklenemedi: $e'),
+        ),
+      );
+    } finally {
+      if (!mounted) return;
+
+      setState(() {
+        isUploadingImage = false;
+      });
+    }
   }
 
   Future<void> saveProfile() async {
@@ -107,6 +159,45 @@ class _ProfileEditPageState
     );
   }
 
+  Widget buildImagePreview() {
+    final imageUrl = imageUrlController.text.trim();
+
+    return Column(
+      children: [
+        CircleAvatar(
+          radius: 44,
+          backgroundImage: imageUrl.isNotEmpty ? NetworkImage(imageUrl) : null,
+          child: imageUrl.isEmpty
+              ? const Icon(
+                  Icons.person,
+                  size: 44,
+                )
+              : null,
+        ),
+        const SizedBox(height: 12),
+        SizedBox(
+          width: double.infinity,
+          child: OutlinedButton.icon(
+            onPressed: isUploadingImage ? null : pickAndUploadImage,
+            icon: isUploadingImage
+                ? const SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Icon(Icons.image),
+            label: Text(
+              isUploadingImage ? 'Yükleniyor...' : 'Galeriden Fotoğraf Seç',
+            ),
+            style: OutlinedButton.styleFrom(
+              padding: const EdgeInsets.symmetric(vertical: 14),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -117,6 +208,8 @@ class _ProfileEditPageState
         padding: const EdgeInsets.all(16),
         child: Column(
           children: [
+            buildImagePreview(),
+            const SizedBox(height: 24),
             buildTextField(
               label: 'Ad Soyad',
               controller: fullNameController,
@@ -150,13 +243,10 @@ class _ProfileEditPageState
                       )
                     : const Icon(Icons.save),
                 label: Text(
-                  isLoading
-                      ? 'Kaydediliyor...'
-                      : 'Kaydet',
+                  isLoading ? 'Kaydediliyor...' : 'Kaydet',
                 ),
                 style: ElevatedButton.styleFrom(
-                  padding:
-                      const EdgeInsets.symmetric(vertical: 14),
+                  padding: const EdgeInsets.symmetric(vertical: 14),
                 ),
               ),
             ),

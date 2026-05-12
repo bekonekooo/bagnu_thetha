@@ -39,11 +39,15 @@ class _ProfilePageState extends State<ProfilePage> {
           .eq('id', user.id)
           .single();
 
+      if (!mounted) return;
+
       setState(() {
         profile = data;
         isLoading = false;
       });
     } catch (e) {
+      if (!mounted) return;
+
       setState(() {
         errorMessage = 'Profil bilgileri alınamadı: $e';
         isLoading = false;
@@ -82,7 +86,11 @@ class _ProfilePageState extends State<ProfilePage> {
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
         boxShadow: const [
-          BoxShadow(blurRadius: 8, color: Colors.black12, offset: Offset(0, 3)),
+          BoxShadow(
+            blurRadius: 8,
+            color: Colors.black12,
+            offset: Offset(0, 3),
+          ),
         ],
         border: Border.all(color: Colors.grey.shade200),
       ),
@@ -96,7 +104,10 @@ class _ProfilePageState extends State<ProfilePage> {
               children: [
                 Text(
                   title,
-                  style: const TextStyle(fontSize: 13, color: Colors.grey),
+                  style: const TextStyle(
+                    fontSize: 13,
+                    color: Colors.grey,
+                  ),
                 ),
                 const SizedBox(height: 4),
                 Text(
@@ -117,7 +128,9 @@ class _ProfilePageState extends State<ProfilePage> {
   @override
   Widget build(BuildContext context) {
     if (isLoading) {
-      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
     }
 
     if (errorMessage != null) {
@@ -126,15 +139,22 @@ class _ProfilePageState extends State<ProfilePage> {
         body: Center(
           child: Padding(
             padding: const EdgeInsets.all(16),
-            child: Text(errorMessage!, textAlign: TextAlign.center),
+            child: Text(
+              errorMessage!,
+              textAlign: TextAlign.center,
+            ),
           ),
         ),
       );
     }
 
-    final fullName = profile?['full_name'] ?? 'İsim yok';
-    final email = profile?['email'] ?? 'Email yok';
-    final createdAt = formatDate(profile?['created_at']);
+    final fullName = profile?['full_name']?.toString() ?? 'İsim yok';
+    final email = profile?['email']?.toString() ?? 'Email yok';
+    final createdAt = formatDate(profile?['created_at']?.toString());
+
+    final imageUrl = profile?['image_url']?.toString() ?? '';
+    final phone = profile?['phone']?.toString() ?? '';
+    final bio = profile?['bio']?.toString() ?? '';
 
     return Scaffold(
       appBar: AppBar(title: const Text('Profilim')),
@@ -159,9 +179,13 @@ class _ProfilePageState extends State<ProfilePage> {
               ),
               child: Column(
                 children: [
-                  const CircleAvatar(
-                    radius: 36,
-                    child: Icon(Icons.person, size: 36),
+                  CircleAvatar(
+                    radius: 44,
+                    backgroundImage:
+                        imageUrl.isNotEmpty ? NetworkImage(imageUrl) : null,
+                    child: imageUrl.isEmpty
+                        ? const Icon(Icons.person, size: 44)
+                        : null,
                   ),
                   const SizedBox(height: 16),
                   Text(
@@ -175,7 +199,10 @@ class _ProfilePageState extends State<ProfilePage> {
                   const SizedBox(height: 8),
                   Text(
                     email,
-                    style: const TextStyle(fontSize: 15, color: Colors.grey),
+                    style: const TextStyle(
+                      fontSize: 15,
+                      color: Colors.grey,
+                    ),
                     textAlign: TextAlign.center,
                   ),
                 ],
@@ -192,13 +219,24 @@ class _ProfilePageState extends State<ProfilePage> {
               title: 'E-posta',
               value: email,
             ),
+            if (phone.isNotEmpty)
+              buildInfoTile(
+                icon: Icons.phone_outlined,
+                title: 'Telefon',
+                value: phone,
+              ),
+            if (bio.isNotEmpty)
+              buildInfoTile(
+                icon: Icons.info_outline,
+                title: 'Hakkında',
+                value: bio,
+              ),
             buildInfoTile(
               icon: Icons.calendar_today_outlined,
               title: 'Kayıt Tarihi',
               value: createdAt,
             ),
             const SizedBox(height: 24),
-
             SizedBox(
               width: double.infinity,
               child: ElevatedButton.icon(
@@ -215,6 +253,18 @@ class _ProfilePageState extends State<ProfilePage> {
                 icon: const Icon(Icons.edit),
                 label: const Text('Profili Düzenle'),
                 style: ElevatedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                onPressed: signOut,
+                icon: const Icon(Icons.logout),
+                label: const Text('Çıkış Yap'),
+                style: OutlinedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: 14),
                 ),
               ),
