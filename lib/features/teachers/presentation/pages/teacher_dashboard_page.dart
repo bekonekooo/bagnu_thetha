@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_application_1/features/notifications/data/presentation/widgets/notification_badge_button.dart';
+import 'package:flutter_application_1/core/services/supabase_service.dart';
 
 import '../../data/models/teacher_model.dart';
 import '../../data/services/teacher_service.dart';
@@ -52,13 +53,74 @@ class _TeacherDashboardPageState extends State<TeacherDashboardPage> {
     }
   }
 
+  Future<void> signOut() async {
+    await supabase.auth.signOut();
+
+    if (!mounted) return;
+
+    context.go('/login');
+  }
+
+  Future<void> confirmSignOut() async {
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Çıkış yap'),
+          content: const Text('Hesabınızdan çıkış yapmak istiyor musunuz?'),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context, false);
+              },
+              child: const Text('Vazgeç'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.pop(context, true);
+              },
+              child: const Text('Çıkış Yap'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (result == true) {
+      await signOut();
+    }
+  }
+
+  Widget dashboardButton({
+    required IconData icon,
+    required String label,
+    required VoidCallback onPressed,
+  }) {
+    return SizedBox(
+      width: double.infinity,
+      child: ElevatedButton.icon(
+        onPressed: onPressed,
+        icon: Icon(icon),
+        label: Text(label),
+        style: ElevatedButton.styleFrom(
+          padding: const EdgeInsets.symmetric(vertical: 14),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Öğretmen Paneli'),
-        actions: const [
-          NotificationBadgeButton(),
+        actions: [
+          const NotificationBadgeButton(),
+          IconButton(
+            onPressed: confirmSignOut,
+            icon: const Icon(Icons.logout),
+            tooltip: 'Çıkış Yap',
+          ),
         ],
       ),
       body: isLoading
@@ -93,55 +155,75 @@ class _TeacherDashboardPageState extends State<TeacherDashboardPage> {
                         onPressed: loadTeacher,
                         child: const Text('Tekrar Dene'),
                       ),
+                      const SizedBox(height: 12),
+                      TextButton.icon(
+                        onPressed: confirmSignOut,
+                        icon: const Icon(Icons.logout),
+                        label: const Text('Çıkış Yap'),
+                      ),
                     ],
                   ),
                 )
-              : Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    children: [
-                      Card(
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(18),
-                        ),
-                        child: Padding(
-                          padding: const EdgeInsets.all(20),
-                          child: Row(
-                            children: [
-                              CircleAvatar(
-                                radius: 32,
-                                backgroundImage: teacher!.imageUrl.isNotEmpty
-                                    ? NetworkImage(teacher!.imageUrl)
-                                    : null,
-                                child: teacher!.imageUrl.isEmpty
-                                    ? const Icon(Icons.person)
-                                    : null,
-                              ),
-                              const SizedBox(width: 16),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      teacher!.name,
-                                      style: const TextStyle(
-                                        fontSize: 20,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 4),
-                                    Text(teacher!.specialty),
-                                  ],
+              : SingleChildScrollView(
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      children: [
+                        Card(
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(18),
+                          ),
+                          child: Padding(
+                            padding: const EdgeInsets.all(20),
+                            child: Row(
+                              children: [
+                                CircleAvatar(
+                                  radius: 32,
+                                  backgroundImage: teacher!.imageUrl.isNotEmpty
+                                      ? NetworkImage(teacher!.imageUrl)
+                                      : null,
+                                  child: teacher!.imageUrl.isEmpty
+                                      ? const Icon(Icons.person)
+                                      : null,
                                 ),
-                              ),
-                            ],
+                                const SizedBox(width: 16),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        teacher!.name,
+                                        style: const TextStyle(
+                                          fontSize: 20,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 4),
+                                      Text(teacher!.specialty),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
                         ),
-                      ),
-                      const SizedBox(height: 24),
-                      SizedBox(
-                        width: double.infinity,
-                        child: ElevatedButton.icon(
+
+                        const SizedBox(height: 24),
+
+                        dashboardButton(
+                          icon: Icons.event_note,
+                          label: 'Seanslarımı Gör',
+                          onPressed: () {
+                            context.push('/teacher-sessions');
+                          },
+                        ),
+
+                        const SizedBox(height: 12),
+
+                        dashboardButton(
+                          icon: Icons.schedule,
+                          label: 'Uygunluklarımı Yönet',
                           onPressed: () {
                             context.push(
                               '/teacher-availability',
@@ -151,36 +233,26 @@ class _TeacherDashboardPageState extends State<TeacherDashboardPage> {
                               },
                             );
                           },
-                          icon: const Icon(Icons.schedule),
-                          label: const Text('Uygunluklarımı Yönet'),
-                          style: ElevatedButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(vertical: 14),
-                          ),
                         ),
-                      ),
-                const SizedBox(height: 12),
 
-SizedBox(
-  width: double.infinity,
-  child: ElevatedButton.icon(
-    onPressed: () async {
-      final result = await context.push(
-        '/teacher-edit-profile',
-        extra: teacher,
-      );
+                        const SizedBox(height: 12),
 
-      if (result == true) {
-        loadTeacher();
-      }
-    },
-    icon: const Icon(Icons.edit),
-    label: const Text('Profilimi Düzenle'),
-    style: ElevatedButton.styleFrom(
-      padding: const EdgeInsets.symmetric(vertical: 14),
-    ),
-  ),
-),
-                    ],
+                        dashboardButton(
+                          icon: Icons.edit,
+                          label: 'Profilimi Düzenle',
+                          onPressed: () async {
+                            final result = await context.push(
+                              '/teacher-edit-profile',
+                              extra: teacher,
+                            );
+
+                            if (result == true) {
+                              loadTeacher();
+                            }
+                          },
+                        ),
+                      ],
+                    ),
                   ),
                 ),
     );

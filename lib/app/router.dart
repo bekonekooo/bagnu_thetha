@@ -1,30 +1,161 @@
+import 'dart:async';
+
+import 'package:flutter/foundation.dart';
 import 'package:go_router/go_router.dart';
+
+import 'package:flutter_application_1/core/services/supabase_service.dart';
+
 import 'package:flutter_application_1/features/auth/presentation/pages/login_page.dart';
 import 'package:flutter_application_1/features/auth/presentation/pages/register_page.dart';
 import 'package:flutter_application_1/features/auth/presentation/pages/onboarding_page.dart';
+
 import 'package:flutter_application_1/features/home/presentation/pages/home_page.dart';
 import 'package:flutter_application_1/features/profile/presentation/pages/profile_page.dart';
+import 'package:flutter_application_1/features/profile/presentation/pages/profile_edit_page.dart';
+
 import 'package:flutter_application_1/features/sessions/presentation/pages/sessions_page.dart';
+import 'package:flutter_application_1/features/sessions/presentation/pages/teacher_sessions_page.dart';
+
 import 'package:flutter_application_1/features/teachers/presentation/pages/teachers_page.dart';
-import 'package:flutter_application_1/features/trainings/presentation/pages/trainings_page.dart';
-import 'package:flutter_application_1/features/guidance/presentation/pages/guidance_page.dart';
-import 'package:flutter_application_1/features/community/presentation/pages/community_page.dart';
-import 'package:flutter_application_1/features/main/presentation/pages/main_shell_page.dart';
-import 'package:flutter_application_1/features/booking/presentation/pages/booking_page.dart';
 import 'package:flutter_application_1/features/teachers/presentation/pages/teacher_availability_page.dart';
 import 'package:flutter_application_1/features/teachers/presentation/pages/teacher_dashboard_page.dart';
 import 'package:flutter_application_1/features/teachers/presentation/pages/teacher_edit_profile_page.dart';
 import 'package:flutter_application_1/features/teachers/data/models/teacher_model.dart';
-import 'package:flutter_application_1/features/sessions/presentation/pages/teacher_sessions_page.dart';
+
+import 'package:flutter_application_1/features/trainings/presentation/pages/trainings_page.dart';
+import 'package:flutter_application_1/features/guidance/presentation/pages/guidance_page.dart';
+import 'package:flutter_application_1/features/community/presentation/pages/community_page.dart';
+
+import 'package:flutter_application_1/features/main/presentation/pages/main_shell_page.dart';
+import 'package:flutter_application_1/features/booking/presentation/pages/booking_page.dart';
+
 import 'package:flutter_application_1/features/notifications/data/presentation/pages/notifications_page.dart';
-import 'package:flutter_application_1/features/profile/presentation/pages/profile_edit_page.dart';
+
+import 'package:flutter_application_1/features/auth/presentation/pages/splash_page.dart';
+
+class GoRouterRefreshStream extends ChangeNotifier {
+  GoRouterRefreshStream(Stream<dynamic> stream) {
+    notifyListeners();
+
+    _subscription = stream.asBroadcastStream().listen(
+      (_) => notifyListeners(),
+    );
+  }
+
+  late final StreamSubscription<dynamic> _subscription;
+
+  @override
+  void dispose() {
+    _subscription.cancel();
+    super.dispose();
+  }
+}
+
+Future<String> fetchCurrentUserRole(String userId) async {
+  try {
+    final response = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', userId)
+        .maybeSingle();
+
+    return response?['role']?.toString() ?? 'student';
+  } catch (_) {
+    return 'student';
+  }
+}
 
 final GoRouter appRouter = GoRouter(
-  initialLocation: '/login',
+  initialLocation: '/splash',
+  refreshListenable: GoRouterRefreshStream(
+    supabase.auth.onAuthStateChange,
+  ),
+  redirect: (context, state) async {
+    final user = supabase.auth.currentUser;
+    final location = state.uri.path;
+
+  final publicRoutes = [
+  '/splash',
+  '/login',
+  '/register',
+  '/onboarding',
+];
+
+    final teacherOnlyRoutes = [
+      '/teacher-dashboard',
+      '/teacher-edit-profile',
+      '/teacher-sessions',
+      '/teacher-availability',
+    ];
+
+    final studentOnlyRoutes = [
+      '/home',
+      '/sessions',
+      '/profile',
+      '/profile-edit',
+      '/teachers',
+      '/booking',
+      '/trainings',
+      '/guidance',
+      '/community',
+    ];
+
+    final isPublicRoute = publicRoutes.contains(location);
+    final isTeacherOnlyRoute = teacherOnlyRoutes.contains(location);
+    final isStudentOnlyRoute = studentOnlyRoutes.contains(location);
+
+    // Kullanıcı login değilse protected route'lara giremesin
+    if (user == null) {
+      if (isPublicRoute) {
+        return null;
+      }
+
+      return '/login';
+    }
+
+    final role = await fetchCurrentUserRole(user.id);
+
+    // Login olmuş kullanıcı login/register/onboarding'e giderse role'e göre yönlendir
+    if (isPublicRoute) {
+      if (role == 'teacher') {
+        return '/teacher-dashboard';
+      }
+
+      return '/home';
+    }
+
+    // Student teacher route'larına giremesin
+    if (role == 'student' && isTeacherOnlyRoute) {
+      return '/home';
+    }
+
+    // Teacher student route'larına giremesin
+    if (role == 'teacher' && isStudentOnlyRoute) {
+      return '/teacher-dashboard';
+    }
+
+    return null;
+  },
   routes: [
+
+GoRoute(
+  path: '/splash',
+  builder: (context, state) => const SplashPage(),
+),
+
     GoRoute(
       path: '/onboarding',
       builder: (context, state) => const OnboardingPage(),
+    ),
+
+    GoRoute(
+      path: '/login',
+      builder: (context, state) => const LoginPage(),
+    ),
+
+    GoRoute(
+      path: '/register',
+      builder: (context, state) => const RegisterPage(),
     ),
 
     GoRoute(
@@ -39,11 +170,6 @@ final GoRouter appRouter = GoRouter(
 
         return TeacherEditProfilePage(teacher: teacher);
       },
-    ),
-
-    GoRoute(
-      path: '/notifications',
-      builder: (context, state) => const NotificationsPage(),
     ),
 
     GoRoute(
@@ -63,18 +189,22 @@ final GoRouter appRouter = GoRouter(
       },
     ),
 
-    GoRoute(path: '/login', builder: (context, state) => const LoginPage()),
-
     GoRoute(
-      path: '/register',
-      builder: (context, state) => const RegisterPage(),
+      path: '/notifications',
+      builder: (context, state) => const NotificationsPage(),
     ),
 
     ShellRoute(
       builder: (context, state, child) => MainShellPage(child: child),
       routes: [
-        GoRoute(path: '/home', builder: (context, state) => const HomePage()),
-        GoRoute(path: '/sessions', builder: (context, state) => SessionsPage()),
+        GoRoute(
+          path: '/home',
+          builder: (context, state) => const HomePage(),
+        ),
+        GoRoute(
+          path: '/sessions',
+          builder: (context, state) => SessionsPage(),
+        ),
         GoRoute(
           path: '/profile',
           builder: (context, state) => const ProfilePage(),
