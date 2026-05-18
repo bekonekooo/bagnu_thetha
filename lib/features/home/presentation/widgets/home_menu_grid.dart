@@ -12,16 +12,10 @@ class HomeMenuGrid extends StatelessWidget {
       crossAxisCount: 2,
       crossAxisSpacing: 16,
       mainAxisSpacing: 16,
-      childAspectRatio: 1.1,
+      childAspectRatio: 1.05,
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
       children: [
-        HomeMenuCard(
-          icon: Icons.person,
-          title: 'Profilim',
-          subtitle: 'Kişisel bilgilerini gör',
-          onTap: () => onTap('/profile'),
-        ),
         HomeMenuCard(
           icon: Icons.calendar_month,
           title: 'Seanslarım',
@@ -29,10 +23,16 @@ class HomeMenuGrid extends StatelessWidget {
           onTap: () => onTap('/sessions'),
         ),
         HomeMenuCard(
-          icon: Icons.search,
-          title: 'Öğretmen Bul',
-          subtitle: 'Uzmanlara ulaş',
+          icon: Icons.add_circle_outline,
+          title: 'Randevu Al',
+          subtitle: 'Öğretmenlerden seans seç',
           onTap: () => onTap('/teachers'),
+        ),
+        HomeMenuCard(
+          icon: Icons.person,
+          title: 'Profilim',
+          subtitle: 'Bilgilerini düzenle',
+          onTap: () => onTap('/profile'),
         ),
         HomeMenuCard(
           icon: Icons.school,
@@ -43,13 +43,13 @@ class HomeMenuGrid extends StatelessWidget {
         HomeMenuCard(
           icon: Icons.auto_graph,
           title: 'Aylık Rehberlik',
-          subtitle: 'Kişisel analiz',
+          subtitle: 'Kişisel analizlerini gör',
           onTap: () => onTap('/guidance'),
         ),
         HomeMenuCard(
           icon: Icons.groups,
           title: 'Topluluk',
-          subtitle: 'Diğer kullanıcılarla etkileşim',
+          subtitle: 'Diğer kullanıcılarla buluş',
           onTap: () => onTap('/community'),
         ),
       ],

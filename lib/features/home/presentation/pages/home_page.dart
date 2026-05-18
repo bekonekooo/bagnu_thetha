@@ -26,16 +26,37 @@ class _HomePageState extends State<HomePage> {
   Future<void> getProfile() async {
     final user = supabase.auth.currentUser;
 
-    final data = await supabase
-        .from('profiles')
-        .select()
-        .eq('id', user!.id)
-        .single();
+    if (user == null) {
+      if (mounted) {
+        context.go('/login');
+      }
+      return;
+    }
 
-    setState(() {
-      profile = data;
-      isLoading = false;
-    });
+    try {
+      final data = await supabase
+          .from('profiles')
+          .select()
+          .eq('id', user.id)
+          .single();
+
+      if (!mounted) return;
+
+      setState(() {
+        profile = data;
+        isLoading = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+
+      setState(() {
+        isLoading = false;
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Profil bilgisi yüklenemedi: $e')),
+      );
+    }
   }
 
   void goToPage(String route) {
@@ -44,8 +65,39 @@ class _HomePageState extends State<HomePage> {
 
   Future<void> signOut() async {
     await supabase.auth.signOut();
-    if (mounted) {
-      context.go('/login');
+
+    if (!mounted) return;
+
+    context.go('/login');
+  }
+
+  Future<void> confirmSignOut() async {
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Çıkış yap'),
+          content: const Text('Hesabınızdan çıkış yapmak istiyor musunuz?'),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context, false);
+              },
+              child: const Text('Vazgeç'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.pop(context, true);
+              },
+              child: const Text('Çıkış Yap'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (result == true) {
+      await signOut();
     }
   }
 
@@ -59,8 +111,8 @@ class _HomePageState extends State<HomePage> {
       );
     }
 
-    final fullName = profile?['full_name'] ?? '';
-    final email = profile?['email'] ?? '';
+    final fullName = profile?['full_name']?.toString() ?? '';
+    final email = profile?['email']?.toString() ?? '';
 
     return Scaffold(
       appBar: AppBar(
@@ -68,26 +120,47 @@ class _HomePageState extends State<HomePage> {
         actions: [
           const NotificationBadgeButton(),
           IconButton(
-            onPressed: signOut,
+            onPressed: confirmSignOut,
             icon: const Icon(Icons.logout),
+            tooltip: 'Çıkış Yap',
           ),
         ],
       ),
-      body: SingleChildScrollView(
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              HomeHeader(
-                fullName: fullName,
-                email: email,
-              ),
-              const SizedBox(height: 24),
-              HomeMenuGrid(
-                onTap: goToPage,
-              ),
-            ],
+      body: RefreshIndicator(
+        onRefresh: getProfile,
+        child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                HomeHeader(
+                  fullName: fullName,
+                  email: email,
+                ),
+                const SizedBox(height: 24),
+                const Text(
+                  'Bugün ne yapmak istersin?',
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                const Text(
+                  'Seanslarını takip edebilir, öğretmenlerden randevu alabilir ve içerikleri keşfedebilirsin.',
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Colors.grey,
+                  ),
+                ),
+                const SizedBox(height: 20),
+                HomeMenuGrid(
+                  onTap: goToPage,
+                ),
+              ],
+            ),
           ),
         ),
       ),
