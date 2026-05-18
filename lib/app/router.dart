@@ -33,6 +33,8 @@ import 'package:flutter_application_1/features/notifications/data/presentation/p
 
 import 'package:flutter_application_1/features/auth/presentation/pages/splash_page.dart';
 
+import 'package:flutter_application_1/features/booking/presentation/pages/booking_success_page.dart';
+
 class GoRouterRefreshStream extends ChangeNotifier {
   GoRouterRefreshStream(Stream<dynamic> stream) {
     notifyListeners();
@@ -88,17 +90,18 @@ final GoRouter appRouter = GoRouter(
       '/teacher-availability',
     ];
 
-    final studentOnlyRoutes = [
-      '/home',
-      '/sessions',
-      '/profile',
-      '/profile-edit',
-      '/teachers',
-      '/booking',
-      '/trainings',
-      '/guidance',
-      '/community',
-    ];
+ final studentOnlyRoutes = [
+  '/home',
+  '/sessions',
+  '/profile',
+  '/profile-edit',
+  '/teachers',
+  '/booking',
+  '/booking-success',
+  '/trainings',
+  '/guidance',
+  '/community',
+];
 
     final isPublicRoute = publicRoutes.contains(location);
     final isTeacherOnlyRoute = teacherOnlyRoutes.contains(location);
@@ -236,6 +239,20 @@ GoRoute(
         );
       },
     ),
+
+    GoRoute(
+  path: '/booking-success',
+  builder: (context, state) {
+    final extra = state.extra as Map<String, dynamic>;
+
+    return BookingSuccessPage(
+      teacherName: extra['teacherName'] as String,
+      sessionDate: extra['sessionDate'] as String,
+      sessionTime: extra['sessionTime'] as String,
+      notes: extra['notes'] as String?,
+    );
+  },
+),
 
     GoRoute(
       path: '/trainings',

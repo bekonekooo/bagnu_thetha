@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+
 import '../../../sessions/data/services/session_service.dart';
 import '../../data/services/availability_service.dart';
+
 import '../widgets/booking_info_card.dart';
 import '../widgets/booking_date_picker.dart';
 import '../widgets/booking_time_selector.dart';
@@ -26,6 +28,7 @@ class BookingPage extends StatefulWidget {
 class _BookingPageState extends State<BookingPage> {
   DateTime? selectedDate;
   String? selectedTime;
+
   bool isLoading = false;
   bool isLoadingTimes = false;
 
@@ -47,47 +50,46 @@ class _BookingPageState extends State<BookingPage> {
     if (_sessionChannel != null) {
       sessionService.removeChannel(_sessionChannel!);
     }
+
     notesController.dispose();
     super.dispose();
   }
 
   void _setupRealtime() {
-  _sessionChannel = sessionService.subscribeToTeacherSessions(
-    teacherId: widget.teacherId,
-    onChange: () async {
-      debugPrint('Realtime tetiklendi: ${widget.teacherName}');
+    _sessionChannel = sessionService.subscribeToTeacherSessions(
+      teacherId: widget.teacherId,
+      onChange: () async {
+        if (selectedDate == null) return;
 
-      if (selectedDate == null) return;
+        final previousSelectedTime = selectedTime;
 
-      final previousSelectedTime = selectedTime;
-
-      await fetchAvailableTimes(
-        selectedDate!,
-        showLoading: false,
-        showErrorSnackBar: false,
-      );
-
-      if (!mounted) return;
-
-      if (previousSelectedTime != null &&
-          !availableTimes.contains(previousSelectedTime)) {
-        setState(() {
-          if (selectedTime == previousSelectedTime) {
-            selectedTime = null;
-          }
-        });
-
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text(
-              'Seçtiğiniz saat başka biri tarafından alındı. Lütfen yeni bir saat seçin.',
-            ),
-          ),
+        await fetchAvailableTimes(
+          selectedDate!,
+          showLoading: false,
+          showErrorSnackBar: false,
         );
-      }
-    },
-  );
-}
+
+        if (!mounted) return;
+
+        if (previousSelectedTime != null &&
+            !availableTimes.contains(previousSelectedTime)) {
+          setState(() {
+            if (selectedTime == previousSelectedTime) {
+              selectedTime = null;
+            }
+          });
+
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text(
+                'Seçtiğin saat başka biri tarafından alındı. Lütfen yeni bir saat seç.',
+              ),
+            ),
+          );
+        }
+      },
+    );
+  }
 
   DateTime normalizeDate(DateTime date) {
     return DateTime(date.year, date.month, date.day);
@@ -122,24 +124,40 @@ class _BookingPageState extends State<BookingPage> {
     return slotDateTime.isBefore(DateTime.now());
   }
 
+  String get formattedDate {
+    if (selectedDate == null) {
+      return 'Tarih seçilmedi';
+    }
+
+    final day = selectedDate!.day.toString().padLeft(2, '0');
+    final month = selectedDate!.month.toString().padLeft(2, '0');
+    final year = selectedDate!.year.toString();
+
+    return '$day.$month.$year';
+  }
+
   Future<void> pickDate() async {
     final now = DateTime.now();
 
     final pickedDate = await showDatePicker(
       context: context,
-      initialDate: now,
+      initialDate: selectedDate ?? now,
       firstDate: DateTime(now.year, now.month, now.day),
       lastDate: DateTime(now.year + 1),
+      helpText: 'Seans tarihi seç',
+      cancelText: 'Vazgeç',
+      confirmText: 'Seç',
     );
 
-    if (pickedDate != null) {
-      setState(() {
-        selectedDate = pickedDate;
-        selectedTime = null;
-      });
+    if (pickedDate == null) return;
 
-      await fetchAvailableTimes(pickedDate);
-    }
+    setState(() {
+      selectedDate = pickedDate;
+      selectedTime = null;
+      availableTimes = [];
+    });
+
+    await fetchAvailableTimes(pickedDate);
   }
 
   Future<void> fetchAvailableTimes(
@@ -155,7 +173,8 @@ class _BookingPageState extends State<BookingPage> {
     }
 
     try {
-      final availabilityList = await availabilityService.fetchTeacherAvailability(
+      final availabilityList =
+          await availabilityService.fetchTeacherAvailability(
         teacherId: widget.teacherId,
         weekday: date.weekday,
       );
@@ -201,20 +220,23 @@ class _BookingPageState extends State<BookingPage> {
   }
 
   Future<void> confirmBooking() async {
+    if (isLoading) return;
+
     if (selectedDate == null || selectedTime == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Lütfen tarih ve saat seçin')),
+        const SnackBar(
+          content: Text('Lütfen önce tarih ve saat seç.'),
+        ),
       );
       return;
     }
 
     final bookingDateTime = combineDateAndTime(selectedDate, selectedTime);
 
-    if (bookingDateTime == null ||
-        bookingDateTime.isBefore(DateTime.now())) {
+    if (bookingDateTime == null || bookingDateTime.isBefore(DateTime.now())) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Geçmiş bir saat için seans oluşturamazsınız'),
+          content: Text('Geçmiş bir saat için seans oluşturamazsın.'),
         ),
       );
       return;
@@ -225,7 +247,6 @@ class _BookingPageState extends State<BookingPage> {
     });
 
     try {
-      // Son anda slot dolmuş olabilir diye submit öncesi tekrar çekiyoruz
       await fetchAvailableTimes(
         selectedDate!,
         showLoading: false,
@@ -238,42 +259,39 @@ class _BookingPageState extends State<BookingPage> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text(
-              'Bu saat az önce doldu. Lütfen başka bir saat seçin.',
+              'Bu saat az önce doldu. Lütfen başka bir saat seç.',
             ),
           ),
         );
         return;
       }
 
+      final cleanNotes = notesController.text.trim();
+
       await sessionService.createSession(
         teacherId: widget.teacherId,
         teacherName: widget.teacherName,
         sessionDate: selectedDate!,
         sessionTime: selectedTime!,
-        notes: notesController.text.trim().isEmpty
-            ? null
-            : notesController.text.trim(),
+        notes: cleanNotes.isEmpty ? null : cleanNotes,
       );
 
       if (!mounted) return;
 
-context.go(
-  '/booking-success',
-  extra: {
-    'teacherName': widget.teacherName,
-    'sessionDate': formattedDate,
-    'sessionTime': selectedTime!,
-    'notes': notesController.text.trim().isEmpty
-        ? null
-        : notesController.text.trim(),
-  },
-);
-      context.go('/sessions');
+      context.go(
+        '/booking-success',
+        extra: {
+          'teacherName': widget.teacherName,
+          'sessionDate': formattedDate,
+          'sessionTime': selectedTime!,
+          'notes': cleanNotes.isEmpty ? null : cleanNotes,
+        },
+      );
     } catch (e) {
       if (!mounted) return;
 
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Hata oluştu: $e')),
+        SnackBar(content: Text('Seans oluşturulamadı: $e')),
       );
     } finally {
       if (!mounted) return;
@@ -284,40 +302,68 @@ context.go(
     }
   }
 
-  
-
-  String get formattedDate {
-    if (selectedDate == null) {
-      return 'Tarih seçilmedi';
-    }
-
-    final day = selectedDate!.day.toString().padLeft(2, '0');
-    final month = selectedDate!.month.toString().padLeft(2, '0');
-    final year = selectedDate!.year.toString();
-
-    return '$day.$month.$year';
+  Widget buildSectionTitle(String title, String subtitle) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          title,
+          style: const TextStyle(
+            fontSize: 19,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          subtitle,
+          style: const TextStyle(
+            fontSize: 14,
+            color: Colors.grey,
+            height: 1.35,
+          ),
+        ),
+      ],
+    );
   }
 
   @override
   Widget build(BuildContext context) {
+    final canSubmit = selectedDate != null && selectedTime != null;
+
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.teacherName),
+        title: const Text('Seans Oluştur'),
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 28),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             BookingInfoCard(
               teacherName: widget.teacherName,
             ),
-            const SizedBox(height: 24),
+
+            const SizedBox(height: 26),
+
+            buildSectionTitle(
+              'Tarih seç',
+              'Öğretmenin uygun olduğu günlerden bir tarih seç.',
+            ),
+            const SizedBox(height: 12),
             BookingDatePicker(
               formattedDate: formattedDate,
               onTap: pickDate,
             ),
-            const SizedBox(height: 24),
+
+            const SizedBox(height: 26),
+
+            buildSectionTitle(
+              'Saat seç',
+              selectedDate == null
+                  ? 'Saatleri görebilmek için önce tarih seçmelisin.'
+                  : 'Müsait saatlerden birini seç.',
+            ),
+            const SizedBox(height: 12),
             BookingTimeSelector(
               selectedDate: selectedDate,
               selectedTime: selectedTime,
@@ -330,13 +376,18 @@ context.go(
                 });
               },
             ),
-            const SizedBox(height: 24),
+
+            const SizedBox(height: 26),
+
             BookingNotesField(
               controller: notesController,
             ),
+
             const SizedBox(height: 32),
+
             BookingSubmitButton(
               isLoading: isLoading,
+              isEnabled: canSubmit,
               onPressed: confirmBooking,
             ),
           ],

@@ -12,29 +12,59 @@ class BookingDatePicker extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          'Tarih Seç',
-          style: TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.w600,
+    final hasDate = formattedDate != 'Tarih seçilmedi';
+
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(18),
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: hasDate ? Colors.deepPurple.shade50 : Colors.white,
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(
+            color: hasDate ? Colors.deepPurple.shade200 : Colors.grey.shade300,
           ),
         ),
-        const SizedBox(height: 12),
-        SizedBox(
-          width: double.infinity,
-          child: OutlinedButton.icon(
-            onPressed: onTap,
-            icon: const Icon(Icons.calendar_month),
-            label: Text(formattedDate),
-            style: OutlinedButton.styleFrom(
-              padding: const EdgeInsets.symmetric(vertical: 16),
+        child: Row(
+          children: [
+            CircleAvatar(
+              backgroundColor:
+                  hasDate ? Colors.deepPurple : Colors.grey.shade100,
+              child: Icon(
+                Icons.calendar_month,
+                color: hasDate ? Colors.white : Colors.grey,
+              ),
             ),
-          ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    hasDate ? 'Seçilen tarih' : 'Tarih seç',
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: hasDate ? Colors.deepPurple : Colors.grey,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    formattedDate,
+                    style: const TextStyle(
+                      fontSize: 17,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const Icon(Icons.chevron_right),
+          ],
         ),
-      ],
+      ),
     );
   }
 }
