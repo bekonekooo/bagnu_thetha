@@ -8,6 +8,7 @@ import 'package:flutter_application_1/core/services/supabase_service.dart';
 import 'package:flutter_application_1/features/auth/presentation/pages/login_page.dart';
 import 'package:flutter_application_1/features/auth/presentation/pages/register_page.dart';
 import 'package:flutter_application_1/features/auth/presentation/pages/onboarding_page.dart';
+import 'package:flutter_application_1/features/auth/presentation/pages/splash_page.dart';
 
 import 'package:flutter_application_1/features/home/presentation/pages/home_page.dart';
 import 'package:flutter_application_1/features/profile/presentation/pages/profile_page.dart';
@@ -27,13 +28,11 @@ import 'package:flutter_application_1/features/guidance/presentation/pages/guida
 import 'package:flutter_application_1/features/community/presentation/pages/community_page.dart';
 
 import 'package:flutter_application_1/features/main/presentation/pages/main_shell_page.dart';
+
 import 'package:flutter_application_1/features/booking/presentation/pages/booking_page.dart';
+import 'package:flutter_application_1/features/booking/presentation/pages/booking_success_page.dart';
 
 import 'package:flutter_application_1/features/notifications/data/presentation/pages/notifications_page.dart';
-
-import 'package:flutter_application_1/features/auth/presentation/pages/splash_page.dart';
-
-import 'package:flutter_application_1/features/booking/presentation/pages/booking_success_page.dart';
 
 class GoRouterRefreshStream extends ChangeNotifier {
   GoRouterRefreshStream(Stream<dynamic> stream) {
@@ -67,6 +66,11 @@ Future<String> fetchCurrentUserRole(String userId) async {
   }
 }
 
+bool hasStringValue(Map<String, dynamic> map, String key) {
+  final value = map[key];
+  return value is String && value.trim().isNotEmpty;
+}
+
 final GoRouter appRouter = GoRouter(
   initialLocation: '/splash',
   refreshListenable: GoRouterRefreshStream(
@@ -76,12 +80,12 @@ final GoRouter appRouter = GoRouter(
     final user = supabase.auth.currentUser;
     final location = state.uri.path;
 
-  final publicRoutes = [
-  '/splash',
-  '/login',
-  '/register',
-  '/onboarding',
-];
+    final publicRoutes = [
+      '/splash',
+      '/login',
+      '/register',
+      '/onboarding',
+    ];
 
     final teacherOnlyRoutes = [
       '/teacher-dashboard',
@@ -90,24 +94,23 @@ final GoRouter appRouter = GoRouter(
       '/teacher-availability',
     ];
 
- final studentOnlyRoutes = [
-  '/home',
-  '/sessions',
-  '/profile',
-  '/profile-edit',
-  '/teachers',
-  '/booking',
-  '/booking-success',
-  '/trainings',
-  '/guidance',
-  '/community',
-];
+    final studentOnlyRoutes = [
+      '/home',
+      '/sessions',
+      '/profile',
+      '/profile-edit',
+      '/teachers',
+      '/booking',
+      '/booking-success',
+      '/trainings',
+      '/guidance',
+      '/community',
+    ];
 
     final isPublicRoute = publicRoutes.contains(location);
     final isTeacherOnlyRoute = teacherOnlyRoutes.contains(location);
     final isStudentOnlyRoute = studentOnlyRoutes.contains(location);
 
-    // Kullanıcı login değilse protected route'lara giremesin
     if (user == null) {
       if (isPublicRoute) {
         return null;
@@ -118,7 +121,6 @@ final GoRouter appRouter = GoRouter(
 
     final role = await fetchCurrentUserRole(user.id);
 
-    // Login olmuş kullanıcı login/register/onboarding'e giderse role'e göre yönlendir
     if (isPublicRoute) {
       if (role == 'teacher') {
         return '/teacher-dashboard';
@@ -127,12 +129,10 @@ final GoRouter appRouter = GoRouter(
       return '/home';
     }
 
-    // Student teacher route'larına giremesin
     if (role == 'student' && isTeacherOnlyRoute) {
       return '/home';
     }
 
-    // Teacher student route'larına giremesin
     if (role == 'teacher' && isStudentOnlyRoute) {
       return '/teacher-dashboard';
     }
@@ -140,11 +140,10 @@ final GoRouter appRouter = GoRouter(
     return null;
   },
   routes: [
-
-GoRoute(
-  path: '/splash',
-  builder: (context, state) => const SplashPage(),
-),
+    GoRoute(
+      path: '/splash',
+      builder: (context, state) => const SplashPage(),
+    ),
 
     GoRoute(
       path: '/onboarding',
@@ -168,6 +167,13 @@ GoRoute(
 
     GoRoute(
       path: '/teacher-edit-profile',
+      redirect: (context, state) {
+        if (state.extra is! TeacherModel) {
+          return '/teacher-dashboard';
+        }
+
+        return null;
+      },
       builder: (context, state) {
         final teacher = state.extra as TeacherModel;
 
@@ -182,6 +188,20 @@ GoRoute(
 
     GoRoute(
       path: '/teacher-availability',
+      redirect: (context, state) {
+        final extra = state.extra;
+
+        if (extra is! Map<String, dynamic>) {
+          return '/teacher-dashboard';
+        }
+
+        if (!hasStringValue(extra, 'teacherId') ||
+            !hasStringValue(extra, 'teacherName')) {
+          return '/teacher-dashboard';
+        }
+
+        return null;
+      },
       builder: (context, state) {
         final extra = state.extra as Map<String, dynamic>;
 
@@ -214,6 +234,15 @@ GoRoute(
         ),
         GoRoute(
           path: '/profile-edit',
+          redirect: (context, state) {
+            final extra = state.extra;
+
+            if (extra is! Map<String, dynamic>) {
+              return '/profile';
+            }
+
+            return null;
+          },
           builder: (context, state) {
             final profile = state.extra as Map<String, dynamic>;
 
@@ -230,6 +259,20 @@ GoRoute(
 
     GoRoute(
       path: '/booking',
+      redirect: (context, state) {
+        final extra = state.extra;
+
+        if (extra is! Map<String, dynamic>) {
+          return '/teachers';
+        }
+
+        if (!hasStringValue(extra, 'teacherId') ||
+            !hasStringValue(extra, 'teacherName')) {
+          return '/teachers';
+        }
+
+        return null;
+      },
       builder: (context, state) {
         final extra = state.extra as Map<String, dynamic>;
 
@@ -241,18 +284,33 @@ GoRoute(
     ),
 
     GoRoute(
-  path: '/booking-success',
-  builder: (context, state) {
-    final extra = state.extra as Map<String, dynamic>;
+      path: '/booking-success',
+      redirect: (context, state) {
+        final extra = state.extra;
 
-    return BookingSuccessPage(
-      teacherName: extra['teacherName'] as String,
-      sessionDate: extra['sessionDate'] as String,
-      sessionTime: extra['sessionTime'] as String,
-      notes: extra['notes'] as String?,
-    );
-  },
-),
+        if (extra is! Map<String, dynamic>) {
+          return '/sessions';
+        }
+
+        if (!hasStringValue(extra, 'teacherName') ||
+            !hasStringValue(extra, 'sessionDate') ||
+            !hasStringValue(extra, 'sessionTime')) {
+          return '/sessions';
+        }
+
+        return null;
+      },
+      builder: (context, state) {
+        final extra = state.extra as Map<String, dynamic>;
+
+        return BookingSuccessPage(
+          teacherName: extra['teacherName'] as String,
+          sessionDate: extra['sessionDate'] as String,
+          sessionTime: extra['sessionTime'] as String,
+          notes: extra['notes'] as String?,
+        );
+      },
+    ),
 
     GoRoute(
       path: '/trainings',
