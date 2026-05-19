@@ -32,7 +32,7 @@ class _SplashPageState extends State<SplashPage> {
   }
 
   Future<void> checkAuthAndRedirect() async {
-    await Future.delayed(const Duration(milliseconds: 500));
+    await Future.delayed(const Duration(milliseconds: 800));
 
     final user = supabase.auth.currentUser;
 
@@ -56,34 +56,56 @@ class _SplashPageState extends State<SplashPage> {
 
   @override
   Widget build(BuildContext context) {
-    return const Scaffold(
-      body: Center(
-        child: Column(
+    return Scaffold(
+      body: Container(
+        width: double.infinity,
+        height: double.infinity,
+        padding: const EdgeInsets.all(28),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [
+              Colors.deepPurple.shade400,
+              Colors.deepPurple.shade800,
+            ],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+        ),
+        child: const Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
-              Icons.self_improvement,
-              size: 72,
-              color: Colors.deepPurple,
+            CircleAvatar(
+              radius: 52,
+              backgroundColor: Colors.white,
+              child: Icon(
+                Icons.self_improvement,
+                size: 58,
+                color: Colors.deepPurple,
+              ),
             ),
-            SizedBox(height: 20),
+            SizedBox(height: 24),
             Text(
               'BagnuTheta',
               style: TextStyle(
-                fontSize: 28,
+                fontSize: 32,
                 fontWeight: FontWeight.bold,
+                color: Colors.white,
               ),
             ),
-            SizedBox(height: 12),
+            SizedBox(height: 10),
             Text(
-              'Yükleniyor...',
+              'Dönüşüm yolculuğun başlıyor...',
+              textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 16,
-                color: Colors.grey,
+                color: Colors.white70,
+                height: 1.35,
               ),
             ),
-            SizedBox(height: 28),
-            CircularProgressIndicator(),
+            SizedBox(height: 34),
+            CircularProgressIndicator(
+              color: Colors.white,
+            ),
           ],
         ),
       ),

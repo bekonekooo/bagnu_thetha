@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+
 import '../../../../core/services/supabase_service.dart';
 import '../../../../shared/widgets/custom_button.dart';
 import '../../../../shared/widgets/custom_text_field.dart';
@@ -22,12 +23,41 @@ class _LoginPageState extends State<LoginPage> {
         .from('profiles')
         .select('role')
         .eq('id', userId)
-        .single();
+        .maybeSingle();
 
-    return response['role']?.toString() ?? 'student';
+    return response?['role']?.toString() ?? 'student';
+  }
+
+  bool validateForm() {
+    final email = emailController.text.trim();
+    final password = passwordController.text.trim();
+
+    if (email.isEmpty || password.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Lütfen e-posta ve şifre alanlarını doldur.'),
+        ),
+      );
+      return false;
+    }
+
+    if (!email.contains('@')) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Lütfen geçerli bir e-posta adresi gir.'),
+        ),
+      );
+      return false;
+    }
+
+    return true;
   }
 
   Future<void> signIn() async {
+    if (isLoading) return;
+
+    if (!validateForm()) return;
+
     setState(() {
       isLoading = true;
     });
@@ -62,11 +92,11 @@ class _LoginPageState extends State<LoginPage> {
         ),
       );
     } finally {
-      if (mounted) {
-        setState(() {
-          isLoading = false;
-        });
-      }
+      if (!mounted) return;
+
+      setState(() {
+        isLoading = false;
+      });
     }
   }
 
@@ -77,39 +107,139 @@ class _LoginPageState extends State<LoginPage> {
     super.dispose();
   }
 
+  Widget buildHeader() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            Colors.deepPurple.shade400,
+            Colors.deepPurple.shade700,
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(28),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.deepPurple.withOpacity(0.20),
+            blurRadius: 22,
+            offset: const Offset(0, 10),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          const CircleAvatar(
+            radius: 42,
+            backgroundColor: Colors.white,
+            child: Icon(
+              Icons.self_improvement,
+              color: Colors.deepPurple,
+              size: 46,
+            ),
+          ),
+          const SizedBox(height: 18),
+          const Text(
+            'BagnuTheta',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 28,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Dönüşüm yolculuğuna kaldığın yerden devam et.',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: Colors.white.withOpacity(0.9),
+              height: 1.35,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Giriş Yap'),
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          children: [
-            CustomTextField(
-              label: 'E-posta',
-              controller: emailController,
-            ),
-            const SizedBox(height: 16),
-            CustomTextField(
-              label: 'Şifre',
-              controller: passwordController,
-              isPassword: true,
-            ),
-            const SizedBox(height: 24),
-            CustomButton(
-              text: isLoading ? 'Yükleniyor...' : 'Giriş Yap',
-              onPressed: isLoading ? () {} : signIn,
-            ),
-            const SizedBox(height: 12),
-            TextButton(
-              onPressed: () {
-                context.go('/register');
-              },
-              child: const Text('Hesabın yok mu? Kayıt ol'),
-            ),
-          ],
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.fromLTRB(24, 16, 24, 28),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              buildHeader(),
+
+              const SizedBox(height: 32),
+
+              const Text(
+                'Hesabına giriş yap',
+                style: TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+
+              const SizedBox(height: 6),
+
+              const Text(
+                'Seanslarını, bildirimlerini ve profilini yönetmek için giriş yap.',
+                style: TextStyle(
+                  color: Colors.grey,
+                  height: 1.35,
+                ),
+              ),
+
+              const SizedBox(height: 24),
+
+              CustomTextField(
+                label: 'E-posta',
+                controller: emailController,
+                keyboardType: TextInputType.emailAddress,
+                prefixIcon: Icons.email_outlined,
+                hintText: 'ornek@email.com',
+              ),
+
+              const SizedBox(height: 16),
+
+              CustomTextField(
+                label: 'Şifre',
+                controller: passwordController,
+                isPassword: true,
+                prefixIcon: Icons.lock_outline,
+                hintText: 'Şifreni gir',
+              ),
+
+              const SizedBox(height: 26),
+
+              CustomButton(
+                text: 'Giriş Yap',
+                isLoading: isLoading,
+                icon: Icons.login,
+                onPressed: signIn,
+              ),
+
+              const SizedBox(height: 18),
+
+              Center(
+                child: TextButton(
+                  onPressed: isLoading
+                      ? null
+                      : () {
+                          context.go('/register');
+                        },
+                  child: const Text('Hesabın yok mu? Kayıt ol'),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
