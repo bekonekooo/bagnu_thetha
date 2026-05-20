@@ -9,6 +9,8 @@ class TeacherCard extends StatelessWidget {
   final String bio;
   final VoidCallback onTap;
   final String? imageUrl;
+  final double sessionPrice;
+  final String currency;
 
   const TeacherCard({
     super.key,
@@ -19,8 +21,26 @@ class TeacherCard extends StatelessWidget {
     required this.rating,
     required this.bio,
     required this.onTap,
+    required this.sessionPrice,
+    required this.currency,
     this.imageUrl,
   });
+
+  String get formattedPrice {
+    if (sessionPrice <= 0) {
+      return 'Ücret belirtilmemiş';
+    }
+
+    final cleanPrice = sessionPrice % 1 == 0
+        ? sessionPrice.toInt().toString()
+        : sessionPrice.toStringAsFixed(2);
+
+    if (currency.toLowerCase() == 'try') {
+      return '₺$cleanPrice';
+    }
+
+    return '$cleanPrice ${currency.toUpperCase()}';
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -106,7 +126,47 @@ class TeacherCard extends StatelessWidget {
                     ),
                   ],
                 ),
+
                 const SizedBox(height: 14),
+
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(13),
+                  decoration: BoxDecoration(
+                    color: Colors.green.shade50,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: Colors.green.shade100),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(
+                        Icons.payments_outlined,
+                        color: Colors.green,
+                        size: 22,
+                      ),
+                      const SizedBox(width: 10),
+                      const Expanded(
+                        child: Text(
+                          'Seans Ücreti',
+                          style: TextStyle(
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                      Text(
+                        formattedPrice,
+                        style: TextStyle(
+                          color: Colors.green.shade800,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                const SizedBox(height: 14),
+
                 Text(
                   cleanBio,
                   maxLines: 3,
@@ -117,7 +177,9 @@ class TeacherCard extends StatelessWidget {
                     height: 1.4,
                   ),
                 ),
+
                 const SizedBox(height: 14),
+
                 Row(
                   children: [
                     Expanded(

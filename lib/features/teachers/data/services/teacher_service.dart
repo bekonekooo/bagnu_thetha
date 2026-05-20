@@ -43,6 +43,8 @@ class TeacherService {
     required String bio,
     required String imageUrl,
     required bool isActive,
+    required double sessionPrice,
+    required String currency,
   }) async {
     final user = supabase.auth.currentUser;
 
@@ -60,6 +62,8 @@ class TeacherService {
           'bio': bio,
           'image_url': imageUrl,
           'is_active': isActive,
+          'session_price': sessionPrice,
+          'currency': currency,
         })
         .eq('id', teacherId)
         .eq('user_id', user.id);

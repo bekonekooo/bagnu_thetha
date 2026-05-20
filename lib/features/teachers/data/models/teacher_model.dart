@@ -8,6 +8,8 @@ class TeacherModel {
   final String bio;
   final String imageUrl;
   final bool isActive;
+  final double sessionPrice;
+  final String currency;
 
   TeacherModel({
     required this.id,
@@ -19,19 +21,24 @@ class TeacherModel {
     required this.bio,
     required this.imageUrl,
     required this.isActive,
+    required this.sessionPrice,
+    required this.currency,
   });
 
   factory TeacherModel.fromMap(Map<String, dynamic> map) {
     return TeacherModel(
       id: map['id']?.toString() ?? '',
-      name: map['name'] ?? '',
-      specialty: map['specialty'] ?? '',
-      category: map['category'] ?? '',
-      experience: map['experience'] ?? '',
-      rating: (map['rating'] ?? 0).toDouble(),
-      bio: map['bio'] ?? '',
-      imageUrl: map['image_url'] ?? '',
+      name: map['name']?.toString() ?? '',
+      specialty: map['specialty']?.toString() ?? '',
+      category: map['category']?.toString() ?? '',
+      experience: map['experience']?.toString() ?? '',
+      rating: double.tryParse(map['rating']?.toString() ?? '0') ?? 0,
+      bio: map['bio']?.toString() ?? '',
+      imageUrl: map['image_url']?.toString() ?? '',
       isActive: map['is_active'] ?? true,
+      sessionPrice:
+          double.tryParse(map['session_price']?.toString() ?? '0') ?? 0,
+      currency: map['currency']?.toString() ?? 'try',
     );
   }
 
@@ -46,6 +53,24 @@ class TeacherModel {
       'bio': bio,
       'image_url': imageUrl,
       'is_active': isActive,
+      'session_price': sessionPrice,
+      'currency': currency,
     };
+  }
+
+  String get formattedPrice {
+    if (sessionPrice <= 0) {
+      return 'Ücret belirtilmemiş';
+    }
+
+    final cleanPrice = sessionPrice % 1 == 0
+        ? sessionPrice.toInt().toString()
+        : sessionPrice.toStringAsFixed(2);
+
+    if (currency.toLowerCase() == 'try') {
+      return '₺$cleanPrice';
+    }
+
+    return '$cleanPrice ${currency.toUpperCase()}';
   }
 }

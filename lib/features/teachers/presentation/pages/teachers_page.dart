@@ -306,16 +306,18 @@ class _TeachersPageState extends State<TeachersPage> {
                   buildEmptyState()
                 else
                   ...filteredTeachers.map(
-                    (teacher) => TeacherCard(
-                      name: teacher.name,
-                      specialty: teacher.specialty,
-                      category: teacher.category,
-                      experience: teacher.experience,
-                      rating: teacher.rating,
-                      bio: teacher.bio,
-                      imageUrl: teacher.imageUrl,
-                      onTap: () => goToTeacherDetail(teacher),
-                    ),
+                    (teacher) =>TeacherCard(
+  name: teacher.name,
+  specialty: teacher.specialty,
+  category: teacher.category,
+  experience: teacher.experience,
+  rating: teacher.rating,
+  bio: teacher.bio,
+  imageUrl: teacher.imageUrl,
+  sessionPrice: teacher.sessionPrice,
+  currency: teacher.currency,
+  onTap: () => goToTeacherDetail(teacher),
+),
                   ),
               ],
             ),
