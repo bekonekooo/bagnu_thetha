@@ -9,6 +9,34 @@ class TeacherDetailPage extends StatelessWidget {
     required this.teacher,
   });
 
+  double parseDouble(dynamic value) {
+    if (value == null) return 0;
+
+    if (value is num) {
+      return value.toDouble();
+    }
+
+    return double.tryParse(value.toString()) ?? 0;
+  }
+
+  String formatPrice({
+    required double price,
+    required String currency,
+  }) {
+    if (price <= 0) {
+      return 'Ücret belirtilmemiş';
+    }
+
+    final cleanPrice =
+        price % 1 == 0 ? price.toInt().toString() : price.toStringAsFixed(2);
+
+    if (currency.toLowerCase() == 'try') {
+      return '₺$cleanPrice';
+    }
+
+    return '$cleanPrice ${currency.toUpperCase()}';
+  }
+
   @override
   Widget build(BuildContext context) {
     final id = teacher['id']?.toString() ?? '';
@@ -21,7 +49,15 @@ class TeacherDetailPage extends StatelessWidget {
     final imageUrl = teacher['image_url']?.toString() ?? '';
     final isActive = teacher['is_active'] == true;
 
+    final sessionPrice = parseDouble(teacher['session_price']);
+    final currency = teacher['currency']?.toString() ?? 'try';
+    final formattedPrice = formatPrice(
+      price: sessionPrice,
+      currency: currency,
+    );
+
     final hasImage = imageUrl.trim().isNotEmpty;
+    final canBook = isActive && id.isNotEmpty && sessionPrice > 0;
 
     return Scaffold(
       appBar: AppBar(
@@ -106,6 +142,11 @@ class TeacherDetailPage extends StatelessWidget {
                         text: rating,
                         iconColor: Colors.amber,
                       ),
+                      _HeaderBadge(
+                        icon: Icons.payments_outlined,
+                        text: formattedPrice,
+                        iconColor: Colors.greenAccent,
+                      ),
                     ],
                   ),
                 ],
@@ -113,6 +154,12 @@ class TeacherDetailPage extends StatelessWidget {
             ),
 
             const SizedBox(height: 24),
+
+            _buildPriceCard(
+              price: formattedPrice,
+            ),
+
+            const SizedBox(height: 12),
 
             _buildInfoCard(
               icon: Icons.category_outlined,
@@ -146,8 +193,7 @@ class TeacherDetailPage extends StatelessWidget {
                 color: isActive ? Colors.green.shade50 : Colors.red.shade50,
                 borderRadius: BorderRadius.circular(18),
                 border: Border.all(
-                  color:
-                      isActive ? Colors.green.shade100 : Colors.red.shade100,
+                  color: isActive ? Colors.green.shade100 : Colors.red.shade100,
                 ),
               ),
               child: Row(
@@ -175,24 +221,58 @@ class TeacherDetailPage extends StatelessWidget {
               ),
             ),
 
+            if (isActive && sessionPrice <= 0) ...[
+              const SizedBox(height: 12),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.orange.shade50,
+                  borderRadius: BorderRadius.circular(18),
+                  border: Border.all(color: Colors.orange.shade100),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.warning_amber_rounded,
+                      color: Colors.orange.shade700,
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        'Bu öğretmen için seans ücreti henüz belirlenmemiş. Randevu alınamaz.',
+                        style: TextStyle(
+                          color: Colors.orange.shade900,
+                          fontWeight: FontWeight.w600,
+                          height: 1.35,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+
             const SizedBox(height: 24),
 
             SizedBox(
               width: double.infinity,
               child: ElevatedButton.icon(
-                onPressed: isActive && id.isNotEmpty
+                onPressed: canBook
                     ? () {
                         context.push(
                           '/booking',
                           extra: {
                             'teacherId': id,
                             'teacherName': name,
+                            'sessionPrice': sessionPrice,
+                            'currency': currency,
                           },
                         );
                       }
                     : null,
                 icon: const Icon(Icons.calendar_month),
-                label: const Text('Randevu Al'),
+                label: Text('Randevu Al - $formattedPrice'),
                 style: ElevatedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   textStyle: const TextStyle(
@@ -220,6 +300,64 @@ class TeacherDetailPage extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildPriceCard({
+    required String price,
+  }) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: Colors.green.shade50,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.green.shade100),
+      ),
+      child: Row(
+        children: [
+          const CircleAvatar(
+            backgroundColor: Colors.white,
+            child: Icon(
+              Icons.payments_outlined,
+              color: Colors.green,
+            ),
+          ),
+          const SizedBox(width: 14),
+          const Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Seans Ücreti',
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: Colors.grey,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                SizedBox(height: 4),
+                Text(
+                  'Ödeme bir sonraki adımda alınacak.',
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: Colors.black54,
+                    height: 1.35,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Text(
+            price,
+            style: TextStyle(
+              color: Colors.green.shade800,
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ],
       ),
     );
   }

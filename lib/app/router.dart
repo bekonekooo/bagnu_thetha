@@ -71,6 +71,18 @@ bool hasStringValue(Map<String, dynamic> map, String key) {
   return value is String && value.trim().isNotEmpty;
 }
 
+double parseExtraDouble(Map<String, dynamic> map, String key) {
+  final value = map[key];
+
+  if (value == null) return 0;
+
+  if (value is num) {
+    return value.toDouble();
+  }
+
+  return double.tryParse(value.toString()) ?? 0;
+}
+
 final GoRouter appRouter = GoRouter(
   initialLocation: '/splash',
   refreshListenable: GoRouterRefreshStream(
@@ -267,7 +279,14 @@ final GoRouter appRouter = GoRouter(
         }
 
         if (!hasStringValue(extra, 'teacherId') ||
-            !hasStringValue(extra, 'teacherName')) {
+            !hasStringValue(extra, 'teacherName') ||
+            !hasStringValue(extra, 'currency')) {
+          return '/teachers';
+        }
+
+        final sessionPrice = parseExtraDouble(extra, 'sessionPrice');
+
+        if (sessionPrice <= 0) {
           return '/teachers';
         }
 
@@ -279,6 +298,8 @@ final GoRouter appRouter = GoRouter(
         return BookingPage(
           teacherId: extra['teacherId'] as String,
           teacherName: extra['teacherName'] as String,
+          sessionPrice: parseExtraDouble(extra, 'sessionPrice'),
+          currency: extra['currency'] as String,
         );
       },
     ),

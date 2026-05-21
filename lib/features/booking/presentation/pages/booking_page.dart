@@ -14,11 +14,15 @@ import '../widgets/booking_submit_button.dart';
 class BookingPage extends StatefulWidget {
   final String teacherId;
   final String teacherName;
+  final double sessionPrice;
+  final String currency;
 
   const BookingPage({
     super.key,
     required this.teacherId,
     required this.teacherName,
+    required this.sessionPrice,
+    required this.currency,
   });
 
   @override
@@ -53,6 +57,22 @@ class _BookingPageState extends State<BookingPage> {
 
     notesController.dispose();
     super.dispose();
+  }
+
+  String get formattedPrice {
+    if (widget.sessionPrice <= 0) {
+      return 'Ücret belirtilmemiş';
+    }
+
+    final cleanPrice = widget.sessionPrice % 1 == 0
+        ? widget.sessionPrice.toInt().toString()
+        : widget.sessionPrice.toStringAsFixed(2);
+
+    if (widget.currency.toLowerCase() == 'try') {
+      return '₺$cleanPrice';
+    }
+
+    return '$cleanPrice ${widget.currency.toUpperCase()}';
   }
 
   void _setupRealtime() {
@@ -231,6 +251,15 @@ class _BookingPageState extends State<BookingPage> {
       return;
     }
 
+    if (widget.sessionPrice <= 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Bu öğretmen için seans ücreti belirlenmemiş.'),
+        ),
+      );
+      return;
+    }
+
     final bookingDateTime = combineDateAndTime(selectedDate, selectedTime);
 
     if (bookingDateTime == null || bookingDateTime.isBefore(DateTime.now())) {
@@ -268,6 +297,8 @@ class _BookingPageState extends State<BookingPage> {
 
       final cleanNotes = notesController.text.trim();
 
+      // PART 51'de bu noktaya Stripe ödeme eklenecek.
+      // Şimdilik eski sistem bozulmasın diye seans direkt oluşturuluyor.
       await sessionService.createSession(
         teacherId: widget.teacherId,
         teacherName: widget.teacherName,
@@ -326,6 +357,62 @@ class _BookingPageState extends State<BookingPage> {
     );
   }
 
+  Widget buildPaymentSummaryCard() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: Colors.green.shade50,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.green.shade100),
+      ),
+      child: Row(
+        children: [
+          const CircleAvatar(
+            backgroundColor: Colors.white,
+            child: Icon(
+              Icons.payments_outlined,
+              color: Colors.green,
+            ),
+          ),
+          const SizedBox(width: 14),
+          const Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Ödenecek Tutar',
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: Colors.grey,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                SizedBox(height: 4),
+                Text(
+                  'Stripe ödeme sistemi bir sonraki partta bağlanacak.',
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: Colors.black54,
+                    height: 1.35,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Text(
+            formattedPrice,
+            style: TextStyle(
+              color: Colors.green.shade800,
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final canSubmit = selectedDate != null && selectedTime != null;
@@ -342,6 +429,10 @@ class _BookingPageState extends State<BookingPage> {
             BookingInfoCard(
               teacherName: widget.teacherName,
             ),
+
+            const SizedBox(height: 16),
+
+            buildPaymentSummaryCard(),
 
             const SizedBox(height: 26),
 
