@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_stripe/flutter_stripe.dart';
 import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../sessions/data/services/session_service.dart';
 import '../../data/services/availability_service.dart';
+import '../../data/services/payment_service.dart';
 
 import '../widgets/booking_info_card.dart';
 import '../widgets/booking_date_picker.dart';
@@ -38,6 +40,7 @@ class _BookingPageState extends State<BookingPage> {
 
   final sessionService = SessionService();
   final availabilityService = AvailabilityService();
+  final paymentService = PaymentService();
   final notesController = TextEditingController();
 
   List<String> availableTimes = [];
@@ -297,8 +300,35 @@ class _BookingPageState extends State<BookingPage> {
 
       final cleanNotes = notesController.text.trim();
 
-      // PART 51'de bu noktaya Stripe ödeme eklenecek.
-      // Şimdilik eski sistem bozulmasın diye seans direkt oluşturuluyor.
+      final paymentResult = await paymentService.createPaymentIntent(
+        teacherId: widget.teacherId,
+        teacherName: widget.teacherName,
+        sessionDate: selectedDate!,
+        sessionTime: selectedTime!,
+        amount: widget.sessionPrice,
+        currency: widget.currency,
+        notes: cleanNotes.isEmpty ? null : cleanNotes,
+      );
+
+      final clientSecret = paymentResult['clientSecret']?.toString();
+      final paymentId = paymentResult['paymentId']?.toString();
+
+      if (clientSecret == null || clientSecret.isEmpty) {
+        throw Exception('Ödeme başlatılamadı.');
+      }
+
+      if (paymentId == null || paymentId.isEmpty) {
+        throw Exception('Ödeme kaydı alınamadı.');
+      }
+
+      await paymentService.openPaymentSheet(
+        clientSecret: clientSecret,
+      );
+
+      await paymentService.markPaymentSucceeded(
+        paymentId: paymentId,
+      );
+
       await sessionService.createSession(
         teacherId: widget.teacherId,
         teacherName: widget.teacherName,
@@ -318,11 +348,19 @@ class _BookingPageState extends State<BookingPage> {
           'notes': cleanNotes.isEmpty ? null : cleanNotes,
         },
       );
+    } on StripeException catch (e) {
+      if (!mounted) return;
+
+      final message = e.error.localizedMessage ?? 'Ödeme iptal edildi.';
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(message)),
+      );
     } catch (e) {
       if (!mounted) return;
 
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Seans oluşturulamadı: $e')),
+        SnackBar(content: Text('İşlem tamamlanamadı: $e')),
       );
     } finally {
       if (!mounted) return;
@@ -390,7 +428,7 @@ class _BookingPageState extends State<BookingPage> {
                 ),
                 SizedBox(height: 4),
                 Text(
-                  'Stripe ödeme sistemi bir sonraki partta bağlanacak.',
+                  'Ödeme Stripe güvenli ödeme ekranı ile alınır.',
                   style: TextStyle(
                     fontSize: 13,
                     color: Colors.black54,
@@ -429,13 +467,9 @@ class _BookingPageState extends State<BookingPage> {
             BookingInfoCard(
               teacherName: widget.teacherName,
             ),
-
             const SizedBox(height: 16),
-
             buildPaymentSummaryCard(),
-
             const SizedBox(height: 26),
-
             buildSectionTitle(
               'Tarih seç',
               'Öğretmenin uygun olduğu günlerden bir tarih seç.',
@@ -445,9 +479,7 @@ class _BookingPageState extends State<BookingPage> {
               formattedDate: formattedDate,
               onTap: pickDate,
             ),
-
             const SizedBox(height: 26),
-
             buildSectionTitle(
               'Saat seç',
               selectedDate == null
@@ -467,15 +499,11 @@ class _BookingPageState extends State<BookingPage> {
                 });
               },
             ),
-
             const SizedBox(height: 26),
-
             BookingNotesField(
               controller: notesController,
             ),
-
             const SizedBox(height: 32),
-
             BookingSubmitButton(
               isLoading: isLoading,
               isEnabled: canSubmit,
