@@ -22,7 +22,7 @@ class PaymentService {
     final sessionDateForDb = _formatDateForDb(sessionDate);
 
    final response = await supabase.functions.invoke(
-  'dynamic-action',
+  'smooth-handler',
   body: {
         'teacherId': teacherId,
         'teacherName': teacherName,
