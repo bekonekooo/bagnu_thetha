@@ -117,6 +117,7 @@ final GoRouter appRouter = GoRouter(
       '/trainings',
       '/guidance',
       '/community',
+      '/notifications',
     ];
 
     final isPublicRoute = publicRoutes.contains(location);
@@ -224,11 +225,6 @@ final GoRouter appRouter = GoRouter(
       },
     ),
 
-    GoRoute(
-      path: '/notifications',
-      builder: (context, state) => const NotificationsPage(),
-    ),
-
     ShellRoute(
       builder: (context, state, child) => MainShellPage(child: child),
       routes: [
@@ -236,14 +232,17 @@ final GoRouter appRouter = GoRouter(
           path: '/home',
           builder: (context, state) => const HomePage(),
         ),
+
         GoRoute(
           path: '/sessions',
           builder: (context, state) => SessionsPage(),
         ),
+
         GoRoute(
           path: '/profile',
           builder: (context, state) => const ProfilePage(),
         ),
+
         GoRoute(
           path: '/profile-edit',
           redirect: (context, state) {
@@ -261,91 +260,96 @@ final GoRouter appRouter = GoRouter(
             return ProfileEditPage(profile: profile);
           },
         ),
+
+        GoRoute(
+          path: '/notifications',
+          builder: (context, state) => const NotificationsPage(),
+        ),
+
+        GoRoute(
+          path: '/teachers',
+          builder: (context, state) => const TeachersPage(),
+        ),
+
+        GoRoute(
+          path: '/booking',
+          redirect: (context, state) {
+            final extra = state.extra;
+
+            if (extra is! Map<String, dynamic>) {
+              return '/teachers';
+            }
+
+            if (!hasStringValue(extra, 'teacherId') ||
+                !hasStringValue(extra, 'teacherName') ||
+                !hasStringValue(extra, 'currency')) {
+              return '/teachers';
+            }
+
+            final sessionPrice = parseExtraDouble(extra, 'sessionPrice');
+
+            if (sessionPrice <= 0) {
+              return '/teachers';
+            }
+
+            return null;
+          },
+          builder: (context, state) {
+            final extra = state.extra as Map<String, dynamic>;
+
+            return BookingPage(
+              teacherId: extra['teacherId'] as String,
+              teacherName: extra['teacherName'] as String,
+              sessionPrice: parseExtraDouble(extra, 'sessionPrice'),
+              currency: extra['currency'] as String,
+            );
+          },
+        ),
+
+        GoRoute(
+          path: '/booking-success',
+          redirect: (context, state) {
+            final extra = state.extra;
+
+            if (extra is! Map<String, dynamic>) {
+              return '/sessions';
+            }
+
+            if (!hasStringValue(extra, 'teacherName') ||
+                !hasStringValue(extra, 'sessionDate') ||
+                !hasStringValue(extra, 'sessionTime')) {
+              return '/sessions';
+            }
+
+            return null;
+          },
+          builder: (context, state) {
+            final extra = state.extra as Map<String, dynamic>;
+
+            return BookingSuccessPage(
+              teacherName: extra['teacherName'] as String,
+              sessionDate: extra['sessionDate'] as String,
+              sessionTime: extra['sessionTime'] as String,
+              notes: extra['notes'] as String?,
+            );
+          },
+        ),
+
+        GoRoute(
+          path: '/trainings',
+          builder: (context, state) => const TrainingsPage(),
+        ),
+
+        GoRoute(
+          path: '/guidance',
+          builder: (context, state) => const GuidancePage(),
+        ),
+
+        GoRoute(
+          path: '/community',
+          builder: (context, state) => const CommunityPage(),
+        ),
       ],
-    ),
-
-    GoRoute(
-      path: '/teachers',
-      builder: (context, state) => const TeachersPage(),
-    ),
-
-    GoRoute(
-      path: '/booking',
-      redirect: (context, state) {
-        final extra = state.extra;
-
-        if (extra is! Map<String, dynamic>) {
-          return '/teachers';
-        }
-
-        if (!hasStringValue(extra, 'teacherId') ||
-            !hasStringValue(extra, 'teacherName') ||
-            !hasStringValue(extra, 'currency')) {
-          return '/teachers';
-        }
-
-        final sessionPrice = parseExtraDouble(extra, 'sessionPrice');
-
-        if (sessionPrice <= 0) {
-          return '/teachers';
-        }
-
-        return null;
-      },
-      builder: (context, state) {
-        final extra = state.extra as Map<String, dynamic>;
-
-        return BookingPage(
-          teacherId: extra['teacherId'] as String,
-          teacherName: extra['teacherName'] as String,
-          sessionPrice: parseExtraDouble(extra, 'sessionPrice'),
-          currency: extra['currency'] as String,
-        );
-      },
-    ),
-
-    GoRoute(
-      path: '/booking-success',
-      redirect: (context, state) {
-        final extra = state.extra;
-
-        if (extra is! Map<String, dynamic>) {
-          return '/sessions';
-        }
-
-        if (!hasStringValue(extra, 'teacherName') ||
-            !hasStringValue(extra, 'sessionDate') ||
-            !hasStringValue(extra, 'sessionTime')) {
-          return '/sessions';
-        }
-
-        return null;
-      },
-      builder: (context, state) {
-        final extra = state.extra as Map<String, dynamic>;
-
-        return BookingSuccessPage(
-          teacherName: extra['teacherName'] as String,
-          sessionDate: extra['sessionDate'] as String,
-          sessionTime: extra['sessionTime'] as String,
-          notes: extra['notes'] as String?,
-        );
-      },
-    ),
-
-    GoRoute(
-      path: '/trainings',
-      builder: (context, state) => const TrainingsPage(),
-    ),
-
-    GoRoute(
-      path: '/guidance',
-      builder: (context, state) => const GuidancePage(),
-    ),
-
-    GoRoute(
-      path: '/community',
-      builder: (context, state) => const CommunityPage(),
     ),
   ],
 );

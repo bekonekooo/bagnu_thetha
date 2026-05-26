@@ -388,6 +388,8 @@ class _GuidancePageState extends State<GuidancePage> {
                     controller: extraInfoController,
                     minLines: 3,
                     maxLines: 5,
+                    keyboardType: TextInputType.multiline,
+                    textCapitalization: TextCapitalization.sentences,
                     decoration: InputDecoration(
                       labelText: 'Ek detay',
                       hintText:
@@ -571,10 +573,10 @@ class _TextInputCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return TextField(
+    return TextFormField(
       controller: controller,
-      textInputAction: TextInputAction.next,
-      textCapitalization: TextCapitalization.words,
+      autocorrect: false,
+      enableSuggestions: false,
       decoration: InputDecoration(
         prefixIcon: Icon(
           icon,

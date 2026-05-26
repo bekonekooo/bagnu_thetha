@@ -12,9 +12,11 @@ class MainShellPage extends StatelessWidget {
   int _getCurrentIndex(BuildContext context) {
     final location = GoRouterState.of(context).matchedLocation;
 
-    if (location == '/home') return 0;
     if (location == '/sessions') return 1;
-    if (location == '/profile') return 2;
+
+    if (location == '/profile' || location == '/profile-edit') {
+      return 2;
+    }
 
     return 0;
   }
