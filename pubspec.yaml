@@ -22,6 +22,10 @@ dependencies:
   flutter_stripe: ^12.6.0
   audioplayers: ^6.6.0
 
+  # Video görüşme
+  livekit_client: ^2.7.0
+  permission_handler: ^12.0.1
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
@@ -32,5 +36,4 @@ flutter:
   uses-material-design: true
 
   assets:
-    - assets/sounds/          # ← Klasörü bu şekilde tanımla (en önemlisi bu)
-
+    - assets/sounds/
