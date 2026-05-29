@@ -28,7 +28,6 @@ class _HomeHeaderState extends State<HomeHeader> {
   int currentPage = 0;
   int previousPage = 0;
 
-  // 2. karta her gelişte mesaj opacity animasyonunu yeniden başlatmak için
   int messageAnimationKey = 0;
 
   @override
@@ -106,10 +105,8 @@ class _HomeHeaderState extends State<HomeHeader> {
     final velocity = details.primaryVelocity ?? 0;
 
     if (velocity < -250 && currentPage == 0) {
-      // Yukarı kaydırınca günlük karta geç
       changePage(1);
     } else if (velocity > 250 && currentPage == 1) {
-      // Aşağı kaydırınca hoş geldin kartına dön
       changePage(0);
     }
   }
@@ -133,7 +130,7 @@ class _HomeHeaderState extends State<HomeHeader> {
         GestureDetector(
           onVerticalDragEnd: handleVerticalSwipe,
           child: SizedBox(
-            height: 250,
+            height: 245,
             child: AnimatedSwitcher(
               duration: const Duration(milliseconds: 1500),
               reverseDuration: const Duration(milliseconds: 1300),
@@ -223,8 +220,8 @@ class _HomeHeaderState extends State<HomeHeader> {
               height: 8,
               decoration: BoxDecoration(
                 color: isActive
-                    ? Colors.deepPurple
-                    : Colors.deepPurple.withOpacity(0.25),
+                    ? const Color(0xFF536B4E)
+                    : const Color(0xFF536B4E).withOpacity(0.25),
                 borderRadius: BorderRadius.circular(20),
               ),
             );
@@ -249,50 +246,97 @@ class _ProfileWelcomeCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: Colors.transparent,
-      borderRadius: BorderRadius.circular(22),
-      child: InkWell(
-        onTap: onTap,
-        enableFeedback: false,
-        splashFactory: NoSplash.splashFactory,
-        highlightColor: Colors.transparent,
-        borderRadius: BorderRadius.circular(22),
-        child: Ink(
-          width: double.infinity,
-          padding: const EdgeInsets.all(20),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(22),
-            gradient: LinearGradient(
-              colors: [
-                Colors.deepPurple.shade400,
-                Colors.deepPurple.shade700,
-              ],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
+    return _GlassHeaderCard(
+      onTap: onTap,
+      child: Stack(
+        children: [
+          Positioned(
+            right: -26,
+            top: -28,
+            child: _SoftCircle(
+              size: 116,
+              color: const Color(0xFFE5EDDE).withOpacity(0.9),
             ),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.deepPurple.withOpacity(0.18),
-                blurRadius: 18,
-                offset: const Offset(0, 8),
-              ),
-            ],
           ),
-          child: Column(
+          Positioned(
+            right: 38,
+            bottom: -36,
+            child: _SoftCircle(
+              size: 94,
+              color: const Color(0xFFD5E2CE).withOpacity(0.55),
+            ),
+          ),
+          Positioned(
+            left: -26,
+            bottom: -30,
+            child: _SoftCircle(
+              size: 82,
+              color: const Color(0xFFF3EFE3).withOpacity(0.8),
+            ),
+          ),
+          Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Icon(
-                Icons.self_improvement,
-                color: Colors.white,
-                size: 34,
+              Row(
+                children: [
+                  Container(
+                    width: 54,
+                    height: 54,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFEEF3EA).withOpacity(0.95),
+                      borderRadius: BorderRadius.circular(18),
+                      border: Border.all(
+                        color: const Color(0xFFD7E1D0),
+                      ),
+                    ),
+                    child: const Icon(
+                      Icons.self_improvement,
+                      color: Color(0xFF536B4E),
+                      size: 30,
+                    ),
+                  ),
+                  const Spacer(),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 8,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.60),
+                      borderRadius: BorderRadius.circular(40),
+                      border: Border.all(
+                        color: Colors.white.withOpacity(0.72),
+                      ),
+                    ),
+                    child: const Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.touch_app_outlined,
+                          color: Color(0xFF536B4E),
+                          size: 16,
+                        ),
+                        SizedBox(width: 6),
+                        Text(
+                          'Dokun',
+                          style: TextStyle(
+                            color: Color(0xFF536B4E),
+                            fontSize: 12.5,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ),
               const Spacer(),
-              Text(
+              const Text(
                 'Hoş geldin,',
                 style: TextStyle(
                   fontSize: 15,
-                  color: Colors.white.withOpacity(0.85),
+                  color: Color(0xFF667064),
+                  fontWeight: FontWeight.w600,
                 ),
               ),
               const SizedBox(height: 4),
@@ -301,9 +345,10 @@ class _ProfileWelcomeCard extends StatelessWidget {
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: const TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.white,
+                  fontSize: 25,
+                  fontWeight: FontWeight.w900,
+                  color: Color(0xFF2F3A32),
+                  letterSpacing: -0.2,
                 ),
               ),
               if (email.trim().isNotEmpty) ...[
@@ -312,9 +357,10 @@ class _ProfileWelcomeCard extends StatelessWidget {
                   email,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
+                  style: const TextStyle(
                     fontSize: 13,
-                    color: Colors.white.withOpacity(0.82),
+                    color: Color(0xFF6B736A),
+                    fontWeight: FontWeight.w500,
                   ),
                 ),
               ],
@@ -325,10 +371,10 @@ class _ProfileWelcomeCard extends StatelessWidget {
                   vertical: 10,
                 ),
                 decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.16),
+                  color: const Color(0xFFEEF3EA).withOpacity(0.86),
                   borderRadius: BorderRadius.circular(50),
                   border: Border.all(
-                    color: Colors.white.withOpacity(0.24),
+                    color: const Color(0xFFD7E1D0),
                   ),
                 ),
                 child: const Row(
@@ -336,7 +382,7 @@ class _ProfileWelcomeCard extends StatelessWidget {
                   children: [
                     Icon(
                       Icons.auto_awesome,
-                      color: Colors.white,
+                      color: Color(0xFF536B4E),
                       size: 17,
                     ),
                     SizedBox(width: 7),
@@ -346,9 +392,9 @@ class _ProfileWelcomeCard extends StatelessWidget {
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
-                          color: Colors.white,
+                          color: Color(0xFF536B4E),
                           fontSize: 13.5,
-                          fontWeight: FontWeight.w700,
+                          fontWeight: FontWeight.w800,
                         ),
                       ),
                     ),
@@ -357,7 +403,7 @@ class _ProfileWelcomeCard extends StatelessWidget {
               ),
             ],
           ),
-        ),
+        ],
       ),
     );
   }
@@ -384,108 +430,219 @@ class _GreetingMessageCard extends StatelessWidget {
         ? message!
         : 'Bugün kendine nazik davranmayı seç.';
 
-    return Material(
-      color: Colors.transparent,
-      borderRadius: BorderRadius.circular(22),
-      child: InkWell(
-        onTap: onCardTap,
-        enableFeedback: false,
-        splashFactory: NoSplash.splashFactory,
-        highlightColor: Colors.transparent,
-        borderRadius: BorderRadius.circular(22),
-        child: Ink(
-          width: double.infinity,
-          padding: const EdgeInsets.all(20),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(22),
-            gradient: LinearGradient(
-              colors: [
-                Colors.purple.shade300,
-                Colors.indigo.shade600,
-              ],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
+    return _GlassHeaderCard(
+      onTap: onCardTap,
+      child: Stack(
+        children: [
+          Positioned(
+            right: -22,
+            top: -24,
+            child: _SoftCircle(
+              size: 120,
+              color: const Color(0xFFEDE8F5).withOpacity(0.75),
             ),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.indigo.withOpacity(0.18),
-                blurRadius: 18,
-                offset: const Offset(0, 8),
-              ),
-            ],
           ),
-          child: isLoading
-              ? const Center(
-                  child: CircularProgressIndicator(
-                    color: Colors.white,
-                  ),
-                )
-              : Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+          Positioned(
+            left: -28,
+            bottom: -34,
+            child: _SoftCircle(
+              size: 94,
+              color: const Color(0xFFEAF1E2).withOpacity(0.8),
+            ),
+          ),
+          if (isLoading)
+            const Center(
+              child: CircularProgressIndicator(
+                color: Color(0xFF536B4E),
+              ),
+            )
+          else
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
                   children: [
-                    const Icon(
-                      Icons.auto_awesome,
-                      color: Colors.white,
-                      size: 34,
+                    Container(
+                      width: 54,
+                      height: 54,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFEEF3EA).withOpacity(0.95),
+                        borderRadius: BorderRadius.circular(18),
+                        border: Border.all(
+                          color: const Color(0xFFD7E1D0),
+                        ),
+                      ),
+                      child: const Icon(
+                        Icons.auto_awesome,
+                        color: Color(0xFF536B4E),
+                        size: 29,
+                      ),
                     ),
                     const Spacer(),
-                    Text(
-                      'Bugünün yazısı',
-                      style: TextStyle(
-                        fontSize: 15,
-                        color: Colors.white.withOpacity(0.85),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 8,
                       ),
-                    ),
-                    const SizedBox(height: 8),
-                    Flexible(
-                      child: TweenAnimationBuilder<double>(
-                        key: ValueKey(
-                          'message-$messageAnimationKey-$displayMessage',
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.60),
+                        borderRadius: BorderRadius.circular(40),
+                        border: Border.all(
+                          color: Colors.white.withOpacity(0.72),
                         ),
-                        tween: Tween<double>(
-                          begin: 0.05,
-                          end: 1,
-                        ),
-                        duration: const Duration(seconds: 3),
-                        curve: Curves.easeInOut,
-                        builder: (context, opacity, child) {
-                          return Opacity(
-                            opacity: opacity,
-                            child: child,
-                          );
-                        },
-                child: FittedBox(
-  fit: BoxFit.scaleDown,
-  alignment: Alignment.centerLeft,
-  child: ConstrainedBox(
-    constraints: const BoxConstraints(
-      maxWidth: 310,
-    ),
-    child: Text(
-      displayMessage,
-      maxLines: 4,
-      overflow: TextOverflow.ellipsis,
-      style: const TextStyle(
-        fontSize: 19,
-        height: 1.18,
-        fontWeight: FontWeight.bold,
-        color: Colors.white,
-      ),
-    ),
-  ),
-),
                       ),
-                    ),
-                    const SizedBox(height: 10),
-                    Text(
-                      'Tekrar dokunarak geri dönebilirsin.',
-                      style: TextStyle(
-                        fontSize: 13,
-                        color: Colors.white.withOpacity(0.78),
+                      child: const Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.keyboard_arrow_down_rounded,
+                            color: Color(0xFF536B4E),
+                            size: 18,
+                          ),
+                          SizedBox(width: 4),
+                          Text(
+                            'Geri dön',
+                            style: TextStyle(
+                              color: Color(0xFF536B4E),
+                              fontSize: 12.5,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ],
                 ),
+                const Spacer(),
+                const Text(
+                  'Bugünün yazısı',
+                  style: TextStyle(
+                    fontSize: 15,
+                    color: Color(0xFF667064),
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Flexible(
+                  child: TweenAnimationBuilder<double>(
+                    key: ValueKey(
+                      'message-$messageAnimationKey-$displayMessage',
+                    ),
+                    tween: Tween<double>(
+                      begin: 0.05,
+                      end: 1,
+                    ),
+                    duration: const Duration(seconds: 3),
+                    curve: Curves.easeInOut,
+                    builder: (context, opacity, child) {
+                      return Opacity(
+                        opacity: opacity,
+                        child: child,
+                      );
+                    },
+                    child: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      alignment: Alignment.centerLeft,
+                      child: ConstrainedBox(
+                        constraints: const BoxConstraints(
+                          maxWidth: 310,
+                        ),
+                        child: Text(
+                          displayMessage,
+                          maxLines: 4,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            fontSize: 20,
+                            height: 1.18,
+                            fontWeight: FontWeight.w900,
+                            color: Color(0xFF2F3A32),
+                            letterSpacing: -0.15,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 10),
+                const Text(
+                  'Tekrar dokunarak hoş geldin kartına dönebilirsin.',
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: Color(0xFF6B736A),
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class _GlassHeaderCard extends StatelessWidget {
+  final Widget child;
+  final Future<void> Function() onTap;
+
+  const _GlassHeaderCard({
+    required this.child,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      borderRadius: BorderRadius.circular(28),
+      child: InkWell(
+        onTap: onTap,
+        enableFeedback: false,
+        splashFactory: NoSplash.splashFactory,
+        highlightColor: Colors.transparent,
+        borderRadius: BorderRadius.circular(28),
+        child: Ink(
+          width: double.infinity,
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(28),
+            color: Colors.white.withOpacity(0.76),
+            border: Border.all(
+              color: Colors.white.withOpacity(0.70),
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.09),
+                blurRadius: 28,
+                offset: const Offset(0, 12),
+              ),
+            ],
+          ),
+          child: child,
+        ),
+      ),
+    );
+  }
+}
+
+class _SoftCircle extends StatelessWidget {
+  final double size;
+  final Color color;
+
+  const _SoftCircle({
+    required this.size,
+    required this.color,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Transform.rotate(
+      angle: math.pi / 8,
+      child: Container(
+        width: size,
+        height: size,
+        decoration: BoxDecoration(
+          color: color,
+          shape: BoxShape.circle,
         ),
       ),
     );
