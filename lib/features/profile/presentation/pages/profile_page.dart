@@ -15,6 +15,9 @@ class _ProfilePageState extends State<ProfilePage> {
   bool isLoading = true;
   String? errorMessage;
 
+  static const String profileBackground =
+      'assets/images/backgrounds/home_bg_3.jpg';
+
   @override
   void initState() {
     super.initState();
@@ -90,6 +93,10 @@ class _ProfilePageState extends State<ProfilePage> {
               },
               icon: const Icon(Icons.logout),
               label: const Text('Çıkış Yap'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFFC85C5C),
+                foregroundColor: Colors.white,
+              ),
             ),
           ],
         );
@@ -117,6 +124,42 @@ class _ProfilePageState extends State<ProfilePage> {
     return clean.isEmpty ? fallback : clean;
   }
 
+  Widget buildBackgroundBody({
+    required Widget child,
+  }) {
+    return Stack(
+      children: [
+        Positioned.fill(
+          child: Image.asset(
+            profileBackground,
+            fit: BoxFit.cover,
+          ),
+        ),
+        Positioned.fill(
+          child: Container(
+            color: Colors.white.withOpacity(0.16),
+          ),
+        ),
+        Positioned.fill(
+          child: Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                  Colors.white.withOpacity(0.16),
+                  Colors.white.withOpacity(0.05),
+                  Colors.black.withOpacity(0.18),
+                ],
+              ),
+            ),
+          ),
+        ),
+        child,
+      ],
+    );
+  }
+
   Widget buildHeaderCard({
     required String fullName,
     required String email,
@@ -128,56 +171,94 @@ class _ProfilePageState extends State<ProfilePage> {
       width: double.infinity,
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            Colors.deepPurple.shade400,
-            Colors.deepPurple.shade700,
-          ],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
+        color: Colors.white.withOpacity(0.76),
+        borderRadius: BorderRadius.circular(30),
+        border: Border.all(
+          color: Colors.white.withOpacity(0.72),
         ),
-        borderRadius: BorderRadius.circular(28),
         boxShadow: [
           BoxShadow(
-            color: Colors.deepPurple.withOpacity(0.20),
-            blurRadius: 22,
-            offset: const Offset(0, 10),
+            color: Colors.black.withOpacity(0.09),
+            blurRadius: 28,
+            offset: const Offset(0, 12),
           ),
         ],
       ),
       child: Column(
         children: [
-          CircleAvatar(
-            radius: 52,
-            backgroundColor: Colors.white,
-            backgroundImage: hasImage ? NetworkImage(imageUrl) : null,
-            child: hasImage
-                ? null
-                : const Icon(
-                    Icons.person,
-                    size: 52,
-                    color: Colors.deepPurple,
-                  ),
+          Container(
+            padding: const EdgeInsets.all(5),
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: const Color(0xFFEEF3EA).withOpacity(0.95),
+              border: Border.all(
+                color: const Color(0xFFD7E1D0),
+              ),
+            ),
+            child: CircleAvatar(
+              radius: 55,
+              backgroundColor: Colors.white,
+              backgroundImage: hasImage ? NetworkImage(imageUrl) : null,
+              child: hasImage
+                  ? null
+                  : const Icon(
+                      Icons.person_outline,
+                      size: 58,
+                      color: Color(0xFF536B4E),
+                    ),
+            ),
           ),
           const SizedBox(height: 18),
           Text(
             fullName,
             style: const TextStyle(
               fontSize: 25,
-              fontWeight: FontWeight.bold,
-              color: Colors.white,
+              fontWeight: FontWeight.w900,
+              color: Color(0xFF2F3A32),
+              letterSpacing: -0.2,
             ),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 8),
           Text(
             email,
-            style: TextStyle(
+            style: const TextStyle(
               fontSize: 15,
-              color: Colors.white.withOpacity(0.9),
+              color: Color(0xFF606A61),
               height: 1.35,
+              fontWeight: FontWeight.w600,
             ),
             textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 18),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
+            decoration: BoxDecoration(
+              color: const Color(0xFFEEF3EA).withOpacity(0.9),
+              borderRadius: BorderRadius.circular(50),
+              border: Border.all(
+                color: const Color(0xFFD7E1D0),
+              ),
+            ),
+            child: const Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  Icons.spa_outlined,
+                  color: Color(0xFF536B4E),
+                  size: 17,
+                ),
+                SizedBox(width: 7),
+                Text(
+                  'BagnuTheta Alanı',
+                  style: TextStyle(
+                    color: Color(0xFF536B4E),
+                    fontSize: 13.5,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ],
+            ),
           ),
         ],
       ),
@@ -194,25 +275,27 @@ class _ProfilePageState extends State<ProfilePage> {
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(18),
-        boxShadow: const [
+        color: Colors.white.withOpacity(0.76),
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(
+          color: Colors.white.withOpacity(0.70),
+        ),
+        boxShadow: [
           BoxShadow(
-            blurRadius: 10,
-            color: Colors.black12,
-            offset: Offset(0, 4),
+            color: Colors.black.withOpacity(0.07),
+            blurRadius: 20,
+            offset: const Offset(0, 9),
           ),
         ],
-        border: Border.all(color: Colors.grey.shade200),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           CircleAvatar(
-            backgroundColor: Colors.deepPurple.shade50,
+            backgroundColor: const Color(0xFFEEF3EA).withOpacity(0.95),
             child: Icon(
               icon,
-              color: Colors.deepPurple,
+              color: const Color(0xFF536B4E),
             ),
           ),
           const SizedBox(width: 14),
@@ -224,8 +307,8 @@ class _ProfilePageState extends State<ProfilePage> {
                   title,
                   style: const TextStyle(
                     fontSize: 13,
-                    color: Colors.grey,
-                    fontWeight: FontWeight.w600,
+                    color: Color(0xFF667064),
+                    fontWeight: FontWeight.w700,
                   ),
                 ),
                 const SizedBox(height: 5),
@@ -233,9 +316,11 @@ class _ProfilePageState extends State<ProfilePage> {
                   value,
                   style: TextStyle(
                     fontSize: 16,
-                    fontWeight: FontWeight.w700,
+                    fontWeight: FontWeight.w800,
                     height: 1.35,
-                    color: muted ? Colors.grey : Colors.black87,
+                    color: muted
+                        ? const Color(0xFF8A9188)
+                        : const Color(0xFF2F3A32),
                   ),
                 ),
               ],
@@ -246,52 +331,112 @@ class _ProfilePageState extends State<ProfilePage> {
     );
   }
 
+  Widget buildLoadingState() {
+    return Scaffold(
+      extendBodyBehindAppBar: true,
+      backgroundColor: Colors.transparent,
+      body: buildBackgroundBody(
+        child: Container(
+          color: Colors.white.withOpacity(0.18),
+          child: const Center(
+            child: CircularProgressIndicator(
+              color: Color(0xFF536B4E),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget buildErrorState() {
     return Scaffold(
-      appBar: AppBar(title: const Text('Profilim')),
-      body: RefreshIndicator(
-        onRefresh: getProfile,
-        child: ListView(
-          physics: const AlwaysScrollableScrollPhysics(),
-          padding: const EdgeInsets.all(28),
-          children: [
-            SizedBox(
-              height: MediaQuery.of(context).size.height * 0.62,
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Icon(
-                    Icons.error_outline,
-                    color: Colors.red,
-                    size: 56,
-                  ),
-                  const SizedBox(height: 16),
-                  const Text(
-                    'Profil yüklenemedi',
-                    style: TextStyle(
-                      fontSize: 19,
-                      fontWeight: FontWeight.bold,
+      extendBodyBehindAppBar: true,
+      backgroundColor: Colors.transparent,
+      appBar: AppBar(
+        title: const Text(
+          'Profilim',
+          style: TextStyle(
+            color: Color(0xFF2F3A32),
+            fontWeight: FontWeight.w900,
+          ),
+        ),
+        backgroundColor: Colors.white.withOpacity(0.18),
+        elevation: 0,
+        surfaceTintColor: Colors.transparent,
+        foregroundColor: const Color(0xFF2F3A32),
+      ),
+      body: buildBackgroundBody(
+        child: SafeArea(
+          child: RefreshIndicator(
+            onRefresh: getProfile,
+            child: ListView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              padding: const EdgeInsets.all(28),
+              children: [
+                SizedBox(
+                  height: MediaQuery.of(context).size.height * 0.62,
+                  child: Center(
+                    child: Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(24),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.78),
+                        borderRadius: BorderRadius.circular(28),
+                        border: Border.all(
+                          color: Colors.white.withOpacity(0.70),
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.09),
+                            blurRadius: 26,
+                            offset: const Offset(0, 12),
+                          ),
+                        ],
+                      ),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(
+                            Icons.error_outline,
+                            color: Color(0xFFC85C5C),
+                            size: 56,
+                          ),
+                          const SizedBox(height: 16),
+                          const Text(
+                            'Profil yüklenemedi',
+                            style: TextStyle(
+                              fontSize: 19,
+                              fontWeight: FontWeight.w900,
+                              color: Color(0xFF2F3A32),
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            errorMessage ?? 'Bilinmeyen hata',
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(
+                              color: Color(0xFF606A61),
+                              height: 1.35,
+                            ),
+                          ),
+                          const SizedBox(height: 18),
+                          ElevatedButton.icon(
+                            onPressed: getProfile,
+                            icon: const Icon(Icons.refresh),
+                            label: const Text('Tekrar Dene'),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF536B4E),
+                              foregroundColor: Colors.white,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
-                  const SizedBox(height: 8),
-                  Text(
-                    errorMessage ?? 'Bilinmeyen hata',
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(
-                      color: Colors.grey,
-                      height: 1.35,
-                    ),
-                  ),
-                  const SizedBox(height: 18),
-                  ElevatedButton.icon(
-                    onPressed: getProfile,
-                    icon: const Icon(Icons.refresh),
-                    label: const Text('Tekrar Dene'),
-                  ),
-                ],
-              ),
+                ),
+              ],
             ),
-          ],
+          ),
         ),
       ),
     );
@@ -300,9 +445,7 @@ class _ProfilePageState extends State<ProfilePage> {
   @override
   Widget build(BuildContext context) {
     if (isLoading) {
-      return const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
-      );
+      return buildLoadingState();
     }
 
     if (errorMessage != null) {
@@ -330,8 +473,20 @@ class _ProfilePageState extends State<ProfilePage> {
     final bioMissing = bioRaw.trim().isEmpty;
 
     return Scaffold(
+      extendBodyBehindAppBar: true,
+      backgroundColor: Colors.transparent,
       appBar: AppBar(
-        title: const Text('Profilim'),
+        title: const Text(
+          'Profilim',
+          style: TextStyle(
+            color: Color(0xFF2F3A32),
+            fontWeight: FontWeight.w900,
+          ),
+        ),
+        backgroundColor: Colors.white.withOpacity(0.18),
+        elevation: 0,
+        surfaceTintColor: Colors.transparent,
+        foregroundColor: const Color(0xFF2F3A32),
         actions: [
           IconButton(
             onPressed: getProfile,
@@ -340,90 +495,106 @@ class _ProfilePageState extends State<ProfilePage> {
           ),
         ],
       ),
-      body: RefreshIndicator(
-        onRefresh: getProfile,
-        child: SingleChildScrollView(
-          physics: const AlwaysScrollableScrollPhysics(),
-          padding: const EdgeInsets.fromLTRB(16, 16, 16, 28),
-          child: Column(
-            children: [
-              buildHeaderCard(
-                fullName: fullName,
-                email: email,
-                imageUrl: imageUrl,
-              ),
+      body: buildBackgroundBody(
+        child: SafeArea(
+          child: RefreshIndicator(
+            onRefresh: getProfile,
+            child: SingleChildScrollView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 28),
+              child: Column(
+                children: [
+                  buildHeaderCard(
+                    fullName: fullName,
+                    email: email,
+                    imageUrl: imageUrl,
+                  ),
 
-              const SizedBox(height: 24),
+                  const SizedBox(height: 24),
 
-              buildInfoTile(
-                icon: Icons.badge_outlined,
-                title: 'Ad Soyad',
-                value: fullName,
-              ),
-              buildInfoTile(
-                icon: Icons.email_outlined,
-                title: 'E-posta',
-                value: email,
-              ),
-              buildInfoTile(
-                icon: Icons.phone_outlined,
-                title: 'Telefon',
-                value: phone,
-                muted: phoneMissing,
-              ),
-              buildInfoTile(
-                icon: Icons.info_outline,
-                title: 'Hakkında',
-                value: bio,
-                muted: bioMissing,
-              ),
-              buildInfoTile(
-                icon: Icons.calendar_today_outlined,
-                title: 'Kayıt Tarihi',
-                value: createdAt,
-              ),
+                  buildInfoTile(
+                    icon: Icons.badge_outlined,
+                    title: 'Ad Soyad',
+                    value: fullName,
+                  ),
+                  buildInfoTile(
+                    icon: Icons.email_outlined,
+                    title: 'E-posta',
+                    value: email,
+                  ),
+                  buildInfoTile(
+                    icon: Icons.phone_outlined,
+                    title: 'Telefon',
+                    value: phone,
+                    muted: phoneMissing,
+                  ),
+                  buildInfoTile(
+                    icon: Icons.info_outline,
+                    title: 'Hakkında',
+                    value: bio,
+                    muted: bioMissing,
+                  ),
+                  buildInfoTile(
+                    icon: Icons.calendar_today_outlined,
+                    title: 'Kayıt Tarihi',
+                    value: createdAt,
+                  ),
 
-              const SizedBox(height: 24),
+                  const SizedBox(height: 24),
 
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton.icon(
-                  onPressed: () async {
-                    final result = await context.push(
-                      '/profile-edit',
-                      extra: profile,
-                    );
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton.icon(
+                      onPressed: () async {
+                        final result = await context.push(
+                          '/profile-edit',
+                          extra: profile,
+                        );
 
-                    if (result == true) {
-                      getProfile();
-                    }
-                  },
-                  icon: const Icon(Icons.edit),
-                  label: const Text('Profili Düzenle'),
-                  style: ElevatedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    textStyle: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
+                        if (result == true) {
+                          getProfile();
+                        }
+                      },
+                      icon: const Icon(Icons.edit),
+                      label: const Text('Profili Düzenle'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF536B4E),
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        textStyle: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(18),
+                        ),
+                      ),
                     ),
                   ),
-                ),
-              ),
 
-              const SizedBox(height: 12),
+                  const SizedBox(height: 12),
 
-              SizedBox(
-                width: double.infinity,
-                child: OutlinedButton.icon(
-                  onPressed: confirmSignOut,
-                  icon: const Icon(Icons.logout),
-                  label: const Text('Çıkış Yap'),
-                  style: OutlinedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 15),
+                  SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton.icon(
+                      onPressed: confirmSignOut,
+                      icon: const Icon(Icons.logout),
+                      label: const Text('Çıkış Yap'),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: const Color(0xFFC85C5C),
+                        side: const BorderSide(
+                          color: Color(0xFFC85C5C),
+                        ),
+                        padding: const EdgeInsets.symmetric(vertical: 15),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(18),
+                        ),
+                      ),
+                    ),
                   ),
-                ),
+                ],
               ),
-            ],
+            ),
           ),
         ),
       ),
