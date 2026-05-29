@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import 'package:flutter_application_1/core/services/supabase_service.dart';
@@ -14,6 +15,7 @@ import 'package:flutter_application_1/features/home/presentation/pages/home_page
 import 'package:flutter_application_1/features/profile/presentation/pages/profile_page.dart';
 import 'package:flutter_application_1/features/profile/presentation/pages/profile_edit_page.dart';
 
+import 'package:flutter_application_1/features/sessions/data/models/session_model.dart';
 import 'package:flutter_application_1/features/sessions/presentation/pages/sessions_page.dart';
 import 'package:flutter_application_1/features/sessions/presentation/pages/teacher_sessions_page.dart';
 
@@ -33,6 +35,8 @@ import 'package:flutter_application_1/features/booking/presentation/pages/bookin
 import 'package:flutter_application_1/features/booking/presentation/pages/booking_success_page.dart';
 
 import 'package:flutter_application_1/features/notifications/data/presentation/pages/notifications_page.dart';
+
+import 'package:flutter_application_1/features/video_call/presentation/pages/video_call_page.dart';
 
 class GoRouterRefreshStream extends ChangeNotifier {
   GoRouterRefreshStream(Stream<dynamic> stream) {
@@ -225,6 +229,39 @@ final GoRouter appRouter = GoRouter(
       },
     ),
 
+    GoRoute(
+      path: '/video-call',
+      redirect: (context, state) {
+        final extra = state.extra;
+
+        if (extra is! Map<String, dynamic>) {
+          final user = supabase.auth.currentUser;
+
+          if (user == null) {
+            return '/login';
+          }
+
+          return '/home';
+        }
+
+        if (extra['session'] is! SessionModel) {
+          return '/home';
+        }
+
+        return null;
+      },
+      builder: (context, state) {
+        final extra = state.extra as Map<String, dynamic>;
+        final session = extra['session'] as SessionModel;
+        final participantName = extra['participantName']?.toString() ?? '';
+
+        return VideoCallPage(
+          session: session,
+          participantName: participantName,
+        );
+      },
+    ),
+
     ShellRoute(
       builder: (context, state, child) => MainShellPage(child: child),
       routes: [
@@ -235,7 +272,7 @@ final GoRouter appRouter = GoRouter(
 
         GoRoute(
           path: '/sessions',
-          builder: (context, state) => SessionsPage(),
+          builder: (context, state) => const SessionsPage(),
         ),
 
         GoRoute(

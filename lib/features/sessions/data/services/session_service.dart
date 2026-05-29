@@ -1,10 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+
 import 'package:flutter_application_1/core/services/supabase_service.dart';
 import 'package:flutter_application_1/features/notifications/data/services/notification_service.dart';
+
 import '../models/session_model.dart';
 
 class SessionService {
+  static const Duration sessionDuration = Duration(hours: 1);
+
   Future<void> createSession({
     required String teacherId,
     required String teacherName,
@@ -58,6 +62,8 @@ class SessionService {
       throw Exception('User not logged in');
     }
 
+    await syncMySessionStatuses();
+
     final response = await supabase
         .from('sessions')
         .select()
@@ -81,7 +87,7 @@ class SessionService {
         .select('session_time')
         .eq('teacher_id', teacherId)
         .eq('session_date', formattedDate)
-        .eq('status', 'upcoming');
+        .inFilter('status', ['upcoming', 'in_progress']);
 
     return (response as List)
         .map((item) => item['session_time'].toString())
@@ -100,7 +106,7 @@ class SessionService {
         .update({'status': 'cancelled'})
         .eq('id', sessionId)
         .eq('user_id', user.id)
-        .eq('status', 'upcoming')
+        .inFilter('status', ['upcoming', 'in_progress'])
         .select();
 
     if ((updatedSessions as List).isEmpty) {
@@ -140,7 +146,7 @@ class SessionService {
       final parsedDate = DateTime.parse(date);
       final parts = time.split(':');
 
-      if (parts.length != 2) return null;
+      if (parts.length < 2) return null;
 
       final hour = int.tryParse(parts[0]);
       final minute = int.tryParse(parts[1]);
@@ -159,7 +165,32 @@ class SessionService {
     }
   }
 
-  Future<void> markPastSessionsAsCompleted() async {
+  String _resolveDatabaseStatus(SessionModel session) {
+    if (session.status == 'cancelled') return 'cancelled';
+    if (session.status == 'completed') return 'completed';
+
+    final sessionStart = _combineDateAndTime(
+      session.sessionDate,
+      session.sessionTime,
+    );
+
+    if (sessionStart == null) return session.status;
+
+    final sessionEnd = sessionStart.add(sessionDuration);
+    final now = DateTime.now();
+
+    if (now.isAfter(sessionEnd)) {
+      return 'completed';
+    }
+
+    if (now.isAfter(sessionStart) && now.isBefore(sessionEnd)) {
+      return 'in_progress';
+    }
+
+    return 'upcoming';
+  }
+
+  Future<void> syncMySessionStatuses() async {
     final user = supabase.auth.currentUser;
 
     if (user == null) {
@@ -170,28 +201,71 @@ class SessionService {
         .from('sessions')
         .select()
         .eq('user_id', user.id)
-        .eq('status', 'upcoming');
+        .inFilter('status', ['upcoming', 'in_progress']);
 
     final sessions = (response as List)
         .map((item) => SessionModel.fromMap(item))
         .toList();
 
-    final now = DateTime.now();
-
     for (final session in sessions) {
-      final sessionDateTime =
-          _combineDateAndTime(session.sessionDate, session.sessionTime);
+      final newStatus = _resolveDatabaseStatus(session);
 
-      if (sessionDateTime == null) continue;
-
-      if (sessionDateTime.isBefore(now)) {
+      if (newStatus != session.status) {
         await supabase
             .from('sessions')
-            .update({'status': 'completed'})
+            .update({'status': newStatus})
             .eq('id', session.id)
             .eq('user_id', user.id);
       }
     }
+  }
+
+  Future<void> syncTeacherSessionStatuses() async {
+    final user = supabase.auth.currentUser;
+
+    if (user == null) {
+      throw Exception('User not logged in');
+    }
+
+    final teacherResponse = await supabase
+        .from('teachers')
+        .select('id')
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+    if (teacherResponse == null) {
+      throw Exception(
+        'Bu hesaba bağlı öğretmen profili yok.\nSupabase → teachers.user_id kontrol et.',
+      );
+    }
+
+    final teacherId = teacherResponse['id'].toString();
+
+    final response = await supabase
+        .from('sessions')
+        .select()
+        .eq('teacher_id', teacherId)
+        .inFilter('status', ['upcoming', 'in_progress']);
+
+    final sessions = (response as List)
+        .map((item) => SessionModel.fromMap(item))
+        .toList();
+
+    for (final session in sessions) {
+      final newStatus = _resolveDatabaseStatus(session);
+
+      if (newStatus != session.status) {
+        await supabase
+            .from('sessions')
+            .update({'status': newStatus})
+            .eq('id', session.id)
+            .eq('teacher_id', teacherId);
+      }
+    }
+  }
+
+  Future<void> markPastSessionsAsCompleted() async {
+    await syncMySessionStatuses();
   }
 
   Future<String> fetchMyTeacherId() async {
@@ -242,7 +316,7 @@ class SessionService {
         .update({'status': 'cancelled'})
         .eq('id', sessionId)
         .eq('teacher_id', teacherId)
-        .eq('status', 'upcoming')
+        .inFilter('status', ['upcoming', 'in_progress'])
         .select();
 
     if ((updatedSessions as List).isEmpty) {
@@ -271,6 +345,8 @@ class SessionService {
     if (user == null) {
       throw Exception('User not logged in');
     }
+
+    await syncTeacherSessionStatuses();
 
     final teacherResponse = await supabase
         .from('teachers')

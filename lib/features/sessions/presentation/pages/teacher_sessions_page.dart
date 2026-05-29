@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../data/models/session_model.dart';
 import '../../data/services/session_service.dart';
+import '../../utils/session_utils.dart';
 
 class TeacherSessionsPage extends StatefulWidget {
   const TeacherSessionsPage({super.key});
@@ -27,7 +29,7 @@ class _TeacherSessionsPageState extends State<TeacherSessionsPage>
   @override
   void initState() {
     super.initState();
-    tabController = TabController(length: 3, vsync: this);
+    tabController = TabController(length: 4, vsync: this);
     initTeacherSessions();
   }
 
@@ -83,43 +85,14 @@ class _TeacherSessionsPageState extends State<TeacherSessionsPage>
     return DateFormat('d MMMM yyyy', 'tr_TR').format(parsedDate);
   }
 
-  DateTime? combineDateAndTime(String date, String time) {
-    final parsedDate = safeParseDate(date);
-    if (parsedDate == null) return null;
-
-    final parts = time.split(':');
-    if (parts.length != 2) return null;
-
-    final hour = int.tryParse(parts[0]);
-    final minute = int.tryParse(parts[1]);
-
-    if (hour == null || minute == null) return null;
-
-    return DateTime(
-      parsedDate.year,
-      parsedDate.month,
-      parsedDate.day,
-      hour,
-      minute,
+  void openVideoCall(SessionModel session) {
+    context.push(
+      '/video-call',
+      extra: {
+        'session': session,
+        'participantName': 'Öğretmen',
+      },
     );
-  }
-
-  String resolveStatus(SessionModel session) {
-    if (session.status == 'cancelled') return 'cancelled';
-    if (session.status == 'completed') return 'completed';
-
-    final sessionDateTime = combineDateAndTime(
-      session.sessionDate,
-      session.sessionTime,
-    );
-
-    if (sessionDateTime == null) return session.status;
-
-    if (sessionDateTime.isBefore(DateTime.now())) {
-      return 'completed';
-    }
-
-    return 'upcoming';
   }
 
   List<SessionModel> filterSessions(
@@ -127,7 +100,7 @@ class _TeacherSessionsPageState extends State<TeacherSessionsPage>
     String status,
   ) {
     return sessions.where((session) {
-      final realStatus = resolveStatus(session);
+      final realStatus = SessionUtils.resolveStatus(session);
       return realStatus == status;
     }).toList();
   }
@@ -136,6 +109,8 @@ class _TeacherSessionsPageState extends State<TeacherSessionsPage>
     switch (status) {
       case 'upcoming':
         return 'Yaklaşan';
+      case 'in_progress':
+        return 'Ders Başladı';
       case 'completed':
         return 'Tamamlandı';
       case 'cancelled':
@@ -149,6 +124,8 @@ class _TeacherSessionsPageState extends State<TeacherSessionsPage>
     switch (status) {
       case 'upcoming':
         return Colors.green;
+      case 'in_progress':
+        return Colors.deepPurple;
       case 'completed':
         return Colors.blue;
       case 'cancelled':
@@ -162,6 +139,8 @@ class _TeacherSessionsPageState extends State<TeacherSessionsPage>
     switch (status) {
       case 'upcoming':
         return Colors.green.shade50;
+      case 'in_progress':
+        return Colors.deepPurple.shade50;
       case 'completed':
         return Colors.blue.shade50;
       case 'cancelled':
@@ -175,6 +154,8 @@ class _TeacherSessionsPageState extends State<TeacherSessionsPage>
     switch (status) {
       case 'upcoming':
         return Icons.schedule;
+      case 'in_progress':
+        return Icons.play_circle_outline;
       case 'completed':
         return Icons.check_circle_outline;
       case 'cancelled':
@@ -253,6 +234,70 @@ class _TeacherSessionsPageState extends State<TeacherSessionsPage>
     );
   }
 
+  Widget buildVideoCallBox(SessionModel session) {
+    final canJoin = SessionUtils.canJoinVideoSession(session);
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: canJoin ? Colors.deepPurple.shade50 : Colors.grey.shade100,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: canJoin
+              ? Colors.deepPurple.withOpacity(0.25)
+              : Colors.grey.shade300,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(
+                Icons.video_call,
+                color: canJoin ? Colors.deepPurple : Colors.grey,
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  SessionUtils.getVideoJoinMessage(session),
+                  style: TextStyle(
+                    color: canJoin ? Colors.deepPurple : Colors.grey.shade700,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              onPressed: canJoin
+                  ? () {
+                      openVideoCall(session);
+                    }
+                  : null,
+              icon: const Icon(Icons.videocam),
+              label: const Text('Görüntülü Derse Katıl'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.deepPurple,
+                foregroundColor: Colors.white,
+                disabledBackgroundColor: Colors.grey.shade300,
+                disabledForegroundColor: Colors.grey.shade600,
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Future<void> cancelSession(SessionModel session) async {
     if (isCancelling) return;
 
@@ -323,8 +368,9 @@ class _TeacherSessionsPageState extends State<TeacherSessionsPage>
   }
 
   Widget buildSessionCard(SessionModel session) {
-    final realStatus = resolveStatus(session);
-    final isUpcoming = realStatus == 'upcoming';
+    final realStatus = SessionUtils.resolveStatus(session);
+    final isActiveOrUpcoming =
+        realStatus == 'upcoming' || realStatus == 'in_progress';
 
     final statusColor = getStatusColor(realStatus);
     final statusBackgroundColor = getStatusBackgroundColor(realStatus);
@@ -366,7 +412,7 @@ class _TeacherSessionsPageState extends State<TeacherSessionsPage>
                   radius: 26,
                   backgroundColor: Colors.white,
                   child: Icon(
-                    Icons.person,
+                    getStatusIcon(realStatus),
                     color: statusColor,
                   ),
                 ),
@@ -450,7 +496,9 @@ class _TeacherSessionsPageState extends State<TeacherSessionsPage>
                     ),
                   ),
                 ],
-                if (isUpcoming) ...[
+                if (isActiveOrUpcoming) ...[
+                  const SizedBox(height: 16),
+                  buildVideoCallBox(session),
                   const SizedBox(height: 16),
                   SizedBox(
                     width: double.infinity,
@@ -649,6 +697,7 @@ class _TeacherSessionsPageState extends State<TeacherSessionsPage>
         final sessions = snapshot.data ?? [];
 
         final upcomingSessions = filterSessions(sessions, 'upcoming');
+        final inProgressSessions = filterSessions(sessions, 'in_progress');
         final completedSessions = filterSessions(sessions, 'completed');
         final cancelledSessions = filterSessions(sessions, 'cancelled');
 
@@ -657,10 +706,15 @@ class _TeacherSessionsPageState extends State<TeacherSessionsPage>
             title: const Text('Öğretmen Seansları'),
             bottom: TabBar(
               controller: tabController,
+              isScrollable: true,
               tabs: [
                 buildTabLabel(
                   title: 'Yaklaşan',
                   count: upcomingSessions.length,
+                ),
+                buildTabLabel(
+                  title: 'Ders Başladı',
+                  count: inProgressSessions.length,
                 ),
                 buildTabLabel(
                   title: 'Tamamlandı',
@@ -688,6 +742,13 @@ class _TeacherSessionsPageState extends State<TeacherSessionsPage>
                           emptySubtitle:
                               'Öğrenciler yeni randevu oluşturduğunda burada görünecek.',
                           emptyIcon: Icons.calendar_month_outlined,
+                        ),
+                        buildSessionList(
+                          inProgressSessions,
+                          emptyTitle: 'Başlamış ders yok',
+                          emptySubtitle:
+                              'Ders saati başladığında aktif derslerin burada görünecek.',
+                          emptyIcon: Icons.play_circle_outline,
                         ),
                         buildSessionList(
                           completedSessions,
