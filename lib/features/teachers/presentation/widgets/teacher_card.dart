@@ -45,19 +45,33 @@ class TeacherCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final hasImage = imageUrl != null && imageUrl!.trim().isNotEmpty;
+
     final cleanBio = bio.trim().isEmpty
         ? 'Bu öğretmen hakkında detaylı bilgi için profili inceleyebilirsin.'
         : bio.trim();
 
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.56),
+        borderRadius: BorderRadius.circular(28),
+        border: Border.all(
+          color: Colors.white.withOpacity(0.42),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.10),
+            blurRadius: 28,
+            offset: const Offset(0, 14),
+          ),
+        ],
+      ),
       child: Material(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(22),
-        elevation: 2,
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(28),
         child: InkWell(
           onTap: onTap,
-          borderRadius: BorderRadius.circular(22),
+          borderRadius: BorderRadius.circular(28),
           child: Padding(
             padding: const EdgeInsets.all(16),
             child: Column(
@@ -65,41 +79,64 @@ class TeacherCard extends StatelessWidget {
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    CircleAvatar(
-                      radius: 34,
-                      backgroundColor: Colors.deepPurple.shade50,
-                      backgroundImage: hasImage ? NetworkImage(imageUrl!) : null,
-                      child: hasImage
-                          ? null
-                          : const Icon(
-                              Icons.person,
-                              size: 34,
-                              color: Colors.deepPurple,
-                            ),
+                    Container(
+                      padding: const EdgeInsets.all(4),
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: const Color(0xFFEEF3EA).withOpacity(0.92),
+                        border: Border.all(
+                          color: const Color(0xFFD7E1D0),
+                        ),
+                      ),
+                      child: CircleAvatar(
+                        radius: 38,
+                        backgroundColor: Colors.white.withOpacity(0.85),
+                        backgroundImage:
+                            hasImage ? NetworkImage(imageUrl!) : null,
+                        child: hasImage
+                            ? null
+                            : const Icon(
+                                Icons.person_outline,
+                                size: 38,
+                                color: Color(0xFF536B4E),
+                              ),
+                      ),
                     ),
+
                     const SizedBox(width: 14),
+
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
                             name,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                             style: const TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
+                              fontSize: 19,
+                              fontWeight: FontWeight.w900,
+                              color: Color(0xFF2F3A32),
+                              height: 1.15,
                             ),
                           ),
-                          const SizedBox(height: 5),
+
+                          const SizedBox(height: 6),
+
                           Text(
                             specialty,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
                             style: const TextStyle(
                               fontSize: 14,
-                              color: Colors.deepPurple,
-                              fontWeight: FontWeight.w600,
+                              color: Color(0xFF536B4E),
+                              fontWeight: FontWeight.w800,
                               height: 1.3,
                             ),
                           ),
+
                           const SizedBox(height: 10),
+
                           Wrap(
                             spacing: 8,
                             runSpacing: 8,
@@ -117,7 +154,7 @@ class TeacherCard extends StatelessWidget {
                               _MiniBadge(
                                 icon: Icons.star,
                                 text: rating.toStringAsFixed(1),
-                                iconColor: Colors.amber,
+                                iconColor: const Color(0xFFE6A700),
                               ),
                             ],
                           ),
@@ -127,38 +164,49 @@ class TeacherCard extends StatelessWidget {
                   ],
                 ),
 
-                const SizedBox(height: 14),
+                const SizedBox(height: 16),
 
                 Container(
                   width: double.infinity,
-                  padding: const EdgeInsets.all(13),
+                  padding: const EdgeInsets.all(14),
                   decoration: BoxDecoration(
-                    color: Colors.green.shade50,
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: Colors.green.shade100),
+                    color: const Color(0xFFEAF3E8).withOpacity(0.68),
+                    borderRadius: BorderRadius.circular(18),
+                    border: Border.all(
+                      color: const Color(0xFFD7E1D0).withOpacity(0.75),
+                    ),
                   ),
                   child: Row(
                     children: [
-                      const Icon(
-                        Icons.payments_outlined,
-                        color: Colors.green,
-                        size: 22,
+                      Container(
+                        width: 38,
+                        height: 38,
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.62),
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                        child: const Icon(
+                          Icons.payments_outlined,
+                          color: Color(0xFF4F7A52),
+                          size: 22,
+                        ),
                       ),
-                      const SizedBox(width: 10),
+                      const SizedBox(width: 12),
                       const Expanded(
                         child: Text(
                           'Seans Ücreti',
                           style: TextStyle(
-                            fontWeight: FontWeight.w700,
+                            fontWeight: FontWeight.w800,
+                            color: Color(0xFF2F3A32),
                           ),
                         ),
                       ),
                       Text(
                         formattedPrice,
-                        style: TextStyle(
-                          color: Colors.green.shade800,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16,
+                        style: const TextStyle(
+                          color: Color(0xFF4F7A52),
+                          fontWeight: FontWeight.w900,
+                          fontSize: 17,
                         ),
                       ),
                     ],
@@ -172,13 +220,14 @@ class TeacherCard extends StatelessWidget {
                   maxLines: 3,
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
-                    fontSize: 13,
-                    color: Colors.black87,
-                    height: 1.4,
+                    fontSize: 13.5,
+                    color: Color(0xFF465046),
+                    height: 1.45,
+                    fontWeight: FontWeight.w500,
                   ),
                 ),
 
-                const SizedBox(height: 14),
+                const SizedBox(height: 16),
 
                 Row(
                   children: [
@@ -188,7 +237,15 @@ class TeacherCard extends StatelessWidget {
                         icon: const Icon(Icons.info_outline),
                         label: const Text('Detay Gör'),
                         style: OutlinedButton.styleFrom(
+                          foregroundColor: const Color(0xFF536B4E),
+                          side: const BorderSide(
+                            color: Color(0xFF536B4E),
+                          ),
                           padding: const EdgeInsets.symmetric(vertical: 13),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          backgroundColor: Colors.white.withOpacity(0.34),
                         ),
                       ),
                     ),
@@ -199,7 +256,13 @@ class TeacherCard extends StatelessWidget {
                         icon: const Icon(Icons.calendar_month),
                         label: const Text('Randevu Al'),
                         style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF536B4E),
+                          foregroundColor: Colors.white,
                           padding: const EdgeInsets.symmetric(vertical: 13),
+                          elevation: 0,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                          ),
                         ),
                       ),
                     ),
@@ -233,9 +296,11 @@ class _MiniBadge extends StatelessWidget {
         vertical: 6,
       ),
       decoration: BoxDecoration(
-        color: Colors.grey.shade50,
+        color: Colors.white.withOpacity(0.44),
         borderRadius: BorderRadius.circular(30),
-        border: Border.all(color: Colors.grey.shade200),
+        border: Border.all(
+          color: Colors.white.withOpacity(0.42),
+        ),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -243,14 +308,15 @@ class _MiniBadge extends StatelessWidget {
           Icon(
             icon,
             size: 15,
-            color: iconColor ?? Colors.deepPurple,
+            color: iconColor ?? const Color(0xFF536B4E),
           ),
           const SizedBox(width: 5),
           Text(
             text,
             style: const TextStyle(
               fontSize: 12,
-              fontWeight: FontWeight.w600,
+              fontWeight: FontWeight.w800,
+              color: Color(0xFF2F3A32),
             ),
           ),
         ],

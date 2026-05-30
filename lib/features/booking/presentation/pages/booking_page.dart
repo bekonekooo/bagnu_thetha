@@ -46,6 +46,9 @@ class _BookingPageState extends State<BookingPage> {
   List<String> availableTimes = [];
   RealtimeChannel? _sessionChannel;
 
+  static const String bookingBackground =
+      'assets/images/backgrounds/home_bg_4.jpg';
+
   @override
   void initState() {
     super.initState();
@@ -371,27 +374,107 @@ class _BookingPageState extends State<BookingPage> {
     }
   }
 
-  Widget buildSectionTitle(String title, String subtitle) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+  Widget buildBackgroundBody({
+    required Widget child,
+  }) {
+    return Stack(
       children: [
-        Text(
-          title,
-          style: const TextStyle(
-            fontSize: 19,
-            fontWeight: FontWeight.bold,
+        Positioned.fill(
+          child: Image.asset(
+            bookingBackground,
+            fit: BoxFit.cover,
           ),
         ),
-        const SizedBox(height: 4),
-        Text(
-          subtitle,
-          style: const TextStyle(
-            fontSize: 14,
-            color: Colors.grey,
-            height: 1.35,
+        Positioned.fill(
+          child: Container(
+            color: Colors.white.withOpacity(0.16),
           ),
         ),
+        Positioned.fill(
+          child: Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                  Colors.white.withOpacity(0.16),
+                  Colors.white.withOpacity(0.04),
+                  Colors.black.withOpacity(0.18),
+                ],
+              ),
+            ),
+          ),
+        ),
+        child,
       ],
+    );
+  }
+
+  Widget buildSectionTitle(String title, String subtitle) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.76),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(
+          color: Colors.white.withOpacity(0.70),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.07),
+            blurRadius: 20,
+            offset: const Offset(0, 9),
+          ),
+        ],
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 48,
+            height: 48,
+            decoration: BoxDecoration(
+              color: const Color(0xFFEEF3EA).withOpacity(0.95),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: const Color(0xFFD7E1D0),
+              ),
+            ),
+            child: const Icon(
+              Icons.spa_outlined,
+              color: Color(0xFF536B4E),
+              size: 27,
+            ),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: const TextStyle(
+                    fontSize: 19,
+                    fontWeight: FontWeight.w900,
+                    color: Color(0xFF2F3A32),
+                  ),
+                ),
+                const SizedBox(height: 5),
+                Text(
+                  subtitle,
+                  style: const TextStyle(
+                    fontSize: 14,
+                    color: Color(0xFF606A61),
+                    height: 1.35,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -400,17 +483,34 @@ class _BookingPageState extends State<BookingPage> {
       width: double.infinity,
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: Colors.green.shade50,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.green.shade100),
+        color: Colors.white.withOpacity(0.76),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(
+          color: Colors.white.withOpacity(0.70),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.07),
+            blurRadius: 20,
+            offset: const Offset(0, 9),
+          ),
+        ],
       ),
       child: Row(
         children: [
-          const CircleAvatar(
-            backgroundColor: Colors.white,
-            child: Icon(
+          Container(
+            width: 48,
+            height: 48,
+            decoration: BoxDecoration(
+              color: const Color(0xFFEAF3E8).withOpacity(0.95),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: const Color(0xFFD7E1D0),
+              ),
+            ),
+            child: const Icon(
               Icons.payments_outlined,
-              color: Colors.green,
+              color: Color(0xFF4F7A52),
             ),
           ),
           const SizedBox(width: 14),
@@ -422,28 +522,30 @@ class _BookingPageState extends State<BookingPage> {
                   'Ödenecek Tutar',
                   style: TextStyle(
                     fontSize: 13,
-                    color: Colors.grey,
-                    fontWeight: FontWeight.w600,
+                    color: Color(0xFF667064),
+                    fontWeight: FontWeight.w700,
                   ),
                 ),
-                SizedBox(height: 4),
+                SizedBox(height: 5),
                 Text(
                   'Ödeme Stripe güvenli ödeme ekranı ile alınır.',
                   style: TextStyle(
                     fontSize: 13,
-                    color: Colors.black54,
+                    color: Color(0xFF606A61),
                     height: 1.35,
+                    fontWeight: FontWeight.w500,
                   ),
                 ),
               ],
             ),
           ),
+          const SizedBox(width: 10),
           Text(
             formattedPrice,
-            style: TextStyle(
-              color: Colors.green.shade800,
+            style: const TextStyle(
+              color: Color(0xFF4F7A52),
               fontSize: 18,
-              fontWeight: FontWeight.bold,
+              fontWeight: FontWeight.w900,
             ),
           ),
         ],
@@ -456,60 +558,76 @@ class _BookingPageState extends State<BookingPage> {
     final canSubmit = selectedDate != null && selectedTime != null;
 
     return Scaffold(
+      extendBodyBehindAppBar: true,
+      backgroundColor: Colors.transparent,
       appBar: AppBar(
-        title: const Text('Seans Oluştur'),
+        title: const Text(
+          'Seans Oluştur',
+          style: TextStyle(
+            color: Color(0xFF2F3A32),
+            fontWeight: FontWeight.w900,
+          ),
+        ),
+        backgroundColor: Colors.white.withOpacity(0.18),
+        elevation: 0,
+        surfaceTintColor: Colors.transparent,
+        foregroundColor: const Color(0xFF2F3A32),
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(16, 16, 16, 28),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            BookingInfoCard(
-              teacherName: widget.teacherName,
+      body: buildBackgroundBody(
+        child: SafeArea(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 28),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                BookingInfoCard(
+                  teacherName: widget.teacherName,
+                ),
+                const SizedBox(height: 16),
+                buildPaymentSummaryCard(),
+                const SizedBox(height: 22),
+                buildSectionTitle(
+                  'Tarih seç',
+                  'Öğretmenin uygun olduğu günlerden bir tarih seç.',
+                ),
+                const SizedBox(height: 12),
+                BookingDatePicker(
+                  formattedDate: formattedDate,
+                  onTap: pickDate,
+                ),
+                const SizedBox(height: 22),
+                buildSectionTitle(
+                  'Saat seç',
+                  selectedDate == null
+                      ? 'Saatleri görebilmek için önce tarih seçmelisin.'
+                      : 'Müsait saatlerden birini seç.',
+                ),
+                const SizedBox(height: 12),
+                BookingTimeSelector(
+                  selectedDate: selectedDate,
+                  selectedTime: selectedTime,
+                  isLoadingTimes: isLoadingTimes,
+                  availableTimes: availableTimes,
+                  isSlotInPast: isSlotInPast,
+                  onTimeSelected: (time) {
+                    setState(() {
+                      selectedTime = time;
+                    });
+                  },
+                ),
+                const SizedBox(height: 22),
+                BookingNotesField(
+                  controller: notesController,
+                ),
+                const SizedBox(height: 30),
+                BookingSubmitButton(
+                  isLoading: isLoading,
+                  isEnabled: canSubmit,
+                  onPressed: confirmBooking,
+                ),
+              ],
             ),
-            const SizedBox(height: 16),
-            buildPaymentSummaryCard(),
-            const SizedBox(height: 26),
-            buildSectionTitle(
-              'Tarih seç',
-              'Öğretmenin uygun olduğu günlerden bir tarih seç.',
-            ),
-            const SizedBox(height: 12),
-            BookingDatePicker(
-              formattedDate: formattedDate,
-              onTap: pickDate,
-            ),
-            const SizedBox(height: 26),
-            buildSectionTitle(
-              'Saat seç',
-              selectedDate == null
-                  ? 'Saatleri görebilmek için önce tarih seçmelisin.'
-                  : 'Müsait saatlerden birini seç.',
-            ),
-            const SizedBox(height: 12),
-            BookingTimeSelector(
-              selectedDate: selectedDate,
-              selectedTime: selectedTime,
-              isLoadingTimes: isLoadingTimes,
-              availableTimes: availableTimes,
-              isSlotInPast: isSlotInPast,
-              onTimeSelected: (time) {
-                setState(() {
-                  selectedTime = time;
-                });
-              },
-            ),
-            const SizedBox(height: 26),
-            BookingNotesField(
-              controller: notesController,
-            ),
-            const SizedBox(height: 32),
-            BookingSubmitButton(
-              isLoading: isLoading,
-              isEnabled: canSubmit,
-              onPressed: confirmBooking,
-            ),
-          ],
+          ),
         ),
       ),
     );

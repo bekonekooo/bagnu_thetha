@@ -33,6 +33,9 @@ class _GuidancePageState extends State<GuidancePage> {
 
   String? resultText;
 
+  static const String guidanceBackground =
+      'assets/images/backgrounds/home_bg_5.jpg';
+
   final Map<String, String> guidanceTypeLabels = {
     'chinese_zodiac': 'Çin Burcu',
     'astrology': 'Astroloji',
@@ -277,181 +280,141 @@ class _GuidancePageState extends State<GuidancePage> {
     }
   }
 
-  @override
-  Widget build(BuildContext context) {
-    final remainingCount = maxAllowedCount - usedCount;
-    final safeRemainingCount = remainingCount < 0 ? 0 : remainingCount;
-
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Aylık Rehberlik'),
-      ),
-      body: isLoading
-          ? const Center(
-              child: CircularProgressIndicator(),
-            )
-          : SingleChildScrollView(
-              padding: const EdgeInsets.all(18),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const _HeroInfoCard(),
-                  const SizedBox(height: 16),
-                  _SubscriptionInfoCard(
-                    isSubscribed: isSubscribed,
-                    subscriptionPlan: subscriptionPlan,
-                    usedCount: usedCount,
-                    maxAllowedCount: maxAllowedCount,
-                    remainingCount: safeRemainingCount,
-                    periodText: periodText,
-                  ),
-                  const SizedBox(height: 24),
-                  const _SectionTitle(
-                    title: '1. Rehberlik türünü seç',
-                    subtitle: 'Hangi alanda analiz almak istediğini seç.',
-                  ),
-                  const SizedBox(height: 12),
-                  ...guidanceTypeLabels.entries.map((entry) {
-                    final type = entry.key;
-                    final label = entry.value;
-                    final isSelected = selectedType == type;
-
-                    return Padding(
-                      padding: const EdgeInsets.only(bottom: 12),
-                      child: _GuidanceTypeCard(
-                        title: label,
-                        subtitle: _subtitleForType(type),
-                        icon: guidanceTypeIcons[type] ?? Icons.auto_awesome,
-                        isSelected: isSelected,
-                        onTap: () {
-                          setState(() {
-                            selectedType = type;
-                          });
-                        },
-                      ),
-                    );
-                  }),
-                  const SizedBox(height: 14),
-                  const _SectionTitle(
-                    title: '2. Kişi bilgileri',
-                    subtitle:
-                        'Analiz kendi adına ya da başka biri adına yapılabilir.',
-                  ),
-                  const SizedBox(height: 12),
-                  _TextInputCard(
-                    controller: fullNameController,
-                    icon: Icons.badge_outlined,
-                    label: 'Analiz yapılacak kişinin adı soyadı',
-                    hintText: 'Örn: Ayşe Yılmaz',
-                  ),
-                  const SizedBox(height: 12),
-                  _PickerTile(
-                    icon: Icons.cake,
-                    title: 'Doğum tarihi',
-                    value: selectedBirthDate == null
-                        ? 'Zorunlu'
-                        : formatBirthDateForUi(selectedBirthDate!),
-                    onTap: pickBirthDate,
-                  ),
-                  const SizedBox(height: 12),
-                  _PickerTile(
-                    icon: Icons.access_time,
-                    title: 'Doğum saati',
-                    value: selectedBirthTime == null
-                        ? 'Opsiyonel'
-                        : formatBirthTimeForUi(selectedBirthTime!),
-                    onTap: pickBirthTime,
-                  ),
-                  if (selectedBirthTime != null) ...[
-                    const SizedBox(height: 8),
-                    Align(
-                      alignment: Alignment.centerRight,
-                      child: TextButton.icon(
-                        onPressed: () {
-                          setState(() {
-                            selectedBirthTime = null;
-                          });
-                        },
-                        icon: const Icon(Icons.close, size: 18),
-                        label: const Text('Saati kaldır'),
-                      ),
-                    ),
-                  ],
-                  const SizedBox(height: 14),
-                  const _SectionTitle(
-                    title: '3. Ek detay',
-                    subtitle:
-                        'Yapay zekanın özellikle odaklanmasını istediğin konuyu yazabilirsin.',
-                  ),
-                  const SizedBox(height: 12),
-                  TextField(
-                    controller: extraInfoController,
-                    minLines: 3,
-                    maxLines: 5,
-                    keyboardType: TextInputType.multiline,
-                    textCapitalization: TextCapitalization.sentences,
-                    decoration: InputDecoration(
-                      labelText: 'Ek detay',
-                      hintText:
-                          'İlişki, kariyer, ruhsal yolculuk, aile, para veya merak ettiğin başka bir konu...',
-                      alignLabelWithHint: true,
-                      filled: true,
-                      fillColor: Colors.white,
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(18),
-                      ),
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(18),
-                        borderSide: BorderSide(
-                          color: Colors.grey.shade200,
-                        ),
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(18),
-                        borderSide: const BorderSide(
-                          color: Colors.deepPurple,
-                          width: 1.5,
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 22),
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton.icon(
-                      onPressed: isSubmitting ? null : submitGuidanceRequest,
-                      icon: isSubmitting
-                          ? const SizedBox(
-                              width: 18,
-                              height: 18,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                color: Colors.white,
-                              ),
-                            )
-                          : const Icon(Icons.auto_awesome),
-                      label: Text(
-                        isSubmitting
-                            ? 'Yapay zeka hazırlanıyor...'
-                            : 'Rehberliğimi Oluştur',
-                      ),
-                      style: ElevatedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 15),
-                        backgroundColor: Colors.deepPurple,
-                        foregroundColor: Colors.white,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                      ),
-                    ),
-                  ),
-                  if (resultText != null) ...[
-                    const SizedBox(height: 24),
-                    _ResultCard(result: resultText!),
-                  ],
+  Widget buildBackgroundBody({
+    required Widget child,
+  }) {
+    return Stack(
+      children: [
+        Positioned.fill(
+          child: Image.asset(
+            guidanceBackground,
+            fit: BoxFit.cover,
+          ),
+        ),
+        Positioned.fill(
+          child: Container(
+            color: Colors.white.withOpacity(0.16),
+          ),
+        ),
+        Positioned.fill(
+          child: Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                  Colors.white.withOpacity(0.16),
+                  Colors.white.withOpacity(0.04),
+                  Colors.black.withOpacity(0.20),
                 ],
               ),
             ),
+          ),
+        ),
+        child,
+      ],
+    );
+  }
+
+  Widget buildExtraInfoField() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.76),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(
+          color: Colors.white.withOpacity(0.70),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.07),
+            blurRadius: 20,
+            offset: const Offset(0, 9),
+          ),
+        ],
+      ),
+      child: TextField(
+        controller: extraInfoController,
+        minLines: 3,
+        maxLines: 5,
+        keyboardType: TextInputType.multiline,
+        textCapitalization: TextCapitalization.sentences,
+        cursorColor: const Color(0xFF536B4E),
+        decoration: InputDecoration(
+          labelText: 'Ek detay',
+          hintText:
+              'İlişki, kariyer, ruhsal yolculuk, aile, para veya merak ettiğin başka bir konu...',
+          alignLabelWithHint: true,
+          labelStyle: const TextStyle(
+            color: Color(0xFF667064),
+            fontWeight: FontWeight.w700,
+          ),
+          hintStyle: const TextStyle(
+            color: Color(0xFF9AA09A),
+          ),
+          filled: true,
+          fillColor: Colors.white.withOpacity(0.70),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(18),
+            borderSide: BorderSide(
+              color: Colors.white.withOpacity(0.70),
+            ),
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(18),
+            borderSide: BorderSide(
+              color: Colors.white.withOpacity(0.70),
+            ),
+          ),
+          focusedBorder: const OutlineInputBorder(
+            borderRadius: BorderRadius.all(Radius.circular(18)),
+            borderSide: BorderSide(
+              color: Color(0xFF536B4E),
+              width: 1.4,
+            ),
+          ),
+          contentPadding: const EdgeInsets.all(16),
+        ),
+      ),
+    );
+  }
+
+  Widget buildSubmitButton() {
+    return SizedBox(
+      width: double.infinity,
+      child: ElevatedButton.icon(
+        onPressed: isSubmitting ? null : submitGuidanceRequest,
+        icon: isSubmitting
+            ? const SizedBox(
+                width: 18,
+                height: 18,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: Colors.white,
+                ),
+              )
+            : const Icon(Icons.auto_awesome),
+        label: Text(
+          isSubmitting
+              ? 'Yapay zeka hazırlanıyor...'
+              : 'Rehberliğimi Oluştur',
+        ),
+        style: ElevatedButton.styleFrom(
+          padding: const EdgeInsets.symmetric(vertical: 16),
+          backgroundColor: const Color(0xFF536B4E),
+          foregroundColor: Colors.white,
+          disabledBackgroundColor: Colors.grey.shade300,
+          disabledForegroundColor: Colors.grey.shade600,
+          textStyle: const TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.w900,
+          ),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(18),
+          ),
+        ),
+      ),
     );
   }
 
@@ -467,6 +430,163 @@ class _GuidancePageState extends State<GuidancePage> {
         return 'Kişisel analizini oluştur.';
     }
   }
+
+  @override
+  Widget build(BuildContext context) {
+    final remainingCount = maxAllowedCount - usedCount;
+    final safeRemainingCount = remainingCount < 0 ? 0 : remainingCount;
+
+    return Scaffold(
+      extendBodyBehindAppBar: true,
+      backgroundColor: Colors.transparent,
+      appBar: AppBar(
+        title: const Text(
+          'Aylık Rehberlik',
+          style: TextStyle(
+            color: Color(0xFF2F3A32),
+            fontWeight: FontWeight.w900,
+          ),
+        ),
+        backgroundColor: Colors.white.withOpacity(0.18),
+        elevation: 0,
+        surfaceTintColor: Colors.transparent,
+        foregroundColor: const Color(0xFF2F3A32),
+      ),
+      body: buildBackgroundBody(
+        child: SafeArea(
+          child: isLoading
+              ? const Center(
+                  child: CircularProgressIndicator(
+                    color: Color(0xFF536B4E),
+                  ),
+                )
+              : SingleChildScrollView(
+                  padding: const EdgeInsets.fromLTRB(18, 16, 18, 28),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const _HeroInfoCard(),
+                      const SizedBox(height: 16),
+                      _SubscriptionInfoCard(
+                        isSubscribed: isSubscribed,
+                        subscriptionPlan: subscriptionPlan,
+                        usedCount: usedCount,
+                        maxAllowedCount: maxAllowedCount,
+                        remainingCount: safeRemainingCount,
+                        periodText: periodText,
+                      ),
+                      const SizedBox(height: 22),
+
+                      const _SectionTitle(
+                        title: '1. Rehberlik türünü seç',
+                        subtitle:
+                            'Hangi alanda analiz almak istediğini seç.',
+                      ),
+                      const SizedBox(height: 12),
+
+                      ...guidanceTypeLabels.entries.map((entry) {
+                        final type = entry.key;
+                        final label = entry.value;
+                        final isSelected = selectedType == type;
+
+                        return Padding(
+                          padding: const EdgeInsets.only(bottom: 12),
+                          child: _GuidanceTypeCard(
+                            title: label,
+                            subtitle: _subtitleForType(type),
+                            icon:
+                                guidanceTypeIcons[type] ?? Icons.auto_awesome,
+                            isSelected: isSelected,
+                            onTap: () {
+                              setState(() {
+                                selectedType = type;
+                              });
+                            },
+                          ),
+                        );
+                      }),
+
+                      const SizedBox(height: 10),
+
+                      const _SectionTitle(
+                        title: '2. Kişi bilgileri',
+                        subtitle:
+                            'Analiz kendi adına ya da başka biri adına yapılabilir.',
+                      ),
+                      const SizedBox(height: 12),
+
+                      _TextInputCard(
+                        controller: fullNameController,
+                        icon: Icons.badge_outlined,
+                        label: 'Analiz yapılacak kişinin adı soyadı',
+                        hintText: 'Örn: Ayşe Yılmaz',
+                      ),
+                      const SizedBox(height: 12),
+
+                      _PickerTile(
+                        icon: Icons.cake_outlined,
+                        title: 'Doğum tarihi',
+                        value: selectedBirthDate == null
+                            ? 'Zorunlu'
+                            : formatBirthDateForUi(selectedBirthDate!),
+                        onTap: pickBirthDate,
+                      ),
+                      const SizedBox(height: 12),
+
+                      _PickerTile(
+                        icon: Icons.access_time,
+                        title: 'Doğum saati',
+                        value: selectedBirthTime == null
+                            ? 'Opsiyonel'
+                            : formatBirthTimeForUi(selectedBirthTime!),
+                        onTap: pickBirthTime,
+                      ),
+
+                      if (selectedBirthTime != null) ...[
+                        const SizedBox(height: 8),
+                        Align(
+                          alignment: Alignment.centerRight,
+                          child: TextButton.icon(
+                            onPressed: () {
+                              setState(() {
+                                selectedBirthTime = null;
+                              });
+                            },
+                            icon: const Icon(Icons.close, size: 18),
+                            label: const Text('Saati kaldır'),
+                            style: TextButton.styleFrom(
+                              foregroundColor: const Color(0xFF536B4E),
+                            ),
+                          ),
+                        ),
+                      ],
+
+                      const SizedBox(height: 10),
+
+                      const _SectionTitle(
+                        title: '3. Ek detay',
+                        subtitle:
+                            'Yapay zekanın özellikle odaklanmasını istediğin konuyu yazabilirsin.',
+                      ),
+                      const SizedBox(height: 12),
+
+                      buildExtraInfoField(),
+
+                      const SizedBox(height: 24),
+
+                      buildSubmitButton(),
+
+                      if (resultText != null) ...[
+                        const SizedBox(height: 24),
+                        _ResultCard(result: resultText!),
+                      ],
+                    ],
+                  ),
+                ),
+        ),
+      ),
+    );
+  }
 }
 
 class _HeroInfoCard extends StatelessWidget {
@@ -476,43 +596,60 @@ class _HeroInfoCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(18),
+      padding: const EdgeInsets.all(22),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(22),
-        color: Colors.deepPurple.shade50,
+        color: Colors.white.withOpacity(0.76),
+        borderRadius: BorderRadius.circular(30),
         border: Border.all(
-          color: Colors.deepPurple.withOpacity(0.16),
+          color: Colors.white.withOpacity(0.72),
         ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.09),
+            blurRadius: 28,
+            offset: const Offset(0, 12),
+          ),
+        ],
       ),
       child: Row(
         children: [
-          CircleAvatar(
-            radius: 24,
-            backgroundColor: Colors.deepPurple.shade100,
+          Container(
+            width: 58,
+            height: 58,
+            decoration: BoxDecoration(
+              color: const Color(0xFFEEF3EA).withOpacity(0.95),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(
+                color: const Color(0xFFD7E1D0),
+              ),
+            ),
             child: const Icon(
               Icons.auto_awesome,
-              color: Colors.deepPurple,
+              color: Color(0xFF536B4E),
+              size: 31,
             ),
           ),
-          const SizedBox(width: 14),
-          Expanded(
+          const SizedBox(width: 15),
+          const Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
+                Text(
                   'Kişisel rehberliğini oluştur',
                   style: TextStyle(
-                    fontSize: 17,
-                    fontWeight: FontWeight.bold,
+                    fontSize: 18,
+                    fontWeight: FontWeight.w900,
+                    color: Color(0xFF2F3A32),
                   ),
                 ),
-                const SizedBox(height: 5),
+                SizedBox(height: 6),
                 Text(
                   'İsim, doğum tarihi ve seçtiğin analiz türüne göre yapay zekaya özel bir istek gönderilecek.',
                   style: TextStyle(
-                    fontSize: 12.8,
+                    fontSize: 13,
                     height: 1.35,
-                    color: Colors.grey.shade700,
+                    color: Color(0xFF606A61),
+                    fontWeight: FontWeight.w500,
                   ),
                 ),
               ],
@@ -535,25 +672,69 @@ class _SectionTitle extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          title,
-          style: const TextStyle(
-            fontSize: 19,
-            fontWeight: FontWeight.bold,
-          ),
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.76),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(
+          color: Colors.white.withOpacity(0.70),
         ),
-        const SizedBox(height: 4),
-        Text(
-          subtitle,
-          style: TextStyle(
-            fontSize: 13,
-            color: Colors.grey.shade600,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.07),
+            blurRadius: 20,
+            offset: const Offset(0, 9),
           ),
-        ),
-      ],
+        ],
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 48,
+            height: 48,
+            decoration: BoxDecoration(
+              color: const Color(0xFFEEF3EA).withOpacity(0.95),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: const Color(0xFFD7E1D0),
+              ),
+            ),
+            child: const Icon(
+              Icons.spa_outlined,
+              color: Color(0xFF536B4E),
+              size: 27,
+            ),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: const TextStyle(
+                    fontSize: 19,
+                    fontWeight: FontWeight.w900,
+                    color: Color(0xFF2F3A32),
+                  ),
+                ),
+                const SizedBox(height: 5),
+                Text(
+                  subtitle,
+                  style: const TextStyle(
+                    fontSize: 13.5,
+                    color: Color(0xFF606A61),
+                    height: 1.35,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -577,29 +758,40 @@ class _TextInputCard extends StatelessWidget {
       controller: controller,
       autocorrect: false,
       enableSuggestions: false,
+      cursorColor: const Color(0xFF536B4E),
       decoration: InputDecoration(
         prefixIcon: Icon(
           icon,
-          color: Colors.deepPurple,
+          color: const Color(0xFF536B4E),
         ),
         labelText: label,
         hintText: hintText,
-        filled: true,
-        fillColor: Colors.white,
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(18),
+        labelStyle: const TextStyle(
+          color: Color(0xFF667064),
+          fontWeight: FontWeight.w700,
         ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(18),
+        hintStyle: const TextStyle(
+          color: Color(0xFF9AA09A),
+        ),
+        filled: true,
+        fillColor: Colors.white.withOpacity(0.76),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(20),
           borderSide: BorderSide(
-            color: Colors.grey.shade200,
+            color: Colors.white.withOpacity(0.70),
           ),
         ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(18),
-          borderSide: const BorderSide(
-            color: Colors.deepPurple,
-            width: 1.5,
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(20),
+          borderSide: BorderSide(
+            color: Colors.white.withOpacity(0.70),
+          ),
+        ),
+        focusedBorder: const OutlineInputBorder(
+          borderRadius: BorderRadius.all(Radius.circular(20)),
+          borderSide: BorderSide(
+            color: Color(0xFF536B4E),
+            width: 1.4,
           ),
         ),
       ),
@@ -626,74 +818,95 @@ class _SubscriptionInfoCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final Color mainColor =
+        isSubscribed ? const Color(0xFF536B4E) : const Color(0xFF6B736A);
+
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(18),
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(22),
-        gradient: LinearGradient(
-          colors: isSubscribed
-              ? [
-                  Colors.deepPurple.shade400,
-                  Colors.indigo.shade700,
-                ]
-              : [
-                  Colors.grey.shade700,
-                  Colors.grey.shade900,
-                ],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
+        color: Colors.white.withOpacity(0.76),
+        borderRadius: BorderRadius.circular(28),
+        border: Border.all(
+          color: Colors.white.withOpacity(0.72),
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.12),
-            blurRadius: 16,
-            offset: const Offset(0, 8),
+            color: Colors.black.withOpacity(0.09),
+            blurRadius: 26,
+            offset: const Offset(0, 12),
           ),
         ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(
-            isSubscribed ? Icons.workspace_premium : Icons.lock_clock,
-            color: Colors.white,
-            size: 34,
+          Row(
+            children: [
+              CircleAvatar(
+                radius: 24,
+                backgroundColor: isSubscribed
+                    ? const Color(0xFFEAF3E8)
+                    : const Color(0xFFF1F2EF),
+                child: Icon(
+                  isSubscribed ? Icons.workspace_premium : Icons.lock_clock,
+                  color: mainColor,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  isSubscribed
+                      ? 'Premium rehberlik aktif'
+                      : 'Ücretsiz rehberlik',
+                  style: const TextStyle(
+                    color: Color(0xFF2F3A32),
+                    fontSize: 19,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ),
+            ],
           ),
-          const SizedBox(height: 14),
-          Text(
-            isSubscribed ? 'Premium rehberlik aktif' : 'Ücretsiz rehberlik',
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 19,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const SizedBox(height: 6),
+          const SizedBox(height: 12),
           Text(
             isSubscribed
                 ? 'Plan: $subscriptionPlan • Her 7 günde 1 hak'
                 : 'Her 30 günde 1 ücretsiz hak',
-            style: TextStyle(
-              color: Colors.white.withOpacity(0.84),
-              fontSize: 13,
+            style: const TextStyle(
+              color: Color(0xFF606A61),
+              fontSize: 13.5,
+              fontWeight: FontWeight.w600,
             ),
           ),
           const SizedBox(height: 14),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(20),
+            child: LinearProgressIndicator(
+              value: maxAllowedCount <= 0
+                  ? 0
+                  : (usedCount / maxAllowedCount).clamp(0.0, 1.0),
+              minHeight: 9,
+              backgroundColor: Colors.white.withOpacity(0.75),
+              color: mainColor,
+            ),
+          ),
+          const SizedBox(height: 12),
           Text(
             'Kalan hak: $remainingCount / $maxAllowedCount',
-            style: const TextStyle(
-              color: Colors.white,
+            style: TextStyle(
+              color: mainColor,
               fontSize: 15,
-              fontWeight: FontWeight.w700,
+              fontWeight: FontWeight.w900,
             ),
           ),
           const SizedBox(height: 4),
           Text(
             'Bu dönem: Son $periodText içinde $usedCount kullanım',
-            style: TextStyle(
-              color: Colors.white.withOpacity(0.78),
-              fontSize: 12,
+            style: const TextStyle(
+              color: Color(0xFF606A61),
+              fontSize: 12.5,
+              fontWeight: FontWeight.w500,
             ),
           ),
         ],
@@ -719,65 +932,86 @@ class _GuidanceTypeCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(18),
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: isSelected ? Colors.deepPurple.shade50 : Colors.white,
-          borderRadius: BorderRadius.circular(18),
-          border: Border.all(
-            color: isSelected ? Colors.deepPurple : Colors.grey.shade200,
-            width: isSelected ? 1.5 : 1,
+    final Color selectedColor = const Color(0xFF536B4E);
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(24),
+        child: Ink(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.white.withOpacity(0.76),
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(
+              color: isSelected
+                  ? selectedColor.withOpacity(0.50)
+                  : Colors.white.withOpacity(0.70),
+              width: isSelected ? 1.5 : 1,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.07),
+                blurRadius: 20,
+                offset: const Offset(0, 9),
+              ),
+            ],
           ),
-          boxShadow: const [
-            BoxShadow(
-              blurRadius: 10,
-              color: Colors.black12,
-              offset: Offset(0, 4),
-            ),
-          ],
-        ),
-        child: Row(
-          children: [
-            CircleAvatar(
-              backgroundColor:
-                  isSelected ? Colors.deepPurple : Colors.grey.shade100,
-              child: Icon(
-                icon,
-                color: isSelected ? Colors.white : Colors.black87,
-              ),
-            ),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: const TextStyle(
-                      fontSize: 15.5,
-                      fontWeight: FontWeight.bold,
-                    ),
+          child: Row(
+            children: [
+              Container(
+                width: 48,
+                height: 48,
+                decoration: BoxDecoration(
+                  color: isSelected
+                      ? const Color(0xFFEEF3EA).withOpacity(0.95)
+                      : Colors.white.withOpacity(0.65),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color: isSelected
+                        ? const Color(0xFFD7E1D0)
+                        : Colors.white.withOpacity(0.70),
                   ),
-                  const SizedBox(height: 4),
-                  Text(
-                    subtitle,
-                    style: TextStyle(
-                      fontSize: 12.5,
-                      color: Colors.grey.shade600,
+                ),
+                child: Icon(
+                  icon,
+                  color: isSelected ? selectedColor : const Color(0xFF6B736A),
+                ),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: const TextStyle(
+                        fontSize: 15.5,
+                        fontWeight: FontWeight.w900,
+                        color: Color(0xFF2F3A32),
+                      ),
                     ),
-                  ),
-                ],
+                    const SizedBox(height: 4),
+                    Text(
+                      subtitle,
+                      style: const TextStyle(
+                        fontSize: 12.5,
+                        color: Color(0xFF606A61),
+                        height: 1.35,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
               ),
-            ),
-            if (isSelected)
-              const Icon(
-                Icons.check_circle,
-                color: Colors.deepPurple,
-              ),
-          ],
+              if (isSelected)
+                const Icon(
+                  Icons.check_circle,
+                  color: Color(0xFF536B4E),
+                ),
+            ],
+          ),
         ),
       ),
     );
@@ -799,52 +1033,69 @@ class _PickerTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(16),
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: Colors.grey.shade200,
-          ),
-          boxShadow: const [
-            BoxShadow(
-              blurRadius: 10,
-              color: Colors.black12,
-              offset: Offset(0, 4),
+    final bool hasValue = value != 'Zorunlu' && value != 'Opsiyonel';
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(24),
+        child: Ink(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.white.withOpacity(0.76),
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(
+              color: hasValue
+                  ? const Color(0xFF536B4E).withOpacity(0.35)
+                  : Colors.white.withOpacity(0.70),
             ),
-          ],
-        ),
-        child: Row(
-          children: [
-            Icon(icon, color: Colors.deepPurple),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 3),
-                  Text(
-                    value,
-                    style: TextStyle(
-                      color: Colors.grey.shade600,
-                      fontSize: 13,
-                    ),
-                  ),
-                ],
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.07),
+                blurRadius: 20,
+                offset: const Offset(0, 9),
               ),
-            ),
-            const Icon(Icons.chevron_right),
-          ],
+            ],
+          ),
+          child: Row(
+            children: [
+              Icon(
+                icon,
+                color: hasValue
+                    ? const Color(0xFF536B4E)
+                    : const Color(0xFF6B736A),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w900,
+                        color: Color(0xFF2F3A32),
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      value,
+                      style: const TextStyle(
+                        color: Color(0xFF606A61),
+                        fontSize: 13,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const Icon(
+                Icons.chevron_right,
+                color: Color(0xFF536B4E),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -862,45 +1113,56 @@ class _ResultCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(18),
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.deepPurple.shade50,
-        borderRadius: BorderRadius.circular(20),
+        color: Colors.white.withOpacity(0.82),
+        borderRadius: BorderRadius.circular(28),
         border: Border.all(
-          color: Colors.deepPurple.withOpacity(0.2),
+          color: Colors.white.withOpacity(0.74),
         ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.09),
+            blurRadius: 26,
+            offset: const Offset(0, 12),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Icon(
             Icons.auto_awesome,
-            color: Colors.deepPurple,
-            size: 30,
+            color: Color(0xFF536B4E),
+            size: 32,
           ),
           const SizedBox(height: 12),
           const Text(
             'Rehberlik Sonucu',
             style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const SizedBox(height: 10),
-          Text(
-            result,
-            style: const TextStyle(
-              fontSize: 14.5,
-              height: 1.45,
+              fontSize: 20,
+              fontWeight: FontWeight.w900,
+              color: Color(0xFF2F3A32),
             ),
           ),
           const SizedBox(height: 12),
           Text(
+            result,
+            style: const TextStyle(
+              fontSize: 14.8,
+              height: 1.5,
+              color: Color(0xFF2F3A32),
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+          const SizedBox(height: 14),
+          const Text(
             'Not: Bu yorum kişisel farkındalık ve eğlence amaçlıdır; kesin gelecek tahmini değildir.',
             style: TextStyle(
               fontSize: 12,
-              color: Colors.grey.shade700,
+              color: Color(0xFF606A61),
               fontStyle: FontStyle.italic,
+              height: 1.35,
             ),
           ),
         ],

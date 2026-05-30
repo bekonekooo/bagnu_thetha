@@ -12,34 +12,37 @@ class BookingInfoCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(22),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            Colors.deepPurple.shade400,
-            Colors.deepPurple.shade700,
-          ],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
+        color: Colors.white.withOpacity(0.76),
+        borderRadius: BorderRadius.circular(30),
+        border: Border.all(
+          color: Colors.white.withOpacity(0.72),
         ),
-        borderRadius: BorderRadius.circular(22),
         boxShadow: [
           BoxShadow(
-            color: Colors.deepPurple.withOpacity(0.18),
-            blurRadius: 18,
-            offset: const Offset(0, 8),
+            color: Colors.black.withOpacity(0.09),
+            blurRadius: 28,
+            offset: const Offset(0, 12),
           ),
         ],
       ),
       child: Row(
         children: [
-          const CircleAvatar(
-            radius: 30,
-            backgroundColor: Colors.white,
-            child: Icon(
+          Container(
+            width: 62,
+            height: 62,
+            decoration: BoxDecoration(
+              color: const Color(0xFFEEF3EA).withOpacity(0.95),
+              borderRadius: BorderRadius.circular(22),
+              border: Border.all(
+                color: const Color(0xFFD7E1D0),
+              ),
+            ),
+            child: const Icon(
               Icons.self_improvement,
-              color: Colors.deepPurple,
-              size: 32,
+              color: Color(0xFF536B4E),
+              size: 34,
             ),
           ),
           const SizedBox(width: 16),
@@ -47,21 +50,32 @@ class BookingInfoCard extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                const Text(
+                  'Yeni seans',
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: Color(0xFF667064),
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: 5),
                 Text(
                   teacherName,
                   style: const TextStyle(
-                    fontSize: 21,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
+                    fontSize: 22,
+                    fontWeight: FontWeight.w900,
+                    color: Color(0xFF2F3A32),
+                    height: 1.15,
                   ),
                 ),
-                const SizedBox(height: 6),
-                Text(
+                const SizedBox(height: 7),
+                const Text(
                   'Bu öğretmenle yeni bir seans oluşturuyorsun.',
                   style: TextStyle(
                     fontSize: 14,
-                    color: Colors.white.withOpacity(0.88),
+                    color: Color(0xFF606A61),
                     height: 1.35,
+                    fontWeight: FontWeight.w500,
                   ),
                 ),
               ],

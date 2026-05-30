@@ -14,55 +14,86 @@ class BookingDatePicker extends StatelessWidget {
   Widget build(BuildContext context) {
     final hasDate = formattedDate != 'Tarih seçilmedi';
 
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(18),
-      child: Container(
-        width: double.infinity,
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: hasDate ? Colors.deepPurple.shade50 : Colors.white,
-          borderRadius: BorderRadius.circular(18),
-          border: Border.all(
-            color: hasDate ? Colors.deepPurple.shade200 : Colors.grey.shade300,
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(24),
+        child: Ink(
+          width: double.infinity,
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.white.withOpacity(0.76),
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(
+              color: hasDate
+                  ? const Color(0xFF536B4E).withOpacity(0.35)
+                  : Colors.white.withOpacity(0.70),
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.07),
+                blurRadius: 20,
+                offset: const Offset(0, 9),
+              ),
+            ],
           ),
-        ),
-        child: Row(
-          children: [
-            CircleAvatar(
-              backgroundColor:
-                  hasDate ? Colors.deepPurple : Colors.grey.shade100,
-              child: Icon(
-                Icons.calendar_month,
-                color: hasDate ? Colors.white : Colors.grey,
-              ),
-            ),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    hasDate ? 'Seçilen tarih' : 'Tarih seç',
-                    style: TextStyle(
-                      fontSize: 13,
-                      color: hasDate ? Colors.deepPurple : Colors.grey,
-                      fontWeight: FontWeight.w600,
-                    ),
+          child: Row(
+            children: [
+              Container(
+                width: 50,
+                height: 50,
+                decoration: BoxDecoration(
+                  color: hasDate
+                      ? const Color(0xFFEEF3EA).withOpacity(0.95)
+                      : Colors.white.withOpacity(0.65),
+                  borderRadius: BorderRadius.circular(17),
+                  border: Border.all(
+                    color: hasDate
+                        ? const Color(0xFFD7E1D0)
+                        : Colors.white.withOpacity(0.7),
                   ),
-                  const SizedBox(height: 4),
-                  Text(
-                    formattedDate,
-                    style: const TextStyle(
-                      fontSize: 17,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ],
+                ),
+                child: Icon(
+                  Icons.calendar_month_outlined,
+                  color: hasDate
+                      ? const Color(0xFF536B4E)
+                      : const Color(0xFF8A9188),
+                ),
               ),
-            ),
-            const Icon(Icons.chevron_right),
-          ],
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      hasDate ? 'Seçilen tarih' : 'Tarih seç',
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: hasDate
+                            ? const Color(0xFF536B4E)
+                            : const Color(0xFF667064),
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      formattedDate,
+                      style: const TextStyle(
+                        fontSize: 17,
+                        fontWeight: FontWeight.w900,
+                        color: Color(0xFF2F3A32),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const Icon(
+                Icons.chevron_right,
+                color: Color(0xFF536B4E),
+              ),
+            ],
+          ),
         ),
       ),
     );
