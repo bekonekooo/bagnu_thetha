@@ -29,6 +29,9 @@ import 'package:flutter_application_1/features/trainings/presentation/pages/trai
 import 'package:flutter_application_1/features/guidance/presentation/pages/guidance_page.dart';
 import 'package:flutter_application_1/features/community/presentation/pages/community_page.dart';
 
+import 'package:flutter_application_1/features/meditations/presentation/pages/meditations_page.dart';
+import 'package:flutter_application_1/features/meditations/presentation/pages/teacher_meditations_page.dart';
+
 import 'package:flutter_application_1/features/main/presentation/pages/main_shell_page.dart';
 
 import 'package:flutter_application_1/features/booking/presentation/pages/booking_page.dart';
@@ -108,6 +111,7 @@ final GoRouter appRouter = GoRouter(
       '/teacher-edit-profile',
       '/teacher-sessions',
       '/teacher-availability',
+      '/teacher-meditations',
     ];
 
     final studentOnlyRoutes = [
@@ -122,6 +126,7 @@ final GoRouter appRouter = GoRouter(
       '/guidance',
       '/community',
       '/notifications',
+      '/meditations',
     ];
 
     final isPublicRoute = publicRoutes.contains(location);
@@ -180,6 +185,11 @@ final GoRouter appRouter = GoRouter(
     GoRoute(
       path: '/teacher-dashboard',
       builder: (context, state) => const TeacherDashboardPage(),
+    ),
+
+    GoRoute(
+      path: '/teacher-meditations',
+      builder: (context, state) => const TeacherMeditationsPage(),
     ),
 
     GoRoute(
@@ -306,6 +316,11 @@ final GoRouter appRouter = GoRouter(
         GoRoute(
           path: '/teachers',
           builder: (context, state) => const TeachersPage(),
+        ),
+
+        GoRoute(
+          path: '/meditations',
+          builder: (context, state) => const MeditationsPage(),
         ),
 
         GoRoute(

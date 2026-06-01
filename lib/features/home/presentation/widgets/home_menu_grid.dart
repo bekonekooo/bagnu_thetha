@@ -24,6 +24,12 @@ class HomeMenuGrid extends StatelessWidget {
         route: '/teachers',
       ),
       _HomeMenuItem(
+        icon: Icons.self_improvement,
+        title: 'Meditasyonlar',
+        subtitle: 'Ses kayıtları, videolar ve özel bağlantıları keşfet',
+        route: '/meditations',
+      ),
+      _HomeMenuItem(
         icon: Icons.auto_graph_outlined,
         title: 'Aylık Rehberlik',
         subtitle: 'Kişisel analizlerini ve içgörülerini gör',
@@ -40,12 +46,6 @@ class HomeMenuGrid extends StatelessWidget {
         title: 'Topluluk',
         subtitle: 'Diğer kullanıcılarla aynı alanda buluş',
         route: '/community',
-      ),
-      _HomeMenuItem(
-        icon: Icons.person_outline,
-        title: 'Profilim',
-        subtitle: 'Kişisel bilgilerini ve hesabını düzenle',
-        route: '/profile',
       ),
     ];
 
