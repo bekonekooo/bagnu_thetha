@@ -15,6 +15,7 @@ class _GuidancePageState extends State<GuidancePage> {
   final GuidanceService guidanceService = GuidanceService();
 
   final TextEditingController fullNameController = TextEditingController();
+  final TextEditingController birthPlaceController = TextEditingController();
   final TextEditingController extraInfoController = TextEditingController();
 
   String selectedType = 'chinese_zodiac';
@@ -32,6 +33,7 @@ class _GuidancePageState extends State<GuidancePage> {
   String periodText = '30 gün';
 
   String? resultText;
+  String? chartImageUrl;
 
   static const String guidanceBackground =
       'assets/images/backgrounds/home_bg_5.jpg';
@@ -57,6 +59,7 @@ class _GuidancePageState extends State<GuidancePage> {
   @override
   void dispose() {
     fullNameController.dispose();
+    birthPlaceController.dispose();
     extraInfoController.dispose();
     super.dispose();
   }
@@ -198,6 +201,7 @@ class _GuidancePageState extends State<GuidancePage> {
     }
 
     final fullName = fullNameController.text.trim();
+    final birthPlace = birthPlaceController.text.trim();
 
     if (fullName.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -212,6 +216,15 @@ class _GuidancePageState extends State<GuidancePage> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Lütfen doğum tarihini seç.'),
+        ),
+      );
+      return;
+    }
+
+    if (selectedType == 'astrology' && birthPlace.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Astroloji rehberliği için doğum yerini yazmalısın.'),
         ),
       );
       return;
@@ -233,6 +246,7 @@ class _GuidancePageState extends State<GuidancePage> {
     setState(() {
       isSubmitting = true;
       resultText = null;
+      chartImageUrl = null;
     });
 
     try {
@@ -241,12 +255,14 @@ class _GuidancePageState extends State<GuidancePage> {
         guidanceType: selectedType,
         birthDate: formatBirthDateForDb(selectedBirthDate!),
         birthTime: formatBirthTimeForDb(selectedBirthTime),
+        birthPlace: birthPlace.isEmpty ? null : birthPlace,
         extraInfo: extraInfoController.text.trim().isEmpty
             ? null
             : extraInfoController.text.trim(),
       );
 
       final aiResult = response['result']?.toString();
+      final generatedChartImageUrl = response['chart_image_url']?.toString();
 
       if (aiResult == null || aiResult.trim().isEmpty) {
         throw Exception('AI sonucu boş döndü.');
@@ -256,6 +272,7 @@ class _GuidancePageState extends State<GuidancePage> {
 
       setState(() {
         resultText = aiResult;
+        chartImageUrl = generatedChartImageUrl;
         usedCount = usedCount + 1;
         isSubmitting = false;
       });
@@ -397,7 +414,9 @@ class _GuidancePageState extends State<GuidancePage> {
             : const Icon(Icons.auto_awesome),
         label: Text(
           isSubmitting
-              ? 'Yapay zeka hazırlanıyor...'
+              ? selectedType == 'astrology'
+                  ? 'Yorum ve harita hazırlanıyor...'
+                  : 'Yapay zeka hazırlanıyor...'
               : 'Rehberliğimi Oluştur',
         ),
         style: ElevatedButton.styleFrom(
@@ -423,7 +442,7 @@ class _GuidancePageState extends State<GuidancePage> {
       case 'chinese_zodiac':
         return 'Doğum yılına göre Çin burcu yorumunu al.';
       case 'astrology':
-        return 'Doğum tarihi ve saatine göre astrolojik analiz al.';
+        return 'Doğum tarihi, saat ve doğum yerine göre astrolojik rehberlik al.';
       case 'numerology':
         return 'İsim ve doğum tarihinden numeroloji yorumunu oluştur.';
       default:
@@ -476,14 +495,11 @@ class _GuidancePageState extends State<GuidancePage> {
                         periodText: periodText,
                       ),
                       const SizedBox(height: 22),
-
                       const _SectionTitle(
                         title: '1. Rehberlik türünü seç',
-                        subtitle:
-                            'Hangi alanda analiz almak istediğini seç.',
+                        subtitle: 'Hangi alanda analiz almak istediğini seç.',
                       ),
                       const SizedBox(height: 12),
-
                       ...guidanceTypeLabels.entries.map((entry) {
                         final type = entry.key;
                         final label = entry.value;
@@ -505,16 +521,13 @@ class _GuidancePageState extends State<GuidancePage> {
                           ),
                         );
                       }),
-
                       const SizedBox(height: 10),
-
                       const _SectionTitle(
                         title: '2. Kişi bilgileri',
                         subtitle:
                             'Analiz kendi adına ya da başka biri adına yapılabilir.',
                       ),
                       const SizedBox(height: 12),
-
                       _TextInputCard(
                         controller: fullNameController,
                         icon: Icons.badge_outlined,
@@ -522,7 +535,6 @@ class _GuidancePageState extends State<GuidancePage> {
                         hintText: 'Örn: Ayşe Yılmaz',
                       ),
                       const SizedBox(height: 12),
-
                       _PickerTile(
                         icon: Icons.cake_outlined,
                         title: 'Doğum tarihi',
@@ -532,16 +544,16 @@ class _GuidancePageState extends State<GuidancePage> {
                         onTap: pickBirthDate,
                       ),
                       const SizedBox(height: 12),
-
                       _PickerTile(
                         icon: Icons.access_time,
                         title: 'Doğum saati',
                         value: selectedBirthTime == null
-                            ? 'Opsiyonel'
+                            ? selectedType == 'astrology'
+                                ? 'Önerilir'
+                                : 'Opsiyonel'
                             : formatBirthTimeForUi(selectedBirthTime!),
                         onTap: pickBirthTime,
                       ),
-
                       if (selectedBirthTime != null) ...[
                         const SizedBox(height: 8),
                         Align(
@@ -560,25 +572,31 @@ class _GuidancePageState extends State<GuidancePage> {
                           ),
                         ),
                       ],
-
+                      const SizedBox(height: 12),
+                      _TextInputCard(
+                        controller: birthPlaceController,
+                        icon: Icons.location_on_outlined,
+                        label: selectedType == 'astrology'
+                            ? 'Doğum yeri - Astroloji için zorunlu'
+                            : 'Doğum yeri - Opsiyonel',
+                        hintText: 'Örn: Antalya, Türkiye',
+                      ),
                       const SizedBox(height: 10),
-
                       const _SectionTitle(
                         title: '3. Ek detay',
                         subtitle:
                             'Yapay zekanın özellikle odaklanmasını istediğin konuyu yazabilirsin.',
                       ),
                       const SizedBox(height: 12),
-
                       buildExtraInfoField(),
-
                       const SizedBox(height: 24),
-
                       buildSubmitButton(),
-
                       if (resultText != null) ...[
                         const SizedBox(height: 24),
-                        _ResultCard(result: resultText!),
+                        _ResultCard(
+                          result: resultText!,
+                          chartImageUrl: chartImageUrl,
+                        ),
                       ],
                     ],
                   ),
@@ -644,7 +662,7 @@ class _HeroInfoCard extends StatelessWidget {
                 ),
                 SizedBox(height: 6),
                 Text(
-                  'İsim, doğum tarihi ve seçtiğin analiz türüne göre yapay zekaya özel bir istek gönderilecek.',
+                  'İsim, doğum tarihi, doğum yeri ve seçtiğin analiz türüne göre özel bir rehberlik hazırlanacak.',
                   style: TextStyle(
                     fontSize: 13,
                     height: 1.35,
@@ -1033,7 +1051,8 @@ class _PickerTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final bool hasValue = value != 'Zorunlu' && value != 'Opsiyonel';
+    final bool hasValue =
+        value != 'Zorunlu' && value != 'Opsiyonel' && value != 'Önerilir';
 
     return Material(
       color: Colors.transparent,
@@ -1104,13 +1123,18 @@ class _PickerTile extends StatelessWidget {
 
 class _ResultCard extends StatelessWidget {
   final String result;
+  final String? chartImageUrl;
 
   const _ResultCard({
     required this.result,
+    this.chartImageUrl,
   });
 
   @override
   Widget build(BuildContext context) {
+    final hasChartImage =
+        chartImageUrl != null && chartImageUrl!.trim().isNotEmpty;
+
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(20),
@@ -1131,19 +1155,81 @@ class _ResultCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Icon(
-            Icons.auto_awesome,
-            color: Color(0xFF536B4E),
-            size: 32,
-          ),
-          const SizedBox(height: 12),
-          const Text(
-            'Rehberlik Sonucu',
-            style: TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.w900,
-              color: Color(0xFF2F3A32),
+          if (hasChartImage) ...[
+            ClipRRect(
+              borderRadius: BorderRadius.circular(24),
+              child: Image.network(
+                chartImageUrl!,
+                width: double.infinity,
+                fit: BoxFit.cover,
+                loadingBuilder: (context, child, loadingProgress) {
+                  if (loadingProgress == null) {
+                    return child;
+                  }
+
+                  return Container(
+                    width: double.infinity,
+                    height: 260,
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFEEF3EA),
+                      borderRadius: BorderRadius.circular(24),
+                    ),
+                    child: const CircularProgressIndicator(
+                      color: Color(0xFF536B4E),
+                    ),
+                  );
+                },
+                errorBuilder: (context, error, stackTrace) {
+                  return Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFEEF3EA),
+                      borderRadius: BorderRadius.circular(18),
+                    ),
+                    child: const Text(
+                      'Doğum haritası görseli yüklenemedi.',
+                      style: TextStyle(
+                        color: Color(0xFF536B4E),
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  );
+                },
+              ),
             ),
+            const SizedBox(height: 10),
+            const Text(
+              'Not: Bu görsel sembolik bir astroloji haritasıdır; teknik doğum haritası hesaplaması değildir.',
+              style: TextStyle(
+                fontSize: 11.5,
+                color: Color(0xFF606A61),
+                fontStyle: FontStyle.italic,
+                height: 1.35,
+              ),
+            ),
+            const SizedBox(height: 18),
+          ],
+          const Row(
+            children: [
+              Icon(
+                Icons.auto_awesome,
+                color: Color(0xFF536B4E),
+                size: 30,
+              ),
+              SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  'Rehberlik Sonucu',
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w900,
+                    color: Color(0xFF2F3A32),
+                  ),
+                ),
+              ),
+            ],
           ),
           const SizedBox(height: 12),
           Text(

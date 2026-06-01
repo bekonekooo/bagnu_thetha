@@ -6,6 +6,7 @@ class GuidanceService {
     required String guidanceType,
     required String birthDate,
     String? birthTime,
+    String? birthPlace,
     String? extraInfo,
   }) async {
     final user = supabase.auth.currentUser;
@@ -21,6 +22,7 @@ class GuidanceService {
         'guidance_type': guidanceType,
         'birth_date': birthDate,
         'birth_time': birthTime,
+        'birth_place': birthPlace,
         'extra_info': extraInfo,
       },
     );
