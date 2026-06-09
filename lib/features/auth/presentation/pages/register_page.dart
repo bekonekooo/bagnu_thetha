@@ -14,20 +14,28 @@ class RegisterPage extends StatefulWidget {
 
 class _RegisterPageState extends State<RegisterPage> {
   final nameController = TextEditingController();
+  final phoneController = TextEditingController();
   final emailController = TextEditingController();
   final passwordController = TextEditingController();
+  final passwordAgainController = TextEditingController();
 
   bool isLoading = false;
 
   bool validateForm() {
     final name = nameController.text.trim();
+    final phone = phoneController.text.trim();
     final email = emailController.text.trim();
     final password = passwordController.text.trim();
+    final passwordAgain = passwordAgainController.text.trim();
 
-    if (name.isEmpty || email.isEmpty || password.isEmpty) {
+    if (name.isEmpty ||
+        phone.isEmpty ||
+        email.isEmpty ||
+        password.isEmpty ||
+        passwordAgain.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Lütfen tüm alanları doldur.'),
+          content: Text('Lütfen tüm zorunlu alanları doldur.'),
         ),
       );
       return false;
@@ -51,6 +59,15 @@ class _RegisterPageState extends State<RegisterPage> {
       return false;
     }
 
+    if (password != passwordAgain) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Şifreler aynı olmalı.'),
+        ),
+      );
+      return false;
+    }
+
     return true;
   }
 
@@ -64,7 +81,7 @@ class _RegisterPageState extends State<RegisterPage> {
     });
 
     try {
-      await supabase.auth.signUp(
+      final authResponse = await supabase.auth.signUp(
         email: emailController.text.trim(),
         password: passwordController.text.trim(),
         data: {
@@ -73,15 +90,28 @@ class _RegisterPageState extends State<RegisterPage> {
         },
       );
 
+      final user = authResponse.user;
+
+      if (user == null) {
+        throw Exception('Kullanıcı oluşturulamadı.');
+      }
+
+      await supabase.from('profiles').update({
+        'full_name': nameController.text.trim(),
+        'phone': phoneController.text.trim(),
+        'role': 'student',
+        'onboarding_completed': false,
+      }).eq('id', user.id);
+
       if (!mounted) return;
 
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Kayıt başarılı. Şimdi giriş yapabilirsin.'),
+          content: Text('Hesabın oluşturuldu. Şimdi profilini tamamlayalım.'),
         ),
       );
 
-      context.go('/login');
+      context.go('/profile-onboarding');
     } catch (e) {
       if (!mounted) return;
 
@@ -102,8 +132,10 @@ class _RegisterPageState extends State<RegisterPage> {
   @override
   void dispose() {
     nameController.dispose();
+    phoneController.dispose();
     emailController.dispose();
     passwordController.dispose();
+    passwordAgainController.dispose();
     super.dispose();
   }
 
@@ -143,6 +175,7 @@ class _RegisterPageState extends State<RegisterPage> {
           const SizedBox(height: 18),
           const Text(
             'BagnuTheta’ya Katıl',
+            textAlign: TextAlign.center,
             style: TextStyle(
               color: Colors.white,
               fontSize: 26,
@@ -151,7 +184,7 @@ class _RegisterPageState extends State<RegisterPage> {
           ),
           const SizedBox(height: 8),
           Text(
-            'Öğretmenlerden seans alabilir, gelişimini takip edebilirsin.',
+            'Hesabını oluştur, ardından seni daha iyi tanıyalım.',
             textAlign: TextAlign.center,
             style: TextStyle(
               color: Colors.white.withOpacity(0.9),
@@ -163,9 +196,44 @@ class _RegisterPageState extends State<RegisterPage> {
     );
   }
 
+  Widget buildInfoBox() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.deepPurple.withOpacity(0.06),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(
+          color: Colors.deepPurple.withOpacity(0.12),
+        ),
+      ),
+      child: const Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(
+            Icons.lock_outline,
+            color: Colors.deepPurple,
+          ),
+          SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              'Bu adımda sadece temel hesap bilgilerini alıyoruz. Profilini bir sonraki ekranda adım adım tamamlayacaksın.',
+              style: TextStyle(
+                height: 1.35,
+                color: Color(0xFF4B405A),
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: const Color(0xFFF8F5EF),
       appBar: AppBar(
         title: const Text('Kayıt Ol'),
       ),
@@ -176,67 +244,72 @@ class _RegisterPageState extends State<RegisterPage> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               buildHeader(),
-
-              const SizedBox(height: 32),
-
+              const SizedBox(height: 30),
               const Text(
                 'Yeni hesap oluştur',
                 style: TextStyle(
                   fontSize: 22,
                   fontWeight: FontWeight.bold,
+                  color: Color(0xFF2D2438),
                 ),
               ),
-
               const SizedBox(height: 6),
-
               const Text(
-                'Bilgilerini girerek öğrenci hesabını oluşturabilirsin.',
+                'Önce hesabını oluşturalım. Sonraki adımda profilini kişiselleştireceğiz.',
                 style: TextStyle(
                   color: Colors.grey,
                   height: 1.35,
                 ),
               ),
-
               const SizedBox(height: 24),
-
               CustomTextField(
-                label: 'Ad Soyad',
+                label: 'Ad Soyad *',
                 controller: nameController,
                 prefixIcon: Icons.badge_outlined,
                 hintText: 'Adını ve soyadını yaz',
               ),
-
               const SizedBox(height: 16),
-
               CustomTextField(
-                label: 'E-posta',
+                label: 'Telefon *',
+                controller: phoneController,
+                keyboardType: TextInputType.phone,
+                prefixIcon: Icons.phone_outlined,
+                hintText: '05xx xxx xx xx',
+              ),
+              const SizedBox(height: 16),
+              CustomTextField(
+                label: 'E-posta *',
                 controller: emailController,
                 keyboardType: TextInputType.emailAddress,
                 prefixIcon: Icons.email_outlined,
                 hintText: 'ornek@email.com',
               ),
-
               const SizedBox(height: 16),
-
               CustomTextField(
-                label: 'Şifre',
+                label: 'Şifre *',
                 controller: passwordController,
                 isPassword: true,
                 prefixIcon: Icons.lock_outline,
                 hintText: 'En az 6 karakter',
               ),
-
-              const SizedBox(height: 26),
-
+              const SizedBox(height: 16),
+              CustomTextField(
+                label: 'Şifre Tekrar *',
+                controller: passwordAgainController,
+                isPassword: true,
+                prefixIcon: Icons.lock_reset_outlined,
+                hintText: 'Şifreni tekrar gir',
+              ),
+              const SizedBox(height: 20),
+              buildInfoBox(),
+              const SizedBox(height: 28),
               CustomButton(
-                text: 'Kayıt Ol',
+                text: 'Hesap Oluştur',
                 isLoading: isLoading,
                 icon: Icons.person_add_alt_1,
                 onPressed: signUp,
               ),
-
               const SizedBox(height: 18),
-
               Center(
                 child: TextButton(
                   onPressed: isLoading

@@ -18,14 +18,14 @@ class _LoginPageState extends State<LoginPage> {
 
   bool isLoading = false;
 
-  Future<String> fetchUserRole(String userId) async {
+  Future<Map<String, dynamic>?> fetchUserProfile(String userId) async {
     final response = await supabase
         .from('profiles')
-        .select('role')
+        .select('role, onboarding_completed')
         .eq('id', userId)
         .maybeSingle();
 
-    return response?['role']?.toString() ?? 'student';
+    return response;
   }
 
   bool validateForm() {
@@ -74,15 +74,25 @@ class _LoginPageState extends State<LoginPage> {
         throw Exception('Kullanıcı bulunamadı');
       }
 
-      final role = await fetchUserRole(user.id);
+      final profile = await fetchUserProfile(user.id);
+
+      final role = profile?['role']?.toString() ?? 'student';
+      final onboardingCompleted =
+          profile?['onboarding_completed'] == true;
 
       if (!mounted) return;
 
       if (role == 'teacher') {
         context.go('/teacher-dashboard');
-      } else {
-        context.go('/home');
+        return;
       }
+
+      if (!onboardingCompleted) {
+        context.go('/profile-onboarding');
+        return;
+      }
+
+      context.go('/home');
     } catch (e) {
       if (!mounted) return;
 
@@ -166,6 +176,7 @@ class _LoginPageState extends State<LoginPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: const Color(0xFFF8F5EF),
       appBar: AppBar(
         title: const Text('Giriş Yap'),
       ),
@@ -176,19 +187,16 @@ class _LoginPageState extends State<LoginPage> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               buildHeader(),
-
               const SizedBox(height: 32),
-
               const Text(
                 'Hesabına giriş yap',
                 style: TextStyle(
                   fontSize: 22,
                   fontWeight: FontWeight.bold,
+                  color: Color(0xFF2D2438),
                 ),
               ),
-
               const SizedBox(height: 6),
-
               const Text(
                 'Seanslarını, bildirimlerini ve profilini yönetmek için giriş yap.',
                 style: TextStyle(
@@ -196,9 +204,7 @@ class _LoginPageState extends State<LoginPage> {
                   height: 1.35,
                 ),
               ),
-
               const SizedBox(height: 24),
-
               CustomTextField(
                 label: 'E-posta',
                 controller: emailController,
@@ -206,9 +212,7 @@ class _LoginPageState extends State<LoginPage> {
                 prefixIcon: Icons.email_outlined,
                 hintText: 'ornek@email.com',
               ),
-
               const SizedBox(height: 16),
-
               CustomTextField(
                 label: 'Şifre',
                 controller: passwordController,
@@ -216,18 +220,14 @@ class _LoginPageState extends State<LoginPage> {
                 prefixIcon: Icons.lock_outline,
                 hintText: 'Şifreni gir',
               ),
-
               const SizedBox(height: 26),
-
               CustomButton(
                 text: 'Giriş Yap',
                 isLoading: isLoading,
                 icon: Icons.login,
                 onPressed: signIn,
               ),
-
               const SizedBox(height: 18),
-
               Center(
                 child: TextButton(
                   onPressed: isLoading

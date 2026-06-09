@@ -9,6 +9,7 @@ import 'package:flutter_application_1/core/services/supabase_service.dart';
 import 'package:flutter_application_1/features/auth/presentation/pages/login_page.dart';
 import 'package:flutter_application_1/features/auth/presentation/pages/register_page.dart';
 import 'package:flutter_application_1/features/auth/presentation/pages/onboarding_page.dart';
+import 'package:flutter_application_1/features/auth/presentation/pages/profile_onboarding_page.dart';
 import 'package:flutter_application_1/features/auth/presentation/pages/splash_page.dart';
 
 import 'package:flutter_application_1/features/home/presentation/pages/home_page.dart';
@@ -73,6 +74,22 @@ Future<String> fetchCurrentUserRole(String userId) async {
   }
 }
 
+Future<Map<String, dynamic>?> fetchCurrentUserProfileStatus(
+  String userId,
+) async {
+  try {
+    final response = await supabase
+        .from('profiles')
+        .select('role, onboarding_completed')
+        .eq('id', userId)
+        .maybeSingle();
+
+    return response;
+  } catch (_) {
+    return null;
+  }
+}
+
 bool hasStringValue(Map<String, dynamic> map, String key) {
   final value = map[key];
   return value is String && value.trim().isNotEmpty;
@@ -119,6 +136,7 @@ final GoRouter appRouter = GoRouter(
       '/sessions',
       '/profile',
       '/profile-edit',
+      '/profile-onboarding',
       '/teachers',
       '/booking',
       '/booking-success',
@@ -141,14 +159,28 @@ final GoRouter appRouter = GoRouter(
       return '/login';
     }
 
-    final role = await fetchCurrentUserRole(user.id);
+    final profileStatus = await fetchCurrentUserProfileStatus(user.id);
+
+    final role = profileStatus?['role']?.toString() ?? 'student';
+    final onboardingCompleted =
+        profileStatus?['onboarding_completed'] == true;
 
     if (isPublicRoute) {
       if (role == 'teacher') {
         return '/teacher-dashboard';
       }
 
+      if (!onboardingCompleted) {
+        return '/profile-onboarding';
+      }
+
       return '/home';
+    }
+
+    if (role == 'student' &&
+        !onboardingCompleted &&
+        location != '/profile-onboarding') {
+      return '/profile-onboarding';
     }
 
     if (role == 'student' && isTeacherOnlyRoute) {
@@ -180,6 +212,11 @@ final GoRouter appRouter = GoRouter(
     GoRoute(
       path: '/register',
       builder: (context, state) => const RegisterPage(),
+    ),
+
+    GoRoute(
+      path: '/profile-onboarding',
+      builder: (context, state) => const ProfileOnboardingPage(),
     ),
 
     GoRoute(

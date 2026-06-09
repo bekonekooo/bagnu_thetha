@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -21,17 +23,57 @@ class _MeditationsPageState extends State<MeditationsPage> {
   String selectedFilter = 'all';
   String? playingMeditationId;
 
+  bool isAudioPaused = false;
+
+  Duration currentPosition = Duration.zero;
+  Duration totalDuration = Duration.zero;
+
+  StreamSubscription<Duration>? durationSubscription;
+  StreamSubscription<Duration>? positionSubscription;
+  StreamSubscription<void>? completeSubscription;
+
   static const String meditationsBackground =
       'assets/images/backgrounds/home_bg_7.jpg';
 
   @override
   void initState() {
     super.initState();
+
     meditationsFuture = meditationService.fetchActiveMeditations();
+
+    durationSubscription = audioPlayer.onDurationChanged.listen((duration) {
+      if (!mounted) return;
+
+      setState(() {
+        totalDuration = duration;
+      });
+    });
+
+    positionSubscription = audioPlayer.onPositionChanged.listen((position) {
+      if (!mounted) return;
+
+      setState(() {
+        currentPosition = position;
+      });
+    });
+
+    completeSubscription = audioPlayer.onPlayerComplete.listen((event) {
+      if (!mounted) return;
+
+      setState(() {
+        playingMeditationId = null;
+        isAudioPaused = false;
+        currentPosition = Duration.zero;
+        totalDuration = Duration.zero;
+      });
+    });
   }
 
   @override
   void dispose() {
+    durationSubscription?.cancel();
+    positionSubscription?.cancel();
+    completeSubscription?.cancel();
     audioPlayer.dispose();
     super.dispose();
   }
@@ -50,36 +92,146 @@ class _MeditationsPageState extends State<MeditationsPage> {
     return items.where((item) => item.type == selectedFilter).toList();
   }
 
-  Future<void> playOrStopAudio(MeditationModel meditation) async {
+  String formatDuration(Duration duration) {
+    final totalSeconds = duration.inSeconds < 0 ? 0 : duration.inSeconds;
+    final minutes = totalSeconds ~/ 60;
+    final seconds = totalSeconds % 60;
+
+    return '${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
+  }
+
+  Duration? parseDurationText(String value) {
+    final text = value.toLowerCase().trim();
+
+    if (text.isEmpty) return null;
+
+    final minuteMatch =
+        RegExp(r'(\d+)\s*(dk|dakika|min|minute)').firstMatch(text);
+
+    if (minuteMatch != null) {
+      final minutes = int.tryParse(minuteMatch.group(1) ?? '');
+
+      if (minutes != null && minutes > 0) {
+        return Duration(minutes: minutes);
+      }
+    }
+
+    final secondMatch =
+        RegExp(r'(\d+)\s*(sn|saniye|sec|second)').firstMatch(text);
+
+    if (secondMatch != null) {
+      final seconds = int.tryParse(secondMatch.group(1) ?? '');
+
+      if (seconds != null && seconds > 0) {
+        return Duration(seconds: seconds);
+      }
+    }
+
+    final plainNumber = int.tryParse(text);
+
+    if (plainNumber != null && plainNumber > 0) {
+      return Duration(minutes: plainNumber);
+    }
+
+    return null;
+  }
+
+  Duration visibleTotalDuration(MeditationModel meditation) {
+    if (totalDuration > Duration.zero) {
+      return totalDuration;
+    }
+
+    return parseDurationText(meditation.durationText) ?? Duration.zero;
+  }
+
+  Duration visibleRemainingDuration(MeditationModel meditation) {
+    final visibleTotal = visibleTotalDuration(meditation);
+
+    if (visibleTotal == Duration.zero) {
+      return Duration.zero;
+    }
+
+    final remaining = visibleTotal - currentPosition;
+
+    if (remaining.isNegative) {
+      return Duration.zero;
+    }
+
+    return remaining;
+  }
+
+  double progressValueForMeditation(MeditationModel meditation) {
+    final visibleTotal = visibleTotalDuration(meditation);
+
+    if (visibleTotal.inMilliseconds <= 0) return 0;
+
+    final progress =
+        currentPosition.inMilliseconds / visibleTotal.inMilliseconds;
+
+    if (progress.isNaN || progress.isInfinite) return 0;
+
+    return progress.clamp(0, 1);
+  }
+
+  Future<void> loadAudioDurationManually() async {
+    for (int i = 0; i < 8; i++) {
+      await Future.delayed(const Duration(milliseconds: 400));
+
+      if (!mounted) return;
+
+      final duration = await audioPlayer.getDuration();
+
+      if (duration != null && duration > Duration.zero) {
+        setState(() {
+          totalDuration = duration;
+        });
+
+        return;
+      }
+    }
+  }
+
+  Future<void> playOrPauseAudio(MeditationModel meditation) async {
     try {
-      if (playingMeditationId == meditation.id) {
-        await audioPlayer.stop();
+      final isCurrentAudio = playingMeditationId == meditation.id;
+
+      if (isCurrentAudio && !isAudioPaused) {
+        await audioPlayer.pause();
 
         if (!mounted) return;
 
         setState(() {
-          playingMeditationId = null;
+          isAudioPaused = true;
+        });
+
+        return;
+      }
+
+      if (isCurrentAudio && isAudioPaused) {
+        await audioPlayer.resume();
+
+        if (!mounted) return;
+
+        setState(() {
+          isAudioPaused = false;
         });
 
         return;
       }
 
       await audioPlayer.stop();
-      await audioPlayer.play(UrlSource(meditation.mediaUrl));
 
       if (!mounted) return;
 
       setState(() {
         playingMeditationId = meditation.id;
+        isAudioPaused = false;
+        currentPosition = Duration.zero;
+        totalDuration = Duration.zero;
       });
 
-      audioPlayer.onPlayerComplete.listen((event) {
-        if (!mounted) return;
-
-        setState(() {
-          playingMeditationId = null;
-        });
-      });
+      await audioPlayer.play(UrlSource(meditation.mediaUrl));
+      await loadAudioDurationManually();
     } catch (e) {
       if (!mounted) return;
 
@@ -274,8 +426,94 @@ class _MeditationsPageState extends State<MeditationsPage> {
     );
   }
 
+  Widget buildAudioProgress(MeditationModel meditation) {
+    final isCurrentAudio = playingMeditationId == meditation.id;
+
+    if (!meditation.isAudio || !isCurrentAudio) {
+      return const SizedBox.shrink();
+    }
+
+    final visibleTotal = visibleTotalDuration(meditation);
+    final remaining = visibleRemainingDuration(meditation);
+    final hasDuration = visibleTotal > Duration.zero;
+
+    return Padding(
+      padding: const EdgeInsets.only(top: 10),
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(
+          horizontal: 10,
+          vertical: 9,
+        ),
+        decoration: BoxDecoration(
+          color: const Color(0xFFEEF3EA).withOpacity(0.95),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: const Color(0xFFD7E1D0),
+          ),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ClipRRect(
+              borderRadius: BorderRadius.circular(99),
+              child: LinearProgressIndicator(
+                value: progressValueForMeditation(meditation),
+                minHeight: 5,
+                backgroundColor: Colors.white.withOpacity(0.9),
+                valueColor: const AlwaysStoppedAnimation<Color>(
+                  Color(0xFF536B4E),
+                ),
+              ),
+            ),
+            const SizedBox(height: 7),
+            Row(
+              children: [
+                Icon(
+                  isAudioPaused
+                      ? Icons.pause_circle_outline
+                      : Icons.play_circle_outline,
+                  size: 16,
+                  color: const Color(0xFF536B4E),
+                ),
+                const SizedBox(width: 5),
+                Expanded(
+                  child: Text(
+                    isAudioPaused ? 'Duraklatıldı' : 'Çalıyor',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: Color(0xFF536B4E),
+                      fontWeight: FontWeight.w900,
+                      fontSize: 11.5,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 3),
+            Text(
+              hasDuration
+                  ? 'Kalan süre: ${formatDuration(remaining)}'
+                  : 'Kalan süre hesaplanamadı',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                color: Color(0xFF2F3A32),
+                fontWeight: FontWeight.w900,
+                fontSize: 11.5,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget buildMeditationCard(MeditationModel meditation) {
     final isPlaying = playingMeditationId == meditation.id;
+    final isPaused = isPlaying && isAudioPaused;
 
     return Container(
       width: double.infinity,
@@ -298,7 +536,7 @@ class _MeditationsPageState extends State<MeditationsPage> {
         borderRadius: BorderRadius.circular(26),
         onTap: () {
           if (meditation.isAudio) {
-            playOrStopAudio(meditation);
+            playOrPauseAudio(meditation);
           } else {
             openMediaUrl(meditation.mediaUrl);
           }
@@ -306,6 +544,7 @@ class _MeditationsPageState extends State<MeditationsPage> {
         child: Padding(
           padding: const EdgeInsets.all(16),
           child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               if (meditation.thumbnailUrl.trim().isNotEmpty)
                 ClipRRect(
@@ -365,6 +604,7 @@ class _MeditationsPageState extends State<MeditationsPage> {
                         ),
                       ),
                     ],
+                    buildAudioProgress(meditation),
                   ],
                 ),
               ),
@@ -375,7 +615,9 @@ class _MeditationsPageState extends State<MeditationsPage> {
                 child: Icon(
                   meditation.isAudio
                       ? isPlaying
-                          ? Icons.stop
+                          ? isPaused
+                              ? Icons.play_arrow
+                              : Icons.pause
                           : Icons.play_arrow
                       : Icons.open_in_new,
                   color: const Color(0xFF536B4E),
