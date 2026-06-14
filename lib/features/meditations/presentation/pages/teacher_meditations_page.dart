@@ -16,7 +16,6 @@ class _TeacherMeditationsPageState extends State<TeacherMeditationsPage> {
 
   final titleController = TextEditingController();
   final descriptionController = TextEditingController();
-  final categoryController = TextEditingController();
   final durationController = TextEditingController();
   final mediaUrlController = TextEditingController();
   final thumbnailUrlController = TextEditingController();
@@ -29,6 +28,17 @@ class _TeacherMeditationsPageState extends State<TeacherMeditationsPage> {
 
   PlatformFile? selectedMediaFile;
   PlatformFile? selectedThumbnailFile;
+
+  final Set<String> selectedCategories = {};
+
+  static const List<String> meditationCategories = [
+    'Sabah',
+    'Akşam',
+    'Şükür',
+    'Aşk',
+    'Bereket',
+    'Sağlık',
+  ];
 
   static const String backgroundImage =
       'assets/images/backgrounds/home_bg_7.jpg';
@@ -43,7 +53,6 @@ class _TeacherMeditationsPageState extends State<TeacherMeditationsPage> {
   void dispose() {
     titleController.dispose();
     descriptionController.dispose();
-    categoryController.dispose();
     durationController.dispose();
     mediaUrlController.dispose();
     thumbnailUrlController.dispose();
@@ -63,7 +72,7 @@ class _TeacherMeditationsPageState extends State<TeacherMeditationsPage> {
       case 'audio':
         return 'Ses Kaydı';
       case 'video':
-        return 'Video Kaydı';
+        return 'Video Dosyası';
       case 'link':
         return 'Video Linki';
       default:
@@ -95,20 +104,25 @@ class _TeacherMeditationsPageState extends State<TeacherMeditationsPage> {
 
     return [];
   }
-Future<void> pickMediaFile() async {
-  final result = await FilePicker.platform.pickFiles(
-    type: FileType.any,
-    allowMultiple: false,
-    withData: true,
-  );
 
-  if (result == null || result.files.isEmpty) return;
+  Future<void> pickMediaFile() async {
+    final allowedExtensions = allowedMediaExtensions();
 
-  setState(() {
-    selectedMediaFile = result.files.first;
-    mediaUrlController.clear();
-  });
-}
+    final result = await FilePicker.platform.pickFiles(
+      type: allowedExtensions.isEmpty ? FileType.any : FileType.custom,
+      allowedExtensions: allowedExtensions.isEmpty ? null : allowedExtensions,
+      allowMultiple: false,
+      withData: true,
+    );
+
+    if (result == null || result.files.isEmpty) return;
+
+    setState(() {
+      selectedMediaFile = result.files.first;
+      mediaUrlController.clear();
+    });
+  }
+
   Future<void> pickThumbnailFile() async {
     final result = await FilePicker.platform.pickFiles(
       type: FileType.custom,
@@ -141,16 +155,44 @@ Future<void> pickMediaFile() async {
     return value.startsWith('http://') || value.startsWith('https://');
   }
 
+  bool isValidDurationText(String value) {
+    final text = value.toLowerCase().trim();
+
+    if (text.isEmpty) return true;
+
+    final minuteMatch =
+        RegExp(r'^\d+\s*(dk|dakika|min|minute)$').hasMatch(text);
+    final secondMatch =
+        RegExp(r'^\d+\s*(sn|saniye|sec|second)$').hasMatch(text);
+    final plainNumber = RegExp(r'^\d+$').hasMatch(text);
+
+    return minuteMatch || secondMatch || plainNumber;
+  }
+
+  String selectedCategoryText() {
+    return selectedCategories.join(', ');
+  }
+
   Future<void> createMeditation() async {
     final title = titleController.text.trim();
     final description = descriptionController.text.trim();
-    final category = categoryController.text.trim();
     final durationText = durationController.text.trim();
     final linkUrl = mediaUrlController.text.trim();
     final thumbnailUrlInput = thumbnailUrlController.text.trim();
+    final category = selectedCategoryText();
 
     if (title.isEmpty) {
       showMessage('Başlık zorunlu.');
+      return;
+    }
+
+    if (selectedCategories.isEmpty) {
+      showMessage('En az bir kategori seçmelisin.');
+      return;
+    }
+
+    if (!isValidDurationText(durationText)) {
+      showMessage('Süre formatı geçersiz. Örn: 12 dk, 90 sn veya 15');
       return;
     }
 
@@ -210,7 +252,6 @@ Future<void> pickMediaFile() async {
 
       titleController.clear();
       descriptionController.clear();
-      categoryController.clear();
       durationController.clear();
       mediaUrlController.clear();
       thumbnailUrlController.clear();
@@ -223,6 +264,7 @@ Future<void> pickMediaFile() async {
         isSaving = false;
         selectedMediaFile = null;
         selectedThumbnailFile = null;
+        selectedCategories.clear();
       });
 
       await reloadMeditations();
@@ -377,6 +419,90 @@ Future<void> pickMediaFile() async {
             ),
           ),
         ),
+      ),
+    );
+  }
+
+  Widget buildCategorySelector() {
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.78),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: Colors.white.withOpacity(0.70),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Row(
+            children: [
+              CircleAvatar(
+                radius: 22,
+                backgroundColor: Color(0xFFEEF3EA),
+                child: Icon(
+                  Icons.category_outlined,
+                  color: Color(0xFF536B4E),
+                ),
+              ),
+              SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  'Alt Kategoriler',
+                  style: TextStyle(
+                    color: Color(0xFF2F3A32),
+                    fontWeight: FontWeight.w900,
+                    fontSize: 15,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          const Text(
+            'Birden fazla kategori seçebilirsin.',
+            style: TextStyle(
+              color: Color(0xFF606A61),
+              fontWeight: FontWeight.w500,
+              fontSize: 12.5,
+            ),
+          ),
+          const SizedBox(height: 12),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: meditationCategories.map((category) {
+              final isSelected = selectedCategories.contains(category);
+
+              return FilterChip(
+                label: Text(category),
+                selected: isSelected,
+                onSelected: isSaving
+                    ? null
+                    : (selected) {
+                        setState(() {
+                          if (selected) {
+                            selectedCategories.add(category);
+                          } else {
+                            selectedCategories.remove(category);
+                          }
+                        });
+                      },
+                selectedColor: const Color(0xFFD7E1D0),
+                checkmarkColor: const Color(0xFF536B4E),
+                labelStyle: TextStyle(
+                  color: isSelected
+                      ? const Color(0xFF2F3A32)
+                      : const Color(0xFF606A61),
+                  fontWeight: isSelected ? FontWeight.w900 : FontWeight.w700,
+                ),
+              );
+            }).toList(),
+          ),
+        ],
       ),
     );
   }
@@ -592,15 +718,11 @@ Future<void> pickMediaFile() async {
             hint: 'Kısa açıklama yaz',
             maxLines: 3,
           ),
-          buildInput(
-            controller: categoryController,
-            label: 'Kategori',
-            hint: 'Örn: Sabah, Denge, Nefes',
-          ),
+          buildCategorySelector(),
           buildInput(
             controller: durationController,
             label: 'Süre',
-            hint: 'Örn: 12 dk',
+            hint: 'Örn: 12 dk veya 90 sn',
           ),
           if (selectedType == 'link')
             buildInput(
@@ -737,6 +859,19 @@ Future<void> pickMediaFile() async {
                     fontWeight: FontWeight.w600,
                   ),
                 ),
+                if (meditation.category.trim().isNotEmpty) ...[
+                  const SizedBox(height: 5),
+                  Text(
+                    meditation.category,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: Color(0xFF536B4E),
+                      fontSize: 12,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ],
               ],
             ),
           ),

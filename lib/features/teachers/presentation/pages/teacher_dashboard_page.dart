@@ -440,6 +440,15 @@ class _TeacherDashboardPageState extends State<TeacherDashboardPage> {
                               },
                             ),
                             dashboardButton(
+                              icon: Icons.school_outlined,
+                              label: 'Eğitim Yönetimi',
+                              subtitle:
+                                  'Tek günlük veya çok günlü eğitim programları oluştur.',
+                              onPressed: () {
+                                context.push('/teacher-trainings');
+                              },
+                            ),
+                            dashboardButton(
                               icon: Icons.edit,
                               label: 'Profilimi Düzenle',
                               subtitle:

@@ -27,6 +27,8 @@ import 'package:flutter_application_1/features/teachers/presentation/pages/teach
 import 'package:flutter_application_1/features/teachers/data/models/teacher_model.dart';
 
 import 'package:flutter_application_1/features/trainings/presentation/pages/trainings_page.dart';
+import 'package:flutter_application_1/features/trainings/presentation/pages/teacher_trainings_page.dart';
+
 import 'package:flutter_application_1/features/guidance/presentation/pages/guidance_page.dart';
 import 'package:flutter_application_1/features/community/presentation/pages/community_page.dart';
 
@@ -129,6 +131,7 @@ final GoRouter appRouter = GoRouter(
       '/teacher-sessions',
       '/teacher-availability',
       '/teacher-meditations',
+      '/teacher-trainings',
     ];
 
     final studentOnlyRoutes = [
@@ -227,6 +230,11 @@ final GoRouter appRouter = GoRouter(
     GoRoute(
       path: '/teacher-meditations',
       builder: (context, state) => const TeacherMeditationsPage(),
+    ),
+
+    GoRoute(
+      path: '/teacher-trainings',
+      builder: (context, state) => const TeacherTrainingsPage(),
     ),
 
     GoRoute(

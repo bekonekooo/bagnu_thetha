@@ -33,7 +33,10 @@ class _MeditationsPageState extends State<MeditationsPage> {
   StreamSubscription<void>? completeSubscription;
 
   static const String meditationsBackground =
-      'assets/images/backgrounds/home_bg_7.jpg';
+      'assets/images/backgrounds/home_bg_6.jpg';
+
+  static const String meditationCardBackground =
+      'assets/images/backgrounds/home_bg_6.jpg';
 
   @override
   void initState() {
@@ -86,10 +89,24 @@ class _MeditationsPageState extends State<MeditationsPage> {
     await meditationsFuture;
   }
 
+  List<String> categoriesForMeditation(MeditationModel meditation) {
+    return meditation.category
+        .split(',')
+        .map((item) => item.trim())
+        .where((item) => item.isNotEmpty)
+        .toList();
+  }
+
   List<MeditationModel> filterMeditations(List<MeditationModel> items) {
     if (selectedFilter == 'all') return items;
 
-    return items.where((item) => item.type == selectedFilter).toList();
+    return items.where((item) {
+      final categories = categoriesForMeditation(item);
+
+      return categories.any(
+        (category) => category.toLowerCase() == selectedFilter.toLowerCase(),
+      );
+    }).toList();
   }
 
   String formatDuration(Duration duration) {
@@ -286,12 +303,18 @@ class _MeditationsPageState extends State<MeditationsPage> {
     switch (filter) {
       case 'all':
         return 'Tümü';
-      case 'audio':
-        return 'Sesler';
-      case 'video':
-        return 'Videolar';
-      case 'link':
-        return 'Linkler';
+      case 'Sabah':
+        return 'Sabah';
+      case 'Akşam':
+        return 'Akşam';
+      case 'Şükür':
+        return 'Şükür';
+      case 'Aşk':
+        return 'Aşk';
+      case 'Bereket':
+        return 'Bereket';
+      case 'Sağlık':
+        return 'Sağlık';
       default:
         return filter;
     }
@@ -446,10 +469,10 @@ class _MeditationsPageState extends State<MeditationsPage> {
           vertical: 9,
         ),
         decoration: BoxDecoration(
-          color: const Color(0xFFEEF3EA).withOpacity(0.95),
+          color: Colors.white.withOpacity(0.80),
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
-            color: const Color(0xFFD7E1D0),
+            color: Colors.white.withOpacity(0.70),
           ),
         ),
         child: Column(
@@ -519,112 +542,149 @@ class _MeditationsPageState extends State<MeditationsPage> {
       width: double.infinity,
       margin: const EdgeInsets.only(bottom: 14),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.78),
-        borderRadius: BorderRadius.circular(26),
-        border: Border.all(
-          color: Colors.white.withOpacity(0.72),
-        ),
+        borderRadius: BorderRadius.circular(28),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.08),
-            blurRadius: 22,
-            offset: const Offset(0, 10),
+            color: Colors.black.withOpacity(0.16),
+            blurRadius: 24,
+            offset: const Offset(0, 12),
           ),
         ],
       ),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(26),
-        onTap: () {
-          if (meditation.isAudio) {
-            playOrPauseAudio(meditation);
-          } else {
-            openMediaUrl(meditation.mediaUrl);
-          }
-        },
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              if (meditation.thumbnailUrl.trim().isNotEmpty)
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(18),
-                  child: Image.network(
-                    meditation.thumbnailUrl,
-                    width: 66,
-                    height: 66,
-                    fit: BoxFit.cover,
-                    errorBuilder: (context, error, stackTrace) {
-                      return _MeditationIconBox(
-                        icon: iconForType(meditation.type),
-                      );
-                    },
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(28),
+        child: Stack(
+          children: [
+            Positioned.fill(
+              child: Image.asset(
+                meditationCardBackground,
+                fit: BoxFit.cover,
+                errorBuilder: (context, error, stackTrace) {
+                  return Container(
+                    color: const Color(0xFFEEF3EA),
+                  );
+                },
+              ),
+            ),
+            Positioned.fill(
+              child: Container(
+                color: Colors.white.withOpacity(0.45),
+              ),
+            ),
+            Positioned.fill(
+              child: Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [
+                      Colors.white.withOpacity(0.50),
+                      Colors.white.withOpacity(0.34),
+                      const Color(0xFF536B4E).withOpacity(0.12),
+                    ],
                   ),
-                )
-              else
-                _MeditationIconBox(
-                  icon: iconForType(meditation.type),
                 ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Wrap(
-                      spacing: 7,
-                      runSpacing: 7,
-                      children: [
-                        _MiniTag(text: meditation.typeLabel),
-                        if (meditation.category.trim().isNotEmpty)
-                          _MiniTag(text: meditation.category),
-                        if (meditation.durationText.trim().isNotEmpty)
-                          _MiniTag(text: meditation.durationText),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      meditation.title,
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w900,
-                        color: Color(0xFF2F3A32),
+              ),
+            ),
+            Material(
+              color: Colors.transparent,
+              child: InkWell(
+                onTap: () {
+                  if (meditation.isAudio) {
+                    playOrPauseAudio(meditation);
+                  } else {
+                    openMediaUrl(meditation.mediaUrl);
+                  }
+                },
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      if (meditation.thumbnailUrl.trim().isNotEmpty)
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(18),
+                          child: Image.network(
+                            meditation.thumbnailUrl,
+                            width: 66,
+                            height: 66,
+                            fit: BoxFit.cover,
+                            errorBuilder: (context, error, stackTrace) {
+                              return _MeditationIconBox(
+                                icon: iconForType(meditation.type),
+                              );
+                            },
+                          ),
+                        )
+                      else
+                        _MeditationIconBox(
+                          icon: iconForType(meditation.type),
+                        ),
+                      const SizedBox(width: 14),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Wrap(
+                              spacing: 7,
+                              runSpacing: 7,
+                              children: [
+                                _MiniTag(text: meditation.typeLabel),
+                                ...categoriesForMeditation(meditation).map(
+                                  (category) => _MiniTag(text: category),
+                                ),
+                                if (meditation.durationText.trim().isNotEmpty)
+                                  _MiniTag(text: meditation.durationText),
+                              ],
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              meditation.title,
+                              style: const TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w900,
+                                color: Color(0xFF2F3A32),
+                              ),
+                            ),
+                            if (meditation.description.trim().isNotEmpty) ...[
+                              const SizedBox(height: 5),
+                              Text(
+                                meditation.description,
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  fontSize: 12.8,
+                                  height: 1.35,
+                                  color: Color(0xFF3F4A40),
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ],
+                            buildAudioProgress(meditation),
+                          ],
+                        ),
                       ),
-                    ),
-                    if (meditation.description.trim().isNotEmpty) ...[
-                      const SizedBox(height: 5),
-                      Text(
-                        meditation.description,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          fontSize: 12.8,
-                          height: 1.35,
-                          color: Color(0xFF606A61),
-                          fontWeight: FontWeight.w500,
+                      const SizedBox(width: 10),
+                      CircleAvatar(
+                        radius: 19,
+                        backgroundColor: Colors.white.withOpacity(0.82),
+                        child: Icon(
+                          meditation.isAudio
+                              ? isPlaying
+                                  ? isPaused
+                                      ? Icons.play_arrow
+                                      : Icons.pause
+                                  : Icons.play_arrow
+                              : Icons.open_in_new,
+                          color: const Color(0xFF536B4E),
                         ),
                       ),
                     ],
-                    buildAudioProgress(meditation),
-                  ],
+                  ),
                 ),
               ),
-              const SizedBox(width: 10),
-              CircleAvatar(
-                radius: 19,
-                backgroundColor: const Color(0xFFEEF3EA),
-                child: Icon(
-                  meditation.isAudio
-                      ? isPlaying
-                          ? isPaused
-                              ? Icons.play_arrow
-                              : Icons.pause
-                          : Icons.play_arrow
-                      : Icons.open_in_new,
-                  color: const Color(0xFF536B4E),
-                ),
-              ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
@@ -742,9 +802,12 @@ class _MeditationsPageState extends State<MeditationsPage> {
                       child: Row(
                         children: [
                           buildFilterChip('all'),
-                          buildFilterChip('audio'),
-                          buildFilterChip('video'),
-                          buildFilterChip('link'),
+                          buildFilterChip('Sabah'),
+                          buildFilterChip('Akşam'),
+                          buildFilterChip('Şükür'),
+                          buildFilterChip('Aşk'),
+                          buildFilterChip('Bereket'),
+                          buildFilterChip('Sağlık'),
                         ],
                       ),
                     ),
@@ -777,10 +840,10 @@ class _MeditationIconBox extends StatelessWidget {
       width: 66,
       height: 66,
       decoration: BoxDecoration(
-        color: const Color(0xFFEEF3EA),
+        color: Colors.white.withOpacity(0.82),
         borderRadius: BorderRadius.circular(18),
         border: Border.all(
-          color: const Color(0xFFD7E1D0),
+          color: Colors.white.withOpacity(0.75),
         ),
       ),
       child: Icon(
@@ -807,8 +870,11 @@ class _MiniTag extends StatelessWidget {
         vertical: 5,
       ),
       decoration: BoxDecoration(
-        color: const Color(0xFFEEF3EA),
+        color: Colors.white.withOpacity(0.78),
         borderRadius: BorderRadius.circular(999),
+        border: Border.all(
+          color: Colors.white.withOpacity(0.70),
+        ),
       ),
       child: Text(
         text,
