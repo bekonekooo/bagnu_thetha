@@ -3,9 +3,10 @@ import 'dart:async';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:video_player/video_player.dart';
 
-import '../../data/models/meditation_model.dart';
-import '../../data/services/meditation_service.dart';
+import 'package:flutter_application_1/features/meditations/data/models/meditation_model.dart';
+import 'package:flutter_application_1/features/meditations/data/services/meditation_service.dart';
 
 class MeditationsPage extends StatefulWidget {
   const MeditationsPage({super.key});
@@ -260,6 +261,44 @@ class _MeditationsPageState extends State<MeditationsPage> {
     }
   }
 
+  Future<void> stopAudioIfPlaying() async {
+    await audioPlayer.stop();
+
+    if (!mounted) return;
+
+    setState(() {
+      playingMeditationId = null;
+      isAudioPaused = false;
+      currentPosition = Duration.zero;
+      totalDuration = Duration.zero;
+    });
+  }
+
+  Future<void> openVideoInApp(MeditationModel meditation) async {
+    if (meditation.mediaUrl.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Video bağlantısı bulunamadı.'),
+        ),
+      );
+      return;
+    }
+
+    await stopAudioIfPlaying();
+
+    if (!mounted) return;
+
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) {
+          return MeditationVideoPlayerPage(
+            meditation: meditation,
+          );
+        },
+      ),
+    );
+  }
+
   Future<void> openMediaUrl(String url) async {
     final uri = Uri.tryParse(url);
 
@@ -283,6 +322,23 @@ class _MeditationsPageState extends State<MeditationsPage> {
           content: Text('Bağlantı açılamadı.'),
         ),
       );
+    }
+  }
+
+  Future<void> handleMeditationTap(MeditationModel meditation) async {
+    if (meditation.isAudio) {
+      await playOrPauseAudio(meditation);
+      return;
+    }
+
+    if (meditation.isVideo) {
+      await openVideoInApp(meditation);
+      return;
+    }
+
+    if (meditation.isLink) {
+      await openMediaUrl(meditation.mediaUrl);
+      return;
     }
   }
 
@@ -589,13 +645,7 @@ class _MeditationsPageState extends State<MeditationsPage> {
             Material(
               color: Colors.transparent,
               child: InkWell(
-                onTap: () {
-                  if (meditation.isAudio) {
-                    playOrPauseAudio(meditation);
-                  } else {
-                    openMediaUrl(meditation.mediaUrl);
-                  }
-                },
+                onTap: () => handleMeditationTap(meditation),
                 child: Padding(
                   padding: const EdgeInsets.all(16),
                   child: Row(
@@ -675,7 +725,9 @@ class _MeditationsPageState extends State<MeditationsPage> {
                                       ? Icons.play_arrow
                                       : Icons.pause
                                   : Icons.play_arrow
-                              : Icons.open_in_new,
+                              : meditation.isVideo
+                                  ? Icons.play_circle_outline
+                                  : Icons.open_in_new,
                           color: const Color(0xFF536B4E),
                         ),
                       ),
@@ -822,6 +874,303 @@ class _MeditationsPageState extends State<MeditationsPage> {
             ),
           ),
         ),
+      ),
+    );
+  }
+}
+
+class MeditationVideoPlayerPage extends StatefulWidget {
+  final MeditationModel meditation;
+
+  const MeditationVideoPlayerPage({
+    super.key,
+    required this.meditation,
+  });
+
+  @override
+  State<MeditationVideoPlayerPage> createState() =>
+      _MeditationVideoPlayerPageState();
+}
+
+class _MeditationVideoPlayerPageState extends State<MeditationVideoPlayerPage> {
+  VideoPlayerController? controller;
+
+  bool isLoading = true;
+  bool hasError = false;
+  String? errorMessage;
+
+  @override
+  void initState() {
+    super.initState();
+    initializeVideo();
+  }
+
+  @override
+  void dispose() {
+    controller?.dispose();
+    super.dispose();
+  }
+
+  Future<void> initializeVideo() async {
+    try {
+      final uri = Uri.parse(widget.meditation.mediaUrl);
+
+      final videoController = VideoPlayerController.networkUrl(uri);
+
+      await videoController.initialize();
+      await videoController.setLooping(false);
+      await videoController.play();
+
+      if (!mounted) return;
+
+      setState(() {
+        controller = videoController;
+        isLoading = false;
+        hasError = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+
+      setState(() {
+        isLoading = false;
+        hasError = true;
+        errorMessage = e.toString();
+      });
+    }
+  }
+
+  String formatVideoDuration(Duration duration) {
+    final totalSeconds = duration.inSeconds < 0 ? 0 : duration.inSeconds;
+    final minutes = totalSeconds ~/ 60;
+    final seconds = totalSeconds % 60;
+
+    return '${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
+  }
+
+  Future<void> togglePlayPause() async {
+    final videoController = controller;
+
+    if (videoController == null) return;
+
+    if (videoController.value.isPlaying) {
+      await videoController.pause();
+    } else {
+      await videoController.play();
+    }
+
+    if (!mounted) return;
+
+    setState(() {});
+  }
+
+  Future<void> seekRelative(Duration offset) async {
+    final videoController = controller;
+
+    if (videoController == null) return;
+
+    final currentPosition = videoController.value.position;
+    final duration = videoController.value.duration;
+
+    var newPosition = currentPosition + offset;
+
+    if (newPosition < Duration.zero) {
+      newPosition = Duration.zero;
+    }
+
+    if (newPosition > duration) {
+      newPosition = duration;
+    }
+
+    await videoController.seekTo(newPosition);
+
+    if (!mounted) return;
+
+    setState(() {});
+  }
+
+  Widget buildVideoBody() {
+    if (isLoading) {
+      return const Center(
+        child: CircularProgressIndicator(
+          color: Color(0xFF536B4E),
+        ),
+      );
+    }
+
+    if (hasError || controller == null) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(22),
+          child: Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(22),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.86),
+              borderRadius: BorderRadius.circular(24),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(
+                  Icons.error_outline,
+                  color: Color(0xFFC85C5C),
+                  size: 48,
+                ),
+                const SizedBox(height: 12),
+                const Text(
+                  'Video oynatılamadı.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: Color(0xFF2F3A32),
+                    fontWeight: FontWeight.w900,
+                    fontSize: 17,
+                  ),
+                ),
+                if (errorMessage != null) ...[
+                  const SizedBox(height: 8),
+                  Text(
+                    errorMessage!,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      color: Color(0xFF606A61),
+                      fontSize: 12,
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
+    final videoController = controller!;
+
+    return Column(
+      children: [
+        Expanded(
+          child: Center(
+            child: AspectRatio(
+              aspectRatio: videoController.value.aspectRatio,
+              child: VideoPlayer(videoController),
+            ),
+          ),
+        ),
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 18),
+          decoration: BoxDecoration(
+            color: Colors.white.withOpacity(0.90),
+            borderRadius: const BorderRadius.vertical(
+              top: Radius.circular(26),
+            ),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              VideoProgressIndicator(
+                videoController,
+                allowScrubbing: true,
+                padding: const EdgeInsets.symmetric(vertical: 8),
+                colors: const VideoProgressColors(
+                  playedColor: Color(0xFF536B4E),
+                  bufferedColor: Color(0xFFD7E1D0),
+                  backgroundColor: Color(0xFFE7E7E7),
+                ),
+              ),
+              Row(
+                children: [
+                  Text(
+                    formatVideoDuration(videoController.value.position),
+                    style: const TextStyle(
+                      color: Color(0xFF2F3A32),
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  const Spacer(),
+                  Text(
+                    formatVideoDuration(videoController.value.duration),
+                    style: const TextStyle(
+                      color: Color(0xFF606A61),
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  IconButton(
+                    onPressed: () => seekRelative(
+                      const Duration(seconds: -10),
+                    ),
+                    icon: const Icon(Icons.replay_10),
+                    color: const Color(0xFF536B4E),
+                    iconSize: 32,
+                  ),
+                  const SizedBox(width: 12),
+                  CircleAvatar(
+                    radius: 28,
+                    backgroundColor: const Color(0xFF536B4E),
+                    child: IconButton(
+                      onPressed: togglePlayPause,
+                      icon: Icon(
+                        videoController.value.isPlaying
+                            ? Icons.pause
+                            : Icons.play_arrow,
+                      ),
+                      color: Colors.white,
+                      iconSize: 32,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  IconButton(
+                    onPressed: () => seekRelative(
+                      const Duration(seconds: 10),
+                    ),
+                    icon: const Icon(Icons.forward_10),
+                    color: const Color(0xFF536B4E),
+                    iconSize: 32,
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget buildBackground({required Widget child}) {
+    return Stack(
+      children: [
+        Positioned.fill(
+          child: Container(
+            color: const Color(0xFF101510),
+          ),
+        ),
+        child,
+      ],
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: const Color(0xFF101510),
+      appBar: AppBar(
+        title: Text(
+          widget.meditation.title,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
+        backgroundColor: const Color(0xFF101510),
+        foregroundColor: Colors.white,
+        elevation: 0,
+      ),
+      body: buildBackground(
+        child: buildVideoBody(),
       ),
     );
   }
