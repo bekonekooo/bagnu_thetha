@@ -14,51 +14,57 @@ class HomeMenuGrid extends StatelessWidget {
       _HomeMenuItem(
         icon: Icons.calendar_month_outlined,
         title: 'Seanslarım',
-        subtitle: 'Randevularını ve canlı derslerini takip et',
         route: '/sessions',
       ),
       _HomeMenuItem(
         icon: Icons.add_circle_outline,
         title: 'Randevu Al',
-        subtitle: 'Öğretmenlerden sana uygun seansı seç',
         route: '/teachers',
       ),
       _HomeMenuItem(
         icon: Icons.self_improvement,
         title: 'Meditasyonlar',
-        subtitle: 'Ses kayıtları, videolar ve özel bağlantıları keşfet',
         route: '/meditations',
       ),
       _HomeMenuItem(
         icon: Icons.auto_graph_outlined,
-        title: 'Aylık Rehberlik',
-        subtitle: 'Kişisel analizlerini ve içgörülerini gör',
+        title: 'Rehberlik',
         route: '/guidance',
       ),
       _HomeMenuItem(
         icon: Icons.school_outlined,
         title: 'Eğitimler',
-        subtitle: 'BagnuTheta içeriklerini keşfet',
         route: '/trainings',
       ),
       _HomeMenuItem(
         icon: Icons.groups_2_outlined,
         title: 'Topluluk',
-        subtitle: 'Diğer kullanıcılarla aynı alanda buluş',
         route: '/community',
       ),
     ];
 
-    return Column(
-      children: items.map((item) {
-        return Padding(
-          padding: const EdgeInsets.only(bottom: 14),
-          child: _NatureMenuCard(
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 4),
+      child: GridView.builder(
+        shrinkWrap: true,
+        physics: const NeverScrollableScrollPhysics(),
+        itemCount: items.length,
+        padding: EdgeInsets.zero,
+        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: 2,
+          crossAxisSpacing: 14,
+          mainAxisSpacing: 14,
+          childAspectRatio: 1.55,
+        ),
+        itemBuilder: (context, index) {
+          final item = items[index];
+
+          return _NatureMenuCard(
             item: item,
             onTap: () => onTap(item.route),
-          ),
-        );
-      }).toList(),
+          );
+        },
+      ),
     );
   }
 }
@@ -66,13 +72,11 @@ class HomeMenuGrid extends StatelessWidget {
 class _HomeMenuItem {
   final IconData icon;
   final String title;
-  final String subtitle;
   final String route;
 
   const _HomeMenuItem({
     required this.icon,
     required this.title,
-    required this.subtitle,
     required this.route,
   });
 }
@@ -90,15 +94,16 @@ class _NatureMenuCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Material(
       color: Colors.transparent,
+      borderRadius: BorderRadius.circular(30),
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(24),
+        borderRadius: BorderRadius.circular(30),
+        splashColor: const Color(0xFF536B4E).withOpacity(0.10),
+        highlightColor: const Color(0xFF536B4E).withOpacity(0.06),
         child: Ink(
-          width: double.infinity,
-          padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
             color: Colors.white.withOpacity(0.74),
-            borderRadius: BorderRadius.circular(24),
+            borderRadius: BorderRadius.circular(30),
             border: Border.all(
               color: Colors.white.withOpacity(0.65),
             ),
@@ -110,65 +115,46 @@ class _NatureMenuCard extends StatelessWidget {
               ),
             ],
           ),
-          child: Row(
-            children: [
-              Container(
-                width: 54,
-                height: 54,
-                decoration: BoxDecoration(
-                  color: const Color(0xFFEEF3EA).withOpacity(0.95),
-                  borderRadius: BorderRadius.circular(18),
-                  border: Border.all(
-                    color: const Color(0xFFD7E1D0),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(
+              horizontal: 12,
+              vertical: 14,
+            ),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Container(
+                  width: 48,
+                  height: 48,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFEEF3EA).withOpacity(0.95),
+                    borderRadius: BorderRadius.circular(17),
+                    border: Border.all(
+                      color: const Color(0xFFD7E1D0),
+                    ),
+                  ),
+                  child: Icon(
+                    item.icon,
+                    color: const Color(0xFF536B4E),
+                    size: 26,
                   ),
                 ),
-                child: Icon(
-                  item.icon,
-                  color: const Color(0xFF536B4E),
-                  size: 27,
+                const SizedBox(height: 10),
+                Text(
+                  item.title,
+                  maxLines: 2,
+                  textAlign: TextAlign.center,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w900,
+                    color: Color(0xFF2F3A32),
+                    height: 1.08,
+                    letterSpacing: -0.35,
+                  ),
                 ),
-              ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      item.title,
-                      style: const TextStyle(
-                        fontSize: 17,
-                        fontWeight: FontWeight.w800,
-                        color: Color(0xFF2F3A32),
-                      ),
-                    ),
-                    const SizedBox(height: 5),
-                    Text(
-                      item.subtitle,
-                      style: const TextStyle(
-                        fontSize: 13.5,
-                        height: 1.35,
-                        color: Color(0xFF606A61),
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 10),
-              Container(
-                width: 34,
-                height: 34,
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.72),
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(
-                  Icons.arrow_forward_ios_rounded,
-                  size: 15,
-                  color: Color(0xFF536B4E),
-                ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),

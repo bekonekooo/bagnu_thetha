@@ -122,6 +122,15 @@ class TrainingService {
     return teacherId;
   }
 
+  DateTime _parseSessionDateTime({
+    required String sessionDate,
+    required String timeText,
+  }) {
+    final cleanTime = timeText.length == 5 ? '$timeText:00' : timeText;
+
+    return DateTime.parse('$sessionDate $cleanTime');
+  }
+
   Future<void> createTraining({
     required String title,
     required String description,
@@ -146,6 +155,54 @@ class TrainingService {
 
     final teacherId = await fetchMyTeacherId();
 
+    final sortedSessions = [...sessions];
+
+    sortedSessions.sort((a, b) {
+      final aDate = a['session_date']?.toString() ?? '';
+      final bDate = b['session_date']?.toString() ?? '';
+
+      final dateCompare = aDate.compareTo(bDate);
+
+      if (dateCompare != 0) {
+        return dateCompare;
+      }
+
+      final aStart = a['start_time']?.toString() ?? '';
+      final bStart = b['start_time']?.toString() ?? '';
+
+      return aStart.compareTo(bStart);
+    });
+
+    final firstSession = sortedSessions.first;
+    final lastSession = sortedSessions.last;
+
+    final firstSessionDate = firstSession['session_date']?.toString();
+    final firstStartTime = firstSession['start_time']?.toString();
+
+    final lastSessionDate = lastSession['session_date']?.toString();
+    final lastEndTime = lastSession['end_time']?.toString();
+
+    if (firstSessionDate == null ||
+        firstSessionDate.isEmpty ||
+        firstStartTime == null ||
+        firstStartTime.isEmpty ||
+        lastSessionDate == null ||
+        lastSessionDate.isEmpty ||
+        lastEndTime == null ||
+        lastEndTime.isEmpty) {
+      throw Exception('Eğitim gün/saat bilgileri eksik.');
+    }
+
+    final startAt = _parseSessionDateTime(
+      sessionDate: firstSessionDate,
+      timeText: firstStartTime,
+    );
+
+    final endAt = _parseSessionDateTime(
+      sessionDate: lastSessionDate,
+      timeText: lastEndTime,
+    );
+
     final trainingResponse = await supabase
         .from('trainings')
         .insert({
@@ -161,6 +218,8 @@ class TrainingService {
           'price': price,
           'currency': currency,
           'capacity': capacity,
+          'start_at': startAt.toIso8601String(),
+          'end_at': endAt.toIso8601String(),
           'is_active': false,
         })
         .select('id')
@@ -172,7 +231,7 @@ class TrainingService {
       throw Exception('Eğitim oluşturulamadı.');
     }
 
-    final sessionRows = sessions.asMap().entries.map((entry) {
+    final sessionRows = sortedSessions.asMap().entries.map((entry) {
       final index = entry.key;
       final item = entry.value;
 

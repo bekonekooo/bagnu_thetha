@@ -26,13 +26,17 @@ import 'package:flutter_application_1/features/teachers/presentation/pages/teach
 import 'package:flutter_application_1/features/teachers/presentation/pages/teacher_edit_profile_page.dart';
 import 'package:flutter_application_1/features/teachers/data/models/teacher_model.dart';
 
+import 'package:flutter_application_1/features/trainings/data/models/training_model.dart';
 import 'package:flutter_application_1/features/trainings/presentation/pages/trainings_page.dart';
+import 'package:flutter_application_1/features/trainings/presentation/pages/training_detail_page.dart';
 import 'package:flutter_application_1/features/trainings/presentation/pages/teacher_trainings_page.dart';
 
 import 'package:flutter_application_1/features/guidance/presentation/pages/guidance_page.dart';
 import 'package:flutter_application_1/features/community/presentation/pages/community_page.dart';
 
+import 'package:flutter_application_1/features/meditations/data/models/meditation_model.dart';
 import 'package:flutter_application_1/features/meditations/presentation/pages/meditations_page.dart';
+import 'package:flutter_application_1/features/meditations/presentation/pages/meditation_detail_page.dart';
 import 'package:flutter_application_1/features/meditations/presentation/pages/teacher_meditations_page.dart';
 
 import 'package:flutter_application_1/features/main/presentation/pages/main_shell_page.dart';
@@ -144,10 +148,11 @@ final GoRouter appRouter = GoRouter(
       '/booking',
       '/booking-success',
       '/trainings',
+      '/training-detail',
       '/guidance',
       '/community',
-      '/notifications',
       '/meditations',
+      '/meditation-detail',
     ];
 
     final isPublicRoute = publicRoutes.contains(location);
@@ -201,42 +206,34 @@ final GoRouter appRouter = GoRouter(
       path: '/splash',
       builder: (context, state) => const SplashPage(),
     ),
-
     GoRoute(
       path: '/onboarding',
       builder: (context, state) => const OnboardingPage(),
     ),
-
     GoRoute(
       path: '/login',
       builder: (context, state) => const LoginPage(),
     ),
-
     GoRoute(
       path: '/register',
       builder: (context, state) => const RegisterPage(),
     ),
-
     GoRoute(
       path: '/profile-onboarding',
       builder: (context, state) => const ProfileOnboardingPage(),
     ),
-
     GoRoute(
       path: '/teacher-dashboard',
       builder: (context, state) => const TeacherDashboardPage(),
     ),
-
     GoRoute(
       path: '/teacher-meditations',
       builder: (context, state) => const TeacherMeditationsPage(),
     ),
-
     GoRoute(
       path: '/teacher-trainings',
       builder: (context, state) => const TeacherTrainingsPage(),
     ),
-
     GoRoute(
       path: '/teacher-edit-profile',
       redirect: (context, state) {
@@ -252,12 +249,10 @@ final GoRouter appRouter = GoRouter(
         return TeacherEditProfilePage(teacher: teacher);
       },
     ),
-
     GoRoute(
       path: '/teacher-sessions',
       builder: (context, state) => const TeacherSessionsPage(),
     ),
-
     GoRoute(
       path: '/teacher-availability',
       redirect: (context, state) {
@@ -283,7 +278,6 @@ final GoRouter appRouter = GoRouter(
         );
       },
     ),
-
     GoRoute(
       path: '/video-call',
       redirect: (context, state) {
@@ -316,7 +310,6 @@ final GoRouter appRouter = GoRouter(
         );
       },
     ),
-
     ShellRoute(
       builder: (context, state, child) => MainShellPage(child: child),
       routes: [
@@ -324,17 +317,14 @@ final GoRouter appRouter = GoRouter(
           path: '/home',
           builder: (context, state) => const HomePage(),
         ),
-
         GoRoute(
           path: '/sessions',
           builder: (context, state) => const SessionsPage(),
         ),
-
         GoRoute(
           path: '/profile',
           builder: (context, state) => const ProfilePage(),
         ),
-
         GoRoute(
           path: '/profile-edit',
           redirect: (context, state) {
@@ -352,22 +342,35 @@ final GoRouter appRouter = GoRouter(
             return ProfileEditPage(profile: profile);
           },
         ),
-
         GoRoute(
           path: '/notifications',
           builder: (context, state) => const NotificationsPage(),
         ),
-
         GoRoute(
           path: '/teachers',
           builder: (context, state) => const TeachersPage(),
         ),
-
         GoRoute(
           path: '/meditations',
           builder: (context, state) => const MeditationsPage(),
         ),
+        GoRoute(
+          path: '/meditation-detail',
+          redirect: (context, state) {
+            if (state.extra is! MeditationModel) {
+              return '/meditations';
+            }
 
+            return null;
+          },
+          builder: (context, state) {
+            final meditation = state.extra as MeditationModel;
+
+            return MeditationDetailPage(
+              meditation: meditation,
+            );
+          },
+        ),
         GoRoute(
           path: '/booking',
           redirect: (context, state) {
@@ -402,7 +405,6 @@ final GoRouter appRouter = GoRouter(
             );
           },
         ),
-
         GoRoute(
           path: '/booking-success',
           redirect: (context, state) {
@@ -431,17 +433,38 @@ final GoRouter appRouter = GoRouter(
             );
           },
         ),
-
         GoRoute(
           path: '/trainings',
           builder: (context, state) => const TrainingsPage(),
         ),
+        GoRoute(
+          path: '/training-detail',
+          redirect: (context, state) {
+            final extra = state.extra;
 
+            if (extra is! Map<String, dynamic>) {
+              return '/trainings';
+            }
+
+            if (extra['training'] is! TrainingModel) {
+              return '/trainings';
+            }
+
+            return null;
+          },
+          builder: (context, state) {
+            final extra = state.extra as Map<String, dynamic>;
+
+            return TrainingDetailPage(
+              training: extra['training'] as TrainingModel,
+              initiallyJoined: extra['isJoined'] == true,
+            );
+          },
+        ),
         GoRoute(
           path: '/guidance',
           builder: (context, state) => const GuidancePage(),
         ),
-
         GoRoute(
           path: '/community',
           builder: (context, state) => const CommunityPage(),

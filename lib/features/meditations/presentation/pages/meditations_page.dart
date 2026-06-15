@@ -4,6 +4,7 @@ import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:video_player/video_player.dart';
+import 'package:go_router/go_router.dart';
 
 import 'package:flutter_application_1/features/meditations/data/models/meditation_model.dart';
 import 'package:flutter_application_1/features/meditations/data/services/meditation_service.dart';
@@ -325,23 +326,16 @@ class _MeditationsPageState extends State<MeditationsPage> {
     }
   }
 
-  Future<void> handleMeditationTap(MeditationModel meditation) async {
-    if (meditation.isAudio) {
-      await playOrPauseAudio(meditation);
-      return;
-    }
+Future<void> handleMeditationTap(MeditationModel meditation) async {
+  await stopAudioIfPlaying();
 
-    if (meditation.isVideo) {
-      await openVideoInApp(meditation);
-      return;
-    }
+  if (!mounted) return;
 
-    if (meditation.isLink) {
-      await openMediaUrl(meditation.mediaUrl);
-      return;
-    }
-  }
-
+  context.push(
+    '/meditation-detail',
+    extra: meditation,
+  );
+}
   IconData iconForType(String type) {
     switch (type) {
       case 'audio':
