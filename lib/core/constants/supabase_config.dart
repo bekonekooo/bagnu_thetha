@@ -1,8 +1,8 @@
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+
 class SupabaseConfig {
-  static const String supabaseUrl = 'https://rbcfozfokdfyjwchmxqu.supabase.co';
-  static const String supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJiY2ZvemZva2RmeWp3Y2hteHF1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU3MzYxMDYsImV4cCI6MjA5MTMxMjEwNn0.w17pilzi266GKg9ir2ALy19VF0XCJU6I4QYKCBuHMXs';
-
- static const String stripePublishableKey = 'pk_test_51TZQa1EfQz5p300n9O6LHvNU9EK5cs008JpEPoKkPIVVJtViWEJ7PhI2ovv2QSThK68wzBlArURSbJT2glXqhhO100i0koT9z8';
-
-
+  static String get supabaseUrl => dotenv.env['SUPABASE_URL'] ?? '';
+  static String get supabaseAnonKey => dotenv.env['SUPABASE_ANON_KEY'] ?? '';
+  static String get stripePublishableKey =>
+      dotenv.env['STRIPE_PUBLISHABLE_KEY'] ?? '';
 }
