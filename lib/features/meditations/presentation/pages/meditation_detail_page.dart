@@ -1,9 +1,13 @@
 import 'package:audioplayers/audioplayers.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:video_player/video_player.dart';
 
+import 'package:flutter_application_1/app/theme.dart';
 import 'package:flutter_application_1/features/meditations/data/models/meditation_model.dart';
+import 'package:flutter_application_1/features/social/data/models/social_target.dart';
+import 'package:flutter_application_1/features/social/data/services/favorite_service.dart';
 
 class MeditationDetailPage extends StatefulWidget {
   final MeditationModel meditation;
@@ -19,12 +23,19 @@ class MeditationDetailPage extends StatefulWidget {
 
 class _MeditationDetailPageState extends State<MeditationDetailPage> {
   final AudioPlayer audioPlayer = AudioPlayer();
+  final FavoriteService favoriteService = FavoriteService();
 
   bool isPlaying = false;
   bool isPaused = false;
 
-  Duration currentPosition = Duration.zero;
-  Duration totalDuration = Duration.zero;
+  bool isFavorite = false;
+  bool isFavoriteBusy = false;
+  late int favoriteCount;
+
+  final ValueNotifier<Duration> currentPositionNotifier =
+      ValueNotifier<Duration>(Duration.zero);
+  final ValueNotifier<Duration> totalDurationNotifier =
+      ValueNotifier<Duration>(Duration.zero);
 
   static const String backgroundImage =
       'assets/images/backgrounds/home_bg_6.jpg';
@@ -33,38 +44,106 @@ class _MeditationDetailPageState extends State<MeditationDetailPage> {
   void initState() {
     super.initState();
 
+    favoriteCount = widget.meditation.favoriteCount;
+    loadFavoriteState();
+
     audioPlayer.onDurationChanged.listen((duration) {
       if (!mounted) return;
 
-      setState(() {
-        totalDuration = duration;
-      });
+      totalDurationNotifier.value = duration;
     });
 
     audioPlayer.onPositionChanged.listen((position) {
       if (!mounted) return;
 
-      setState(() {
-        currentPosition = position;
-      });
+      currentPositionNotifier.value = position;
     });
 
     audioPlayer.onPlayerComplete.listen((event) {
       if (!mounted) return;
 
+      currentPositionNotifier.value = Duration.zero;
+      totalDurationNotifier.value = Duration.zero;
+
       setState(() {
         isPlaying = false;
         isPaused = false;
-        currentPosition = Duration.zero;
-        totalDuration = Duration.zero;
       });
     });
   }
 
   @override
   void dispose() {
+    currentPositionNotifier.dispose();
+    totalDurationNotifier.dispose();
     audioPlayer.dispose();
     super.dispose();
+  }
+
+  Future<void> loadFavoriteState() async {
+    try {
+      final result = await favoriteService.isFavorite(
+        SocialTarget.meditation,
+        widget.meditation.id,
+      );
+
+      if (!mounted) return;
+
+      setState(() {
+        isFavorite = result;
+      });
+    } catch (e) {
+      debugPrint('Favori durumu alınamadı: $e');
+    }
+  }
+
+  Future<void> toggleFavorite() async {
+    if (isFavoriteBusy) return;
+
+    final nextValue = !isFavorite;
+
+    setState(() {
+      isFavoriteBusy = true;
+      isFavorite = nextValue;
+      favoriteCount =
+          (favoriteCount + (nextValue ? 1 : -1)).clamp(0, 1 << 31);
+    });
+
+    try {
+      if (nextValue) {
+        await favoriteService.addFavorite(
+          SocialTarget.meditation,
+          widget.meditation.id,
+        );
+      } else {
+        await favoriteService.removeFavorite(
+          SocialTarget.meditation,
+          widget.meditation.id,
+        );
+      }
+    } catch (e) {
+      debugPrint('Favori güncellenemedi: $e');
+
+      if (!mounted) return;
+
+      setState(() {
+        isFavorite = !nextValue;
+        favoriteCount =
+            (favoriteCount + (nextValue ? -1 : 1)).clamp(0, 1 << 31);
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Favori güncellenemedi. Lütfen tekrar dene.'),
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          isFavoriteBusy = false;
+        });
+      }
+    }
   }
 
   String formatDuration(Duration duration) {
@@ -75,7 +154,7 @@ class _MeditationDetailPageState extends State<MeditationDetailPage> {
     return '${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
   }
 
-  double get progressValue {
+  double progressValueFor(Duration currentPosition, Duration totalDuration) {
     if (totalDuration.inMilliseconds <= 0) return 0;
 
     final value =
@@ -125,20 +204,23 @@ class _MeditationDetailPageState extends State<MeditationDetailPage> {
 
       if (!mounted) return;
 
+      currentPositionNotifier.value = Duration.zero;
+      totalDurationNotifier.value = Duration.zero;
+
       setState(() {
         isPlaying = true;
         isPaused = false;
-        currentPosition = Duration.zero;
-        totalDuration = Duration.zero;
       });
 
       await audioPlayer.play(UrlSource(widget.meditation.mediaUrl));
     } catch (e) {
+      debugPrint('Ses oynatılamadı: $e');
+
       if (!mounted) return;
 
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Ses oynatılamadı: $e'),
+        const SnackBar(
+          content: Text('Ses şu an oynatılamıyor. Lütfen tekrar dene.'),
         ),
       );
     }
@@ -184,11 +266,12 @@ class _MeditationDetailPageState extends State<MeditationDetailPage> {
 
     if (!mounted) return;
 
+    currentPositionNotifier.value = Duration.zero;
+    totalDurationNotifier.value = Duration.zero;
+
     setState(() {
       isPlaying = false;
       isPaused = false;
-      currentPosition = Duration.zero;
-      totalDuration = Duration.zero;
     });
 
     Navigator.of(context).push(
@@ -270,6 +353,7 @@ class _MeditationDetailPageState extends State<MeditationDetailPage> {
           child: Image.asset(
             backgroundImage,
             fit: BoxFit.cover,
+            cacheWidth: 1290,
             errorBuilder: (context, error, stackTrace) {
               return Container(
                 color: const Color(0xFFEEF3EA),
@@ -327,10 +411,11 @@ class _MeditationDetailPageState extends State<MeditationDetailPage> {
         children: [
           Positioned.fill(
             child: hasThumbnail
-                ? Image.network(
-                    widget.meditation.thumbnailUrl,
+                ? CachedNetworkImage(
+                    imageUrl: widget.meditation.thumbnailUrl,
                     fit: BoxFit.cover,
-                    errorBuilder: (context, error, stackTrace) {
+                    memCacheWidth: 600,
+                    errorWidget: (context, url, error) {
                       return const _DetailEmptyCover();
                     },
                   )
@@ -458,10 +543,6 @@ class _MeditationDetailPageState extends State<MeditationDetailPage> {
       return const SizedBox.shrink();
     }
 
-    final remaining = totalDuration > Duration.zero
-        ? totalDuration - currentPosition
-        : Duration.zero;
-
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.fromLTRB(18, 16, 18, 16),
@@ -472,44 +553,58 @@ class _MeditationDetailPageState extends State<MeditationDetailPage> {
           color: Colors.white.withOpacity(0.70),
         ),
       ),
-      child: Column(
-        children: [
-          ClipRRect(
-            borderRadius: BorderRadius.circular(99),
-            child: LinearProgressIndicator(
-              value: progressValue,
-              minHeight: 7,
-              backgroundColor: Colors.white.withOpacity(0.86),
-              valueColor: const AlwaysStoppedAnimation<Color>(
-                Color(0xFF536B4E),
-              ),
-            ),
-          ),
-          const SizedBox(height: 10),
-          Row(
-            children: [
-              Text(
-                formatDuration(currentPosition),
-                style: const TextStyle(
-                  color: Color(0xFF2F3A32),
-                  fontWeight: FontWeight.w900,
-                  fontSize: 12,
-                ),
-              ),
-              const Spacer(),
-              Text(
-                totalDuration > Duration.zero
-                    ? 'Kalan: ${formatDuration(remaining.isNegative ? Duration.zero : remaining)}'
-                    : 'Süre hazırlanıyor',
-                style: const TextStyle(
-                  color: Color(0xFF536B4E),
-                  fontWeight: FontWeight.w900,
-                  fontSize: 12,
-                ),
-              ),
-            ],
-          ),
-        ],
+      child: ValueListenableBuilder<Duration>(
+        valueListenable: totalDurationNotifier,
+        builder: (context, totalDuration, _) {
+          return ValueListenableBuilder<Duration>(
+            valueListenable: currentPositionNotifier,
+            builder: (context, currentPosition, __) {
+              final remaining = totalDuration > Duration.zero
+                  ? totalDuration - currentPosition
+                  : Duration.zero;
+
+              return Column(
+                children: [
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(99),
+                    child: LinearProgressIndicator(
+                      value: progressValueFor(currentPosition, totalDuration),
+                      minHeight: 7,
+                      backgroundColor: Colors.white.withOpacity(0.86),
+                      valueColor: const AlwaysStoppedAnimation<Color>(
+                        Color(0xFF536B4E),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  Row(
+                    children: [
+                      Text(
+                        formatDuration(currentPosition),
+                        style: const TextStyle(
+                          color: Color(0xFF2F3A32),
+                          fontWeight: FontWeight.w900,
+                          fontSize: 12,
+                        ),
+                      ),
+                      const Spacer(),
+                      Text(
+                        totalDuration > Duration.zero
+                            ? 'Kalan: ${formatDuration(remaining.isNegative ? Duration.zero : remaining)}'
+                            : 'Süre hazırlanıyor',
+                        style: const TextStyle(
+                          color: Color(0xFF536B4E),
+                          fontWeight: FontWeight.w900,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              );
+            },
+          );
+        },
       ),
     );
   }
@@ -560,6 +655,32 @@ class _MeditationDetailPageState extends State<MeditationDetailPage> {
         elevation: 0,
         surfaceTintColor: Colors.transparent,
         foregroundColor: const Color(0xFF2F3A32),
+        actions: [
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (favoriteCount > 0)
+                Text(
+                  favoriteCount.toString(),
+                  style: const TextStyle(
+                    color: Color(0xFF2F3A32),
+                    fontWeight: FontWeight.w900,
+                    fontSize: 14,
+                  ),
+                ),
+              IconButton(
+                onPressed: isFavoriteBusy ? null : toggleFavorite,
+                tooltip: isFavorite ? 'Favorilerden çıkar' : 'Favorilere ekle',
+                icon: Icon(
+                  isFavorite ? Icons.favorite : Icons.favorite_border,
+                  color: isFavorite
+                      ? AppTheme.primaryPurple
+                      : const Color(0xFF2F3A32),
+                ),
+              ),
+            ],
+          ),
+        ],
       ),
       body: buildBackground(
         child: SafeArea(
@@ -635,12 +756,14 @@ class _MeditationDetailVideoPlayerPageState
         hasError = false;
       });
     } catch (e) {
+      debugPrint('Video başlatılamadı: $e');
+
       if (!mounted) return;
 
       setState(() {
         isLoading = false;
         hasError = true;
-        errorMessage = e.toString();
+        errorMessage = 'Video şu an oynatılamıyor. Lütfen tekrar dene.';
       });
     }
   }

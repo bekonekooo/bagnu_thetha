@@ -12,6 +12,8 @@ class MeditationModel {
   final int sortOrder;
   final DateTime? createdAt;
 
+  final int favoriteCount;
+
   const MeditationModel({
     required this.id,
     required this.createdBy,
@@ -25,6 +27,7 @@ class MeditationModel {
     required this.isActive,
     required this.sortOrder,
     required this.createdAt,
+    this.favoriteCount = 0,
   });
 
   factory MeditationModel.fromMap(Map<String, dynamic> map) {
@@ -43,6 +46,8 @@ class MeditationModel {
           ? map['sort_order'] as int
           : int.tryParse(map['sort_order']?.toString() ?? '0') ?? 0,
       createdAt: DateTime.tryParse(map['created_at']?.toString() ?? ''),
+      favoriteCount:
+          int.tryParse(map['favorite_count']?.toString() ?? '0') ?? 0,
     );
   }
 

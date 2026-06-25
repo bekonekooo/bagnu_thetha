@@ -24,6 +24,11 @@ class TrainingModel {
   final String teacherImageUrl;
   final String teacherSpecialty;
 
+  final int likeCount;
+  final double ratingAvg;
+  final int ratingCount;
+  final int commentCount;
+
   final List<TrainingSessionModel> sessions;
 
   const TrainingModel({
@@ -44,6 +49,10 @@ class TrainingModel {
     required this.teacherName,
     required this.teacherImageUrl,
     required this.teacherSpecialty,
+    this.likeCount = 0,
+    this.ratingAvg = 0,
+    this.ratingCount = 0,
+    this.commentCount = 0,
     required this.sessions,
   });
 
@@ -94,6 +103,10 @@ class TrainingModel {
           teacherMap is Map ? teacherMap['image_url']?.toString() ?? '' : '',
       teacherSpecialty:
           teacherMap is Map ? teacherMap['specialty']?.toString() ?? '' : '',
+      likeCount: int.tryParse(map['like_count']?.toString() ?? '0') ?? 0,
+      ratingAvg: double.tryParse(map['rating_avg']?.toString() ?? '0') ?? 0,
+      ratingCount: int.tryParse(map['rating_count']?.toString() ?? '0') ?? 0,
+      commentCount: int.tryParse(map['comment_count']?.toString() ?? '0') ?? 0,
       sessions: parsedSessions,
     );
   }

@@ -12,12 +12,22 @@ class MainShellPage extends StatelessWidget {
   int _getCurrentIndex(BuildContext context) {
     final location = GoRouterState.of(context).matchedLocation;
 
-    if (location == '/sessions') return 1;
+    // Seanslar
+    if (location == '/sessions') {
+      return 1;
+    }
 
-    if (location == '/profile' || location == '/profile-edit') {
+    // Favoriler
+    if (location == '/favorites') {
       return 2;
     }
 
+    // Profil
+    if (location == '/profile' || location == '/profile-edit') {
+      return 3;
+    }
+
+    // Ana Sayfa (/home + diğer keşif rotaları varsayılan olarak buraya düşer)
     return 0;
   }
 
@@ -30,6 +40,9 @@ class MainShellPage extends StatelessWidget {
         context.go('/sessions');
         break;
       case 2:
+        context.go('/favorites');
+        break;
+      case 3:
         context.go('/profile');
         break;
     }
@@ -44,6 +57,7 @@ class MainShellPage extends StatelessWidget {
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: currentIndex,
         onTap: (index) => _onItemTapped(context, index),
+        type: BottomNavigationBarType.fixed,
         items: const [
           BottomNavigationBarItem(
             icon: Icon(Icons.home),
@@ -52,6 +66,10 @@ class MainShellPage extends StatelessWidget {
           BottomNavigationBarItem(
             icon: Icon(Icons.calendar_month),
             label: 'Seanslar',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.favorite),
+            label: 'Favoriler',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.person),

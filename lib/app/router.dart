@@ -8,6 +8,7 @@ import 'package:flutter_application_1/core/services/supabase_service.dart';
 
 import 'package:flutter_application_1/features/auth/presentation/pages/login_page.dart';
 import 'package:flutter_application_1/features/auth/presentation/pages/register_page.dart';
+import 'package:flutter_application_1/features/auth/presentation/pages/forgot_password_page.dart';
 import 'package:flutter_application_1/features/auth/presentation/pages/onboarding_page.dart';
 import 'package:flutter_application_1/features/auth/presentation/pages/profile_onboarding_page.dart';
 import 'package:flutter_application_1/features/auth/presentation/pages/splash_page.dart';
@@ -21,6 +22,7 @@ import 'package:flutter_application_1/features/sessions/presentation/pages/sessi
 import 'package:flutter_application_1/features/sessions/presentation/pages/teacher_sessions_page.dart';
 
 import 'package:flutter_application_1/features/teachers/presentation/pages/teachers_page.dart';
+import 'package:flutter_application_1/features/teachers/presentation/pages/teacher_detail_page.dart';
 import 'package:flutter_application_1/features/teachers/presentation/pages/teacher_availability_page.dart';
 import 'package:flutter_application_1/features/teachers/presentation/pages/teacher_dashboard_page.dart';
 import 'package:flutter_application_1/features/teachers/presentation/pages/teacher_edit_profile_page.dart';
@@ -38,6 +40,8 @@ import 'package:flutter_application_1/features/meditations/data/models/meditatio
 import 'package:flutter_application_1/features/meditations/presentation/pages/meditations_page.dart';
 import 'package:flutter_application_1/features/meditations/presentation/pages/meditation_detail_page.dart';
 import 'package:flutter_application_1/features/meditations/presentation/pages/teacher_meditations_page.dart';
+
+import 'package:flutter_application_1/features/social/presentation/pages/favorites_page.dart';
 
 import 'package:flutter_application_1/features/main/presentation/pages/main_shell_page.dart';
 
@@ -126,6 +130,7 @@ final GoRouter appRouter = GoRouter(
       '/splash',
       '/login',
       '/register',
+      '/forgot-password',
       '/onboarding',
     ];
 
@@ -141,10 +146,12 @@ final GoRouter appRouter = GoRouter(
     final studentOnlyRoutes = [
       '/home',
       '/sessions',
+      '/favorites',
       '/profile',
       '/profile-edit',
       '/profile-onboarding',
       '/teachers',
+      '/teacher-detail',
       '/booking',
       '/booking-success',
       '/trainings',
@@ -217,6 +224,10 @@ final GoRouter appRouter = GoRouter(
     GoRoute(
       path: '/register',
       builder: (context, state) => const RegisterPage(),
+    ),
+    GoRoute(
+      path: '/forgot-password',
+      builder: (context, state) => const ForgotPasswordPage(),
     ),
     GoRoute(
       path: '/profile-onboarding',
@@ -322,6 +333,10 @@ final GoRouter appRouter = GoRouter(
           builder: (context, state) => const SessionsPage(),
         ),
         GoRoute(
+          path: '/favorites',
+          builder: (context, state) => const FavoritesPage(),
+        ),
+        GoRoute(
           path: '/profile',
           builder: (context, state) => const ProfilePage(),
         ),
@@ -349,6 +364,21 @@ final GoRouter appRouter = GoRouter(
         GoRoute(
           path: '/teachers',
           builder: (context, state) => const TeachersPage(),
+        ),
+        GoRoute(
+          path: '/teacher-detail',
+          redirect: (context, state) {
+            if (state.extra is! Map<String, dynamic>) {
+              return '/teachers';
+            }
+
+            return null;
+          },
+          builder: (context, state) {
+            final teacher = state.extra as Map<String, dynamic>;
+
+            return TeacherDetailPage(teacher: teacher);
+          },
         ),
         GoRoute(
           path: '/meditations',

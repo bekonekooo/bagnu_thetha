@@ -11,6 +11,10 @@ class TeacherModel {
   final double sessionPrice;
   final String currency;
 
+  final int likeCount;
+  final int ratingCount;
+  final double ratingAvg;
+
   TeacherModel({
     required this.id,
     required this.name,
@@ -23,6 +27,9 @@ class TeacherModel {
     required this.isActive,
     required this.sessionPrice,
     required this.currency,
+    this.likeCount = 0,
+    this.ratingCount = 0,
+    this.ratingAvg = 0,
   });
 
   factory TeacherModel.fromMap(Map<String, dynamic> map) {
@@ -39,6 +46,9 @@ class TeacherModel {
       sessionPrice:
           double.tryParse(map['session_price']?.toString() ?? '0') ?? 0,
       currency: map['currency']?.toString() ?? 'try',
+      likeCount: int.tryParse(map['like_count']?.toString() ?? '0') ?? 0,
+      ratingCount: int.tryParse(map['rating_count']?.toString() ?? '0') ?? 0,
+      ratingAvg: double.tryParse(map['rating_avg']?.toString() ?? '0') ?? 0,
     );
   }
 
