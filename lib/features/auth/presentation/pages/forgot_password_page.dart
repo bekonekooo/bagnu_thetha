@@ -3,41 +3,36 @@ import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'package:flutter_application_1/app/theme.dart';
-import '../../../../core/services/supabase_service.dart';
+import 'package:flutter_application_1/core/services/supabase_service.dart';
+
 import '../../../../shared/widgets/custom_button.dart';
 import '../../../../shared/widgets/custom_text_field.dart';
 
-class LoginPage extends StatefulWidget {
-  const LoginPage({super.key});
+class ForgotPasswordPage extends StatefulWidget {
+  const ForgotPasswordPage({super.key});
 
   @override
-  State<LoginPage> createState() => _LoginPageState();
+  State<ForgotPasswordPage> createState() => _ForgotPasswordPageState();
 }
 
-class _LoginPageState extends State<LoginPage> {
+class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
   final emailController = TextEditingController();
-  final passwordController = TextEditingController();
 
   bool isLoading = false;
 
-  Future<Map<String, dynamic>?> fetchUserProfile(String userId) async {
-    final response = await supabase
-        .from('profiles')
-        .select('role, onboarding_completed')
-        .eq('id', userId)
-        .maybeSingle();
-
-    return response;
+  @override
+  void dispose() {
+    emailController.dispose();
+    super.dispose();
   }
 
-  bool validateForm() {
+  bool _validate() {
     final email = emailController.text.trim();
-    final password = passwordController.text.trim();
 
-    if (email.isEmpty || password.isEmpty) {
+    if (email.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Lütfen e-posta ve şifre alanlarını doldur.'),
+          content: Text('Lütfen e-posta adresini gir.'),
         ),
       );
       return false;
@@ -55,52 +50,55 @@ class _LoginPageState extends State<LoginPage> {
     return true;
   }
 
-  Future<void> signIn() async {
+  String _friendlyError(Object error) {
+    if (error is AuthException) {
+      final message = error.message.toLowerCase();
+
+      if (message.contains('rate') || message.contains('limit')) {
+        return 'Çok fazla deneme yaptın. Lütfen biraz sonra tekrar dene.';
+      }
+
+      if (message.contains('email')) {
+        return 'E-posta adresini kontrol edip tekrar dene.';
+      }
+    }
+
+    return 'Bir şeyler ters gitti. Lütfen tekrar dene.';
+  }
+
+  Future<void> sendResetLink() async {
     if (isLoading) return;
 
-    if (!validateForm()) return;
+    if (!_validate()) return;
 
     setState(() {
       isLoading = true;
     });
 
     try {
-      final authResponse = await supabase.auth.signInWithPassword(
-        email: emailController.text.trim(),
-        password: passwordController.text.trim(),
+      await supabase.auth.resetPasswordForEmail(
+        emailController.text.trim(),
       );
-
-      final user = authResponse.user;
-
-      if (user == null) {
-        throw Exception('Kullanıcı bulunamadı');
-      }
-
-      final profile = await fetchUserProfile(user.id);
-
-      final role = profile?['role']?.toString() ?? 'student';
-      final onboardingCompleted =
-          profile?['onboarding_completed'] == true;
 
       if (!mounted) return;
 
-      if (role == 'teacher') {
-        context.go('/teacher-dashboard');
-        return;
-      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Sıfırlama bağlantısı e-postana gönderildi'),
+        ),
+      );
 
-      if (!onboardingCompleted) {
-        context.go('/profile-onboarding');
-        return;
+      if (context.canPop()) {
+        context.pop();
+      } else {
+        context.go('/login');
       }
-
-      context.go('/home');
     } catch (e) {
       if (!mounted) return;
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(_friendlyAuthError(e)),
+          content: Text(_friendlyError(e)),
         ),
       );
     } finally {
@@ -112,36 +110,7 @@ class _LoginPageState extends State<LoginPage> {
     }
   }
 
-  String _friendlyAuthError(Object error) {
-    if (error is AuthException) {
-      final message = error.message.toLowerCase();
-
-      if (message.contains('invalid') ||
-          message.contains('credentials') ||
-          message.contains('password')) {
-        return 'E-posta veya şifre hatalı.';
-      }
-
-      if (message.contains('confirm')) {
-        return 'Lütfen önce e-posta adresini doğrula.';
-      }
-
-      if (message.contains('rate') || message.contains('limit')) {
-        return 'Çok fazla deneme yaptın. Lütfen biraz sonra tekrar dene.';
-      }
-    }
-
-    return 'Giriş yapılamadı. Lütfen tekrar dene.';
-  }
-
-  @override
-  void dispose() {
-    emailController.dispose();
-    passwordController.dispose();
-    super.dispose();
-  }
-
-  Widget buildHeader() {
+  Widget _buildHeader() {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(24),
@@ -169,23 +138,24 @@ class _LoginPageState extends State<LoginPage> {
             radius: 42,
             backgroundColor: Colors.white,
             child: Icon(
-              Icons.self_improvement,
+              Icons.lock_reset,
               color: AppTheme.primaryPurple,
               size: 46,
             ),
           ),
           const SizedBox(height: 18),
           const Text(
-            'BagnuTheta',
+            'Şifreni mi unuttun?',
+            textAlign: TextAlign.center,
             style: TextStyle(
               color: Colors.white,
-              fontSize: 28,
+              fontSize: 26,
               fontWeight: FontWeight.bold,
             ),
           ),
           const SizedBox(height: 8),
           Text(
-            'Dönüşüm yolculuğuna kaldığın yerden devam et.',
+            'E-posta adresini gir, sana sıfırlama bağlantısı gönderelim.',
             textAlign: TextAlign.center,
             style: TextStyle(
               color: Colors.white.withOpacity(0.9),
@@ -200,9 +170,9 @@ class _LoginPageState extends State<LoginPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF8F5EF),
+      backgroundColor: AppTheme.softCream,
       appBar: AppBar(
-        title: const Text('Giriş Yap'),
+        title: const Text('Şifre Sıfırlama'),
       ),
       body: SafeArea(
         child: SingleChildScrollView(
@@ -210,21 +180,21 @@ class _LoginPageState extends State<LoginPage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              buildHeader(),
+              _buildHeader(),
               const SizedBox(height: 32),
               const Text(
-                'Hesabına giriş yap',
+                'Sıfırlama bağlantısı al',
                 style: TextStyle(
                   fontSize: 22,
                   fontWeight: FontWeight.bold,
-                  color: Color(0xFF2D2438),
+                  color: AppTheme.textDark,
                 ),
               ),
               const SizedBox(height: 6),
               const Text(
-                'Seanslarını, bildirimlerini ve profilini yönetmek için giriş yap.',
+                'Hesabına kayıtlı e-posta adresine bir bağlantı göndereceğiz.',
                 style: TextStyle(
-                  color: Colors.grey,
+                  color: AppTheme.textSoft,
                   height: 1.35,
                 ),
               ),
@@ -236,42 +206,26 @@ class _LoginPageState extends State<LoginPage> {
                 prefixIcon: Icons.email_outlined,
                 hintText: 'ornek@email.com',
               ),
-              const SizedBox(height: 16),
-              CustomTextField(
-                label: 'Şifre',
-                controller: passwordController,
-                isPassword: true,
-                prefixIcon: Icons.lock_outline,
-                hintText: 'Şifreni gir',
-              ),
               const SizedBox(height: 26),
               CustomButton(
-                text: 'Giriş Yap',
+                text: 'Sıfırlama bağlantısı gönder',
                 isLoading: isLoading,
-                icon: Icons.login,
-                onPressed: signIn,
+                icon: Icons.send_outlined,
+                onPressed: sendResetLink,
               ),
-              const SizedBox(height: 8),
-              Align(
-                alignment: Alignment.centerRight,
-                child: TextButton(
-                  onPressed: isLoading
-                      ? null
-                      : () {
-                          context.push('/forgot-password');
-                        },
-                  child: const Text('Şifremi unuttum?'),
-                ),
-              ),
-              const SizedBox(height: 10),
+              const SizedBox(height: 18),
               Center(
                 child: TextButton(
                   onPressed: isLoading
                       ? null
                       : () {
-                          context.go('/register');
+                          if (context.canPop()) {
+                            context.pop();
+                          } else {
+                            context.go('/login');
+                          }
                         },
-                  child: const Text('Hesabın yok mu? Kayıt ol'),
+                  child: const Text('Girişe geri dön'),
                 ),
               ),
             ],

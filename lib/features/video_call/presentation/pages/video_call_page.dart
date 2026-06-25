@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:livekit_client/livekit_client.dart';
 import 'package:permission_handler/permission_handler.dart';
 
+import 'package:flutter_application_1/app/theme.dart';
 import 'package:flutter_application_1/features/sessions/data/models/session_model.dart';
 import 'package:flutter_application_1/features/video_call/data/services/video_call_service.dart';
 
@@ -55,7 +56,15 @@ class _VideoCallPageState extends State<VideoCallPage> {
       final hasPermissions = await requestPermissions();
 
       if (!hasPermissions) {
-        throw Exception('Kamera ve mikrofon izni verilmedi.');
+        if (!mounted) return;
+
+        setState(() {
+          isConnecting = false;
+          isConnected = false;
+          errorMessage =
+              'Görüntülü görüşme için kamera ve mikrofon izni gerekiyor.';
+        });
+        return;
       }
 
       final tokenResponse = await videoCallService.createLiveKitToken(
@@ -84,12 +93,15 @@ class _VideoCallPageState extends State<VideoCallPage> {
         isMicrophoneEnabled = true;
       });
     } catch (e) {
+      debugPrint('Görüntülü görüşme başlatılamadı: $e');
+
       if (!mounted) return;
 
       setState(() {
         isConnecting = false;
         isConnected = false;
-        errorMessage = e.toString();
+        errorMessage =
+            'Görüntülü görüşmeye bağlanılamadı. Lütfen tekrar dene.';
       });
     }
   }
@@ -116,7 +128,8 @@ class _VideoCallPageState extends State<VideoCallPage> {
         isCameraEnabled = nextValue;
       });
     } catch (e) {
-      showError('Kamera değiştirilemedi: $e');
+      debugPrint('Kamera değiştirilemedi: $e');
+      showError('Kamera değiştirilemedi. Lütfen tekrar dene.');
     }
   }
 
@@ -135,7 +148,8 @@ class _VideoCallPageState extends State<VideoCallPage> {
         isMicrophoneEnabled = nextValue;
       });
     } catch (e) {
-      showError('Mikrofon değiştirilemedi: $e');
+      debugPrint('Mikrofon değiştirilemedi: $e');
+      showError('Mikrofon değiştirilemedi. Lütfen tekrar dene.');
     }
   }
 
@@ -481,7 +495,7 @@ class _ParticipantVideoTileState extends State<ParticipantVideoTile> {
         color: Colors.grey.shade900,
         borderRadius: BorderRadius.circular(18),
         border: Border.all(
-          color: widget.isLocal ? Colors.deepPurpleAccent : Colors.white24,
+          color: widget.isLocal ? AppTheme.primaryPurple : Colors.white24,
           width: widget.isLocal ? 2 : 1,
         ),
       ),
@@ -527,7 +541,7 @@ class _ParticipantVideoTileState extends State<ParticipantVideoTile> {
       child: Center(
         child: CircleAvatar(
           radius: 34,
-          backgroundColor: Colors.deepPurple.shade300,
+          backgroundColor: AppTheme.primaryPurple,
           child: const Icon(
             Icons.person,
             color: Colors.white,

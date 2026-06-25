@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_application_1/core/services/supabase_service.dart';
@@ -56,10 +57,13 @@ class _ProfilePageState extends State<ProfilePage> {
         isLoading = false;
       });
     } catch (e) {
+      debugPrint('Profil bilgileri alınamadı: $e');
+
       if (!mounted) return;
 
       setState(() {
-        errorMessage = 'Profil bilgileri alınamadı: $e';
+        errorMessage =
+            'Profil bilgilerin alınamadı. Lütfen tekrar dene.';
         isLoading = false;
       });
     }
@@ -133,6 +137,7 @@ class _ProfilePageState extends State<ProfilePage> {
           child: Image.asset(
             profileBackground,
             fit: BoxFit.cover,
+            cacheWidth: 1290,
           ),
         ),
         Positioned.fill(
@@ -198,7 +203,12 @@ class _ProfilePageState extends State<ProfilePage> {
             child: CircleAvatar(
               radius: 55,
               backgroundColor: Colors.white,
-              backgroundImage: hasImage ? NetworkImage(imageUrl) : null,
+              backgroundImage: hasImage
+                  ? CachedNetworkImageProvider(
+                      imageUrl,
+                      maxWidth: 150,
+                    )
+                  : null,
               child: hasImage
                   ? null
                   : const Icon(

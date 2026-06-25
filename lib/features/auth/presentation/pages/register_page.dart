@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
+import 'package:flutter_application_1/app/theme.dart';
 import '../../../../core/services/supabase_service.dart';
 import '../../../../shared/widgets/custom_button.dart';
 import '../../../../shared/widgets/custom_text_field.dart';
@@ -117,7 +119,7 @@ class _RegisterPageState extends State<RegisterPage> {
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Kayıt hatası: $e'),
+          content: Text(_friendlyAuthError(e)),
         ),
       );
     } finally {
@@ -127,6 +129,32 @@ class _RegisterPageState extends State<RegisterPage> {
         isLoading = false;
       });
     }
+  }
+
+  String _friendlyAuthError(Object error) {
+    if (error is AuthException) {
+      final message = error.message.toLowerCase();
+
+      if (message.contains('already') ||
+          message.contains('registered') ||
+          message.contains('exists')) {
+        return 'Bu e-posta ile zaten bir hesap var. Giriş yapmayı dene.';
+      }
+
+      if (message.contains('password')) {
+        return 'Şifre güvenlik koşullarını sağlamıyor. Daha güçlü bir şifre dene.';
+      }
+
+      if (message.contains('email')) {
+        return 'Lütfen geçerli bir e-posta adresi gir.';
+      }
+
+      if (message.contains('rate') || message.contains('limit')) {
+        return 'Çok fazla deneme yaptın. Lütfen biraz sonra tekrar dene.';
+      }
+    }
+
+    return 'Hesap oluşturulamadı. Lütfen tekrar dene.';
   }
 
   @override
@@ -144,10 +172,10 @@ class _RegisterPageState extends State<RegisterPage> {
       width: double.infinity,
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
+        gradient: const LinearGradient(
           colors: [
-            Colors.deepPurple.shade400,
-            Colors.deepPurple.shade700,
+            AppTheme.primaryPurple,
+            AppTheme.darkPurple,
           ],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
@@ -155,7 +183,7 @@ class _RegisterPageState extends State<RegisterPage> {
         borderRadius: BorderRadius.circular(28),
         boxShadow: [
           BoxShadow(
-            color: Colors.deepPurple.withOpacity(0.20),
+            color: AppTheme.primaryPurple.withOpacity(0.20),
             blurRadius: 22,
             offset: const Offset(0, 10),
           ),
@@ -168,7 +196,7 @@ class _RegisterPageState extends State<RegisterPage> {
             backgroundColor: Colors.white,
             child: Icon(
               Icons.person_add_alt_1,
-              color: Colors.deepPurple,
+              color: AppTheme.primaryPurple,
               size: 44,
             ),
           ),
@@ -201,10 +229,10 @@ class _RegisterPageState extends State<RegisterPage> {
       width: double.infinity,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.deepPurple.withOpacity(0.06),
+        color: AppTheme.primaryPurple.withOpacity(0.06),
         borderRadius: BorderRadius.circular(18),
         border: Border.all(
-          color: Colors.deepPurple.withOpacity(0.12),
+          color: AppTheme.primaryPurple.withOpacity(0.12),
         ),
       ),
       child: const Row(
@@ -212,7 +240,7 @@ class _RegisterPageState extends State<RegisterPage> {
         children: [
           Icon(
             Icons.lock_outline,
-            color: Colors.deepPurple,
+            color: AppTheme.primaryPurple,
           ),
           SizedBox(width: 12),
           Expanded(

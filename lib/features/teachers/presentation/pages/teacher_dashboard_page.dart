@@ -42,10 +42,14 @@ class _TeacherDashboardPageState extends State<TeacherDashboardPage> {
         teacher = response;
       });
     } catch (e) {
+      debugPrint('Öğretmen bilgisi yüklenemedi: $e');
+
       if (!mounted) return;
 
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Öğretmen bilgisi yüklenemedi: $e')),
+        const SnackBar(
+          content: Text('Öğretmen bilgilerin yüklenemedi. Lütfen tekrar dene.'),
+        ),
       );
     } finally {
       if (!mounted) return;
@@ -330,7 +334,7 @@ class _TeacherDashboardPageState extends State<TeacherDashboardPage> {
                   ),
                   const SizedBox(height: 8),
                   const Text(
-                    'Supabase teachers tablosunda bu kullanıcının user_id alanını bağlaman gerekiyor.',
+                    'Öğretmen profilin henüz hazır değil. Lütfen destek ekibiyle iletişime geç.',
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       color: Color(0xFF606A61),

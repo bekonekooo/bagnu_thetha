@@ -227,11 +227,15 @@ class _BookingPageState extends State<BookingPage> {
         }
       });
     } catch (e) {
+      debugPrint('Saatler yüklenemedi: $e');
+
       if (!mounted) return;
 
       if (showErrorSnackBar) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Saatler yüklenemedi: $e')),
+          const SnackBar(
+            content: Text('Saatler yüklenemedi. Lütfen tekrar dene.'),
+          ),
         );
       }
     } finally {
@@ -360,10 +364,14 @@ class _BookingPageState extends State<BookingPage> {
         SnackBar(content: Text(message)),
       );
     } catch (e) {
+      debugPrint('Seans oluşturulamadı: $e');
+
       if (!mounted) return;
 
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('İşlem tamamlanamadı: $e')),
+        const SnackBar(
+          content: Text('İşlem tamamlanamadı. Lütfen tekrar dene.'),
+        ),
       );
     } finally {
       if (!mounted) return;
