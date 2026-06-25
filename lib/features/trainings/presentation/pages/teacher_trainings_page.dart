@@ -967,68 +967,94 @@ class _TeacherTrainingsPageState extends State<TeacherTrainingsPage> {
     );
   }
 
+  Widget buildMyTrainingsEmptyCard() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.78),
+        borderRadius: BorderRadius.circular(24),
+      ),
+      child: const Text(
+        'Henüz eğitim oluşturmadın.',
+        style: TextStyle(
+          color: Color(0xFF606A61),
+          fontWeight: FontWeight.w700,
+        ),
+      ),
+    );
+  }
+
   Widget buildMyTrainings() {
     return FutureBuilder<List<TrainingModel>>(
       future: trainingsFuture,
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(
-            child: CircularProgressIndicator(
-              color: Color(0xFF536B4E),
-            ),
+          return ListView(
+            padding: const EdgeInsets.fromLTRB(18, 18, 18, 28),
+            children: [
+              buildFormCard(),
+              const SizedBox(height: 24),
+              const Center(
+                child: CircularProgressIndicator(
+                  color: Color(0xFF536B4E),
+                ),
+              ),
+            ],
           );
         }
 
         if (snapshot.hasError) {
-          return Container(
-            padding: const EdgeInsets.all(18),
-            decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.78),
-              borderRadius: BorderRadius.circular(24),
-            ),
-            child: Text(
-              'Eğitimler yüklenemedi: ${snapshot.error}',
-              style: const TextStyle(
-                color: Color(0xFF2F3A32),
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-          );
-        }
-
-        final items = snapshot.data ?? [];
-
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Oluşturduğum Eğitimler',
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.w900,
-                color: Color(0xFF2F3A32),
-              ),
-            ),
-            const SizedBox(height: 12),
-            if (items.isEmpty)
+          return ListView(
+            padding: const EdgeInsets.fromLTRB(18, 18, 18, 28),
+            children: [
+              buildFormCard(),
+              const SizedBox(height: 24),
               Container(
-                width: double.infinity,
                 padding: const EdgeInsets.all(18),
                 decoration: BoxDecoration(
                   color: Colors.white.withOpacity(0.78),
                   borderRadius: BorderRadius.circular(24),
                 ),
-                child: const Text(
-                  'Henüz eğitim oluşturmadın.',
-                  style: TextStyle(
-                    color: Color(0xFF606A61),
+                child: Text(
+                  'Eğitimler yüklenemedi: ${snapshot.error}',
+                  style: const TextStyle(
+                    color: Color(0xFF2F3A32),
                     fontWeight: FontWeight.w700,
                   ),
                 ),
-              )
-            else
-              ...items.map(buildTrainingItem),
-          ],
+              ),
+            ],
+          );
+        }
+
+        final items = snapshot.data ?? [];
+
+        final headerWidgets = <Widget>[
+          buildFormCard(),
+          const SizedBox(height: 24),
+          const Text(
+            'Oluşturduğum Eğitimler',
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.w900,
+              color: Color(0xFF2F3A32),
+            ),
+          ),
+          const SizedBox(height: 12),
+          if (items.isEmpty) buildMyTrainingsEmptyCard(),
+        ];
+
+        return ListView.builder(
+          padding: const EdgeInsets.fromLTRB(18, 18, 18, 28),
+          itemCount: headerWidgets.length + items.length,
+          itemBuilder: (context, index) {
+            if (index < headerWidgets.length) {
+              return headerWidgets[index];
+            }
+
+            return buildTrainingItem(items[index - headerWidgets.length]);
+          },
         );
       },
     );
@@ -1056,14 +1082,7 @@ class _TeacherTrainingsPageState extends State<TeacherTrainingsPage> {
         child: SafeArea(
           child: RefreshIndicator(
             onRefresh: reloadTrainings,
-            child: ListView(
-              padding: const EdgeInsets.fromLTRB(18, 18, 18, 28),
-              children: [
-                buildFormCard(),
-                const SizedBox(height: 24),
-                buildMyTrainings(),
-              ],
-            ),
+            child: buildMyTrainings(),
           ),
         ),
       ),

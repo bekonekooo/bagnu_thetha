@@ -20,6 +20,9 @@ class _TeachersPageState extends State<TeachersPage> {
 
   late Future<List<TeacherModel>> teachersFuture;
 
+  List<TeacherModel> allTeachers = [];
+  List<TeacherModel> filteredTeachers = [];
+
   static const String teachersBackground =
       'assets/images/backgrounds/home_bg_4.jpg';
 
@@ -45,7 +48,7 @@ class _TeachersPageState extends State<TeachersPage> {
     await teachersFuture;
   }
 
-  List<TeacherModel> getFilteredTeachers(List<TeacherModel> teachers) {
+  List<TeacherModel> computeFilteredTeachers(List<TeacherModel> teachers) {
     if (selectedCategory == 'Tümü') {
       return teachers;
     }
@@ -55,9 +58,19 @@ class _TeachersPageState extends State<TeachersPage> {
         .toList();
   }
 
+  void applyFilter() {
+    filteredTeachers = computeFilteredTeachers(allTeachers);
+  }
+
+  void updateTeachers(List<TeacherModel> teachers) {
+    allTeachers = teachers;
+    applyFilter();
+  }
+
   void selectCategory(String category) {
     setState(() {
       selectedCategory = category;
+      applyFilter();
     });
   }
 
@@ -418,43 +431,53 @@ class _TeachersPageState extends State<TeachersPage> {
     );
   }
 
+  Widget buildTeachersHeaderSection(List<TeacherModel> filteredTeachers) {
+    return Column(
+      children: [
+        buildHeader(),
+
+        const SizedBox(height: 22),
+
+        buildCategoryFilters(),
+
+        const SizedBox(height: 22),
+
+        buildTeachersTitle(filteredTeachers.length),
+
+        const SizedBox(height: 14),
+
+        if (filteredTeachers.isEmpty) buildEmptyState(),
+      ],
+    );
+  }
+
   Widget buildTeachersList(List<TeacherModel> filteredTeachers) {
     return RefreshIndicator(
       onRefresh: refreshTeachers,
-      child: ListView(
+      child: ListView.builder(
         physics: const AlwaysScrollableScrollPhysics(),
         padding: const EdgeInsets.fromLTRB(16, 16, 16, 28),
-        children: [
-          buildHeader(),
+        itemCount: filteredTeachers.length + 1,
+        itemBuilder: (context, index) {
+          if (index == 0) {
+            return buildTeachersHeaderSection(filteredTeachers);
+          }
 
-          const SizedBox(height: 22),
+          final teacher = filteredTeachers[index - 1];
 
-          buildCategoryFilters(),
-
-          const SizedBox(height: 22),
-
-          buildTeachersTitle(filteredTeachers.length),
-
-          const SizedBox(height: 14),
-
-          if (filteredTeachers.isEmpty)
-            buildEmptyState()
-          else
-            ...filteredTeachers.map(
-              (teacher) => TeacherCard(
-                name: teacher.name,
-                specialty: teacher.specialty,
-                category: teacher.category,
-                experience: teacher.experience,
-                rating: teacher.rating,
-                bio: teacher.bio,
-                imageUrl: teacher.imageUrl,
-                sessionPrice: teacher.sessionPrice,
-                currency: teacher.currency,
-                onTap: () => goToTeacherDetail(teacher),
-              ),
-            ),
-        ],
+          return TeacherCard(
+            name: teacher.name,
+            specialty: teacher.specialty,
+            category: teacher.category,
+            experience: teacher.experience,
+            rating: teacher.rating,
+            bio: teacher.bio,
+            imageUrl: teacher.imageUrl,
+            sessionPrice: teacher.sessionPrice,
+            currency: teacher.currency,
+            onTap: () => goToTeacherDetail(teacher),
+          );
+        },
       ),
     );
   }
@@ -491,7 +514,10 @@ class _TeachersPageState extends State<TeachersPage> {
               }
 
               final teachers = snapshot.data ?? [];
-              final filteredTeachers = getFilteredTeachers(teachers);
+
+              if (!identical(teachers, allTeachers)) {
+                updateTeachers(teachers);
+              }
 
               return buildTeachersList(filteredTeachers);
             },

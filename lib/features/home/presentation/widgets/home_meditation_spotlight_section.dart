@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
@@ -188,10 +189,11 @@ class _SpotlightMeditationCard extends StatelessWidget {
                 children: [
                   Positioned.fill(
                     child: hasThumbnail
-                        ? Image.network(
-                            meditation.thumbnailUrl,
+                        ? CachedNetworkImage(
+                            imageUrl: meditation.thumbnailUrl,
                             fit: BoxFit.cover,
-                            errorBuilder: (context, error, stackTrace) {
+                            memCacheWidth: 600,
+                            errorWidget: (context, url, error) {
                               return const _EmptyThumbnail();
                             },
                           )

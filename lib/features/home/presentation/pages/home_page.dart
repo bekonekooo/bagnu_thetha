@@ -112,7 +112,7 @@ class _HomePageState extends State<HomePage> {
     try {
       final data = await supabase
           .from('profiles')
-          .select()
+          .select('full_name, email')
           .eq('id', user.id)
           .single();
 
@@ -262,6 +262,7 @@ class _HomePageState extends State<HomePage> {
             child: Image.asset(
               homeBackground,
               fit: BoxFit.cover,
+              cacheWidth: 1290,
             ),
           ),
           Positioned.fill(

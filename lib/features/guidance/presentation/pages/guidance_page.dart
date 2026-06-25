@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
@@ -1158,15 +1159,12 @@ class _ResultCard extends StatelessWidget {
           if (hasChartImage) ...[
             ClipRRect(
               borderRadius: BorderRadius.circular(24),
-              child: Image.network(
-                chartImageUrl!,
+              child: CachedNetworkImage(
+                imageUrl: chartImageUrl!,
                 width: double.infinity,
                 fit: BoxFit.cover,
-                loadingBuilder: (context, child, loadingProgress) {
-                  if (loadingProgress == null) {
-                    return child;
-                  }
-
+                memCacheWidth: 600,
+                placeholder: (context, url) {
                   return Container(
                     width: double.infinity,
                     height: 260,
@@ -1180,7 +1178,7 @@ class _ResultCard extends StatelessWidget {
                     ),
                   );
                 },
-                errorBuilder: (context, error, stackTrace) {
+                errorWidget: (context, url, error) {
                   return Container(
                     width: double.infinity,
                     padding: const EdgeInsets.all(16),

@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
@@ -166,6 +167,7 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
           child: Image.asset(
             profileBackground,
             fit: BoxFit.cover,
+            cacheWidth: 1290,
           ),
         ),
         Positioned.fill(
@@ -231,7 +233,12 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
                 child: CircleAvatar(
                   radius: 55,
                   backgroundColor: Colors.white,
-                  backgroundImage: hasImage ? NetworkImage(imageUrl) : null,
+                  backgroundImage: hasImage
+                      ? CachedNetworkImageProvider(
+                          imageUrl,
+                          maxWidth: 150,
+                        )
+                      : null,
                   child: hasImage
                       ? null
                       : const Icon(

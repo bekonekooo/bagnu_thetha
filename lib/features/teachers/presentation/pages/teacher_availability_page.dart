@@ -766,26 +766,33 @@ class _TeacherAvailabilityPageState extends State<TeacherAvailabilityPage> {
       ),
       body: RefreshIndicator(
         onRefresh: loadAvailability,
-        child: ListView(
-          physics: const AlwaysScrollableScrollPhysics(),
-          padding: const EdgeInsets.fromLTRB(16, 16, 16, 28),
-          children: [
-            buildHeaderCard(),
-            const SizedBox(height: 26),
-            if (isLoading)
-              buildLoadingState()
-            else ...[
-              buildDaySelector(),
+        child: Builder(
+          builder: (context) {
+            final sections = <Widget>[
+              buildHeaderCard(),
               const SizedBox(height: 26),
-              buildTimeSelector(),
-              const SizedBox(height: 22),
-              buildActionPanel(),
-              const SizedBox(height: 28),
-              buildSelectedDayList(),
-              const SizedBox(height: 28),
-              buildAllWeekSummary(),
-            ],
-          ],
+              if (isLoading)
+                buildLoadingState()
+              else ...[
+                buildDaySelector(),
+                const SizedBox(height: 26),
+                buildTimeSelector(),
+                const SizedBox(height: 22),
+                buildActionPanel(),
+                const SizedBox(height: 28),
+                buildSelectedDayList(),
+                const SizedBox(height: 28),
+                buildAllWeekSummary(),
+              ],
+            ];
+
+            return ListView.builder(
+              physics: const AlwaysScrollableScrollPhysics(),
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 28),
+              itemCount: sections.length,
+              itemBuilder: (context, index) => sections[index],
+            );
+          },
         ),
       ),
     );

@@ -855,21 +855,26 @@ class _NotificationsPageState extends State<NotificationsPage> {
   Widget buildNotificationsList(List<NotificationModel> notifications) {
     return RefreshIndicator(
       onRefresh: refreshNotifications,
-      child: ListView(
+      child: ListView.builder(
         physics: const AlwaysScrollableScrollPhysics(),
         padding: const EdgeInsets.fromLTRB(0, 0, 0, 28),
-        children: [
-          buildHeaderCard(notifications),
-          buildActionBar(notifications),
-          Padding(
+        itemCount: notifications.length + 2,
+        itemBuilder: (context, index) {
+          if (index == 0) {
+            return buildHeaderCard(notifications);
+          }
+
+          if (index == 1) {
+            return buildActionBar(notifications);
+          }
+
+          final notification = notifications[index - 2];
+
+          return Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: Column(
-              children: [
-                ...notifications.map(buildNotificationCard),
-              ],
-            ),
-          ),
-        ],
+            child: buildNotificationCard(notification),
+          );
+        },
       ),
     );
   }

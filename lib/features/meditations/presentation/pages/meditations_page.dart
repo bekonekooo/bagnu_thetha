@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:audioplayers/audioplayers.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:video_player/video_player.dart';
@@ -27,8 +28,13 @@ class _MeditationsPageState extends State<MeditationsPage> {
 
   bool isAudioPaused = false;
 
-  Duration currentPosition = Duration.zero;
-  Duration totalDuration = Duration.zero;
+  final ValueNotifier<Duration> currentPositionNotifier =
+      ValueNotifier<Duration>(Duration.zero);
+  final ValueNotifier<Duration> totalDurationNotifier =
+      ValueNotifier<Duration>(Duration.zero);
+
+  List<MeditationModel> allMeditations = [];
+  List<MeditationModel> visibleMeditations = [];
 
   StreamSubscription<Duration>? durationSubscription;
   StreamSubscription<Duration>? positionSubscription;
@@ -49,27 +55,24 @@ class _MeditationsPageState extends State<MeditationsPage> {
     durationSubscription = audioPlayer.onDurationChanged.listen((duration) {
       if (!mounted) return;
 
-      setState(() {
-        totalDuration = duration;
-      });
+      totalDurationNotifier.value = duration;
     });
 
     positionSubscription = audioPlayer.onPositionChanged.listen((position) {
       if (!mounted) return;
 
-      setState(() {
-        currentPosition = position;
-      });
+      currentPositionNotifier.value = position;
     });
 
     completeSubscription = audioPlayer.onPlayerComplete.listen((event) {
       if (!mounted) return;
 
+      currentPositionNotifier.value = Duration.zero;
+      totalDurationNotifier.value = Duration.zero;
+
       setState(() {
         playingMeditationId = null;
         isAudioPaused = false;
-        currentPosition = Duration.zero;
-        totalDuration = Duration.zero;
       });
     });
   }
@@ -79,6 +82,8 @@ class _MeditationsPageState extends State<MeditationsPage> {
     durationSubscription?.cancel();
     positionSubscription?.cancel();
     completeSubscription?.cancel();
+    currentPositionNotifier.dispose();
+    totalDurationNotifier.dispose();
     audioPlayer.dispose();
     super.dispose();
   }
@@ -109,6 +114,10 @@ class _MeditationsPageState extends State<MeditationsPage> {
         (category) => category.toLowerCase() == selectedFilter.toLowerCase(),
       );
     }).toList();
+  }
+
+  void recomputeVisibleMeditations() {
+    visibleMeditations = filterMeditations(allMeditations);
   }
 
   String formatDuration(Duration duration) {
@@ -155,7 +164,10 @@ class _MeditationsPageState extends State<MeditationsPage> {
     return null;
   }
 
-  Duration visibleTotalDuration(MeditationModel meditation) {
+  Duration visibleTotalDuration(
+    MeditationModel meditation,
+    Duration totalDuration,
+  ) {
     if (totalDuration > Duration.zero) {
       return totalDuration;
     }
@@ -163,8 +175,12 @@ class _MeditationsPageState extends State<MeditationsPage> {
     return parseDurationText(meditation.durationText) ?? Duration.zero;
   }
 
-  Duration visibleRemainingDuration(MeditationModel meditation) {
-    final visibleTotal = visibleTotalDuration(meditation);
+  Duration visibleRemainingDuration(
+    MeditationModel meditation,
+    Duration currentPosition,
+    Duration totalDuration,
+  ) {
+    final visibleTotal = visibleTotalDuration(meditation, totalDuration);
 
     if (visibleTotal == Duration.zero) {
       return Duration.zero;
@@ -179,8 +195,12 @@ class _MeditationsPageState extends State<MeditationsPage> {
     return remaining;
   }
 
-  double progressValueForMeditation(MeditationModel meditation) {
-    final visibleTotal = visibleTotalDuration(meditation);
+  double progressValueForMeditation(
+    MeditationModel meditation,
+    Duration currentPosition,
+    Duration totalDuration,
+  ) {
+    final visibleTotal = visibleTotalDuration(meditation, totalDuration);
 
     if (visibleTotal.inMilliseconds <= 0) return 0;
 
@@ -190,24 +210,6 @@ class _MeditationsPageState extends State<MeditationsPage> {
     if (progress.isNaN || progress.isInfinite) return 0;
 
     return progress.clamp(0, 1);
-  }
-
-  Future<void> loadAudioDurationManually() async {
-    for (int i = 0; i < 8; i++) {
-      await Future.delayed(const Duration(milliseconds: 400));
-
-      if (!mounted) return;
-
-      final duration = await audioPlayer.getDuration();
-
-      if (duration != null && duration > Duration.zero) {
-        setState(() {
-          totalDuration = duration;
-        });
-
-        return;
-      }
-    }
   }
 
   Future<void> playOrPauseAudio(MeditationModel meditation) async {
@@ -242,15 +244,21 @@ class _MeditationsPageState extends State<MeditationsPage> {
 
       if (!mounted) return;
 
+      currentPositionNotifier.value = Duration.zero;
+      totalDurationNotifier.value = Duration.zero;
+
       setState(() {
         playingMeditationId = meditation.id;
         isAudioPaused = false;
-        currentPosition = Duration.zero;
-        totalDuration = Duration.zero;
       });
 
       await audioPlayer.play(UrlSource(meditation.mediaUrl));
-      await loadAudioDurationManually();
+
+      final duration = await audioPlayer.getDuration();
+
+      if (mounted && duration != null && duration > Duration.zero) {
+        totalDurationNotifier.value = duration;
+      }
     } catch (e) {
       if (!mounted) return;
 
@@ -267,11 +275,12 @@ class _MeditationsPageState extends State<MeditationsPage> {
 
     if (!mounted) return;
 
+    currentPositionNotifier.value = Duration.zero;
+    totalDurationNotifier.value = Duration.zero;
+
     setState(() {
       playingMeditationId = null;
       isAudioPaused = false;
-      currentPosition = Duration.zero;
-      totalDuration = Duration.zero;
     });
   }
 
@@ -377,6 +386,7 @@ Future<void> handleMeditationTap(MeditationModel meditation) async {
           child: Image.asset(
             meditationsBackground,
             fit: BoxFit.cover,
+            cacheWidth: 1290,
             errorBuilder: (context, error, stackTrace) {
               return Container(
                 color: const Color(0xFFEEF3EA),
@@ -433,6 +443,7 @@ Future<void> handleMeditationTap(MeditationModel meditation) async {
         onSelected: (_) {
           setState(() {
             selectedFilter = filter;
+            recomputeVisibleMeditations();
           });
         },
       ),
@@ -506,10 +517,6 @@ Future<void> handleMeditationTap(MeditationModel meditation) async {
       return const SizedBox.shrink();
     }
 
-    final visibleTotal = visibleTotalDuration(meditation);
-    final remaining = visibleRemainingDuration(meditation);
-    final hasDuration = visibleTotal > Duration.zero;
-
     return Padding(
       padding: const EdgeInsets.only(top: 10),
       child: Container(
@@ -529,54 +536,83 @@ Future<void> handleMeditationTap(MeditationModel meditation) async {
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
           children: [
-            ClipRRect(
-              borderRadius: BorderRadius.circular(99),
-              child: LinearProgressIndicator(
-                value: progressValueForMeditation(meditation),
-                minHeight: 5,
-                backgroundColor: Colors.white.withOpacity(0.9),
-                valueColor: const AlwaysStoppedAnimation<Color>(
-                  Color(0xFF536B4E),
-                ),
-              ),
-            ),
-            const SizedBox(height: 7),
-            Row(
-              children: [
-                Icon(
-                  isAudioPaused
-                      ? Icons.pause_circle_outline
-                      : Icons.play_circle_outline,
-                  size: 16,
-                  color: const Color(0xFF536B4E),
-                ),
-                const SizedBox(width: 5),
-                Expanded(
-                  child: Text(
-                    isAudioPaused ? 'Duraklatıldı' : 'Çalıyor',
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      color: Color(0xFF536B4E),
-                      fontWeight: FontWeight.w900,
-                      fontSize: 11.5,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 3),
-            Text(
-              hasDuration
-                  ? 'Kalan süre: ${formatDuration(remaining)}'
-                  : 'Kalan süre hesaplanamadı',
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                color: Color(0xFF2F3A32),
-                fontWeight: FontWeight.w900,
-                fontSize: 11.5,
-              ),
+            ValueListenableBuilder<Duration>(
+              valueListenable: totalDurationNotifier,
+              builder: (context, totalDuration, _) {
+                return ValueListenableBuilder<Duration>(
+                  valueListenable: currentPositionNotifier,
+                  builder: (context, currentPosition, __) {
+                    final remaining = visibleRemainingDuration(
+                      meditation,
+                      currentPosition,
+                      totalDuration,
+                    );
+                    final hasDuration =
+                        visibleTotalDuration(meditation, totalDuration) >
+                            Duration.zero;
+
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(99),
+                          child: LinearProgressIndicator(
+                            value: progressValueForMeditation(
+                              meditation,
+                              currentPosition,
+                              totalDuration,
+                            ),
+                            minHeight: 5,
+                            backgroundColor: Colors.white.withOpacity(0.9),
+                            valueColor: const AlwaysStoppedAnimation<Color>(
+                              Color(0xFF536B4E),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 7),
+                        Row(
+                          children: [
+                            Icon(
+                              isAudioPaused
+                                  ? Icons.pause_circle_outline
+                                  : Icons.play_circle_outline,
+                              size: 16,
+                              color: const Color(0xFF536B4E),
+                            ),
+                            const SizedBox(width: 5),
+                            Expanded(
+                              child: Text(
+                                isAudioPaused ? 'Duraklatıldı' : 'Çalıyor',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  color: Color(0xFF536B4E),
+                                  fontWeight: FontWeight.w900,
+                                  fontSize: 11.5,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 3),
+                        Text(
+                          hasDuration
+                              ? 'Kalan süre: ${formatDuration(remaining)}'
+                              : 'Kalan süre hesaplanamadı',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            color: Color(0xFF2F3A32),
+                            fontWeight: FontWeight.w900,
+                            fontSize: 11.5,
+                          ),
+                        ),
+                      ],
+                    );
+                  },
+                );
+              },
             ),
           ],
         ),
@@ -609,6 +645,7 @@ Future<void> handleMeditationTap(MeditationModel meditation) async {
               child: Image.asset(
                 meditationCardBackground,
                 fit: BoxFit.cover,
+                cacheWidth: 1290,
                 errorBuilder: (context, error, stackTrace) {
                   return Container(
                     color: const Color(0xFFEEF3EA),
@@ -648,12 +685,13 @@ Future<void> handleMeditationTap(MeditationModel meditation) async {
                       if (meditation.thumbnailUrl.trim().isNotEmpty)
                         ClipRRect(
                           borderRadius: BorderRadius.circular(18),
-                          child: Image.network(
-                            meditation.thumbnailUrl,
+                          child: CachedNetworkImage(
+                            imageUrl: meditation.thumbnailUrl,
                             width: 66,
                             height: 66,
                             fit: BoxFit.cover,
-                            errorBuilder: (context, error, stackTrace) {
+                            memCacheWidth: 150,
+                            errorWidget: (context, url, error) {
                               return _MeditationIconBox(
                                 icon: iconForType(meditation.type),
                               );
@@ -835,33 +873,61 @@ Future<void> handleMeditationTap(MeditationModel meditation) async {
                   );
                 }
 
-                final allMeditations = snapshot.data ?? [];
-                final visibleMeditations = filterMeditations(allMeditations);
+                final data = snapshot.data ?? [];
 
-                return ListView(
-                  padding: const EdgeInsets.fromLTRB(18, 18, 18, 28),
-                  children: [
-                    buildHeroCard(),
-                    const SizedBox(height: 18),
-                    SingleChildScrollView(
-                      scrollDirection: Axis.horizontal,
-                      child: Row(
-                        children: [
-                          buildFilterChip('all'),
-                          buildFilterChip('Sabah'),
-                          buildFilterChip('Akşam'),
-                          buildFilterChip('Şükür'),
-                          buildFilterChip('Aşk'),
-                          buildFilterChip('Bereket'),
-                          buildFilterChip('Sağlık'),
-                        ],
+                if (!identical(data, allMeditations)) {
+                  allMeditations = data;
+                  recomputeVisibleMeditations();
+                }
+
+                return CustomScrollView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  slivers: [
+                    SliverPadding(
+                      padding: const EdgeInsets.fromLTRB(18, 18, 18, 0),
+                      sliver: SliverList(
+                        delegate: SliverChildListDelegate([
+                          buildHeroCard(),
+                          const SizedBox(height: 18),
+                          SingleChildScrollView(
+                            scrollDirection: Axis.horizontal,
+                            child: Row(
+                              children: [
+                                buildFilterChip('all'),
+                                buildFilterChip('Sabah'),
+                                buildFilterChip('Akşam'),
+                                buildFilterChip('Şükür'),
+                                buildFilterChip('Aşk'),
+                                buildFilterChip('Bereket'),
+                                buildFilterChip('Sağlık'),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: 18),
+                        ]),
                       ),
                     ),
-                    const SizedBox(height: 18),
                     if (visibleMeditations.isEmpty)
-                      buildEmptyState()
+                      SliverPadding(
+                        padding: const EdgeInsets.fromLTRB(18, 0, 18, 28),
+                        sliver: SliverList(
+                          delegate: SliverChildListDelegate([
+                            buildEmptyState(),
+                          ]),
+                        ),
+                      )
                     else
-                      ...visibleMeditations.map(buildMeditationCard),
+                      SliverPadding(
+                        padding: const EdgeInsets.fromLTRB(18, 0, 18, 28),
+                        sliver: SliverList.builder(
+                          itemCount: visibleMeditations.length,
+                          itemBuilder: (context, index) {
+                            return buildMeditationCard(
+                              visibleMeditations[index],
+                            );
+                          },
+                        ),
+                      ),
                   ],
                 );
               },

@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
@@ -19,6 +20,11 @@ class _TrainingsPageState extends State<TrainingsPage> {
 
   int selectedMenuIndex = 0;
 
+  List<TrainingModel> allTrainings = [];
+  List<TrainingModel> upcoming = [];
+  List<TrainingModel> ongoing = [];
+  List<TrainingModel> completed = [];
+
   static const String pageBackground =
       'assets/images/backgrounds/home_bg_5.jpg';
 
@@ -37,10 +43,32 @@ class _TrainingsPageState extends State<TrainingsPage> {
     if (mounted) {
       setState(() {
         joinedMap = joined;
+        rebuildTrainingBuckets(trainings);
       });
+    } else {
+      rebuildTrainingBuckets(trainings);
     }
 
     return trainings;
+  }
+
+  void rebuildTrainingBuckets(List<TrainingModel> items) {
+    allTrainings = items;
+    upcoming = items.where((item) => item.isUpcoming).toList();
+    ongoing = items.where((item) => item.isOngoing).toList();
+    completed = items.where((item) => item.isCompleted).toList();
+  }
+
+  List<TrainingModel> get selectedTrainings {
+    if (selectedMenuIndex == 0) {
+      return upcoming;
+    }
+
+    if (selectedMenuIndex == 1) {
+      return ongoing;
+    }
+
+    return completed;
   }
 
   Future<void> refreshTrainings() async {
@@ -77,30 +105,6 @@ class _TrainingsPageState extends State<TrainingsPage> {
         content: Text(message),
       ),
     );
-  }
-
-  List<TrainingModel> upcomingTrainings(List<TrainingModel> items) {
-    return items.where((item) => item.isUpcoming).toList();
-  }
-
-  List<TrainingModel> ongoingTrainings(List<TrainingModel> items) {
-    return items.where((item) => item.isOngoing).toList();
-  }
-
-  List<TrainingModel> completedTrainings(List<TrainingModel> items) {
-    return items.where((item) => item.isCompleted).toList();
-  }
-
-  List<TrainingModel> selectedTrainings(List<TrainingModel> items) {
-    if (selectedMenuIndex == 0) {
-      return upcomingTrainings(items);
-    }
-
-    if (selectedMenuIndex == 1) {
-      return ongoingTrainings(items);
-    }
-
-    return completedTrainings(items);
   }
 
   String get selectedTitle {
@@ -455,12 +459,14 @@ class _TrainingsPageState extends State<TrainingsPage> {
               if (training.imageUrl.trim().isNotEmpty)
                 ClipRRect(
                   borderRadius: BorderRadius.circular(20),
-                  child: Image.network(
-                    training.imageUrl,
+                  child: CachedNetworkImage(
+                    imageUrl: training.imageUrl,
                     width: double.infinity,
                     height: 150,
                     fit: BoxFit.cover,
-                    errorBuilder: (context, error, stackTrace) {
+                    memCacheWidth: 600,
+                    placeholder: (context, url) => buildImageFallback(),
+                    errorWidget: (context, url, error) {
                       return buildImageFallback();
                     },
                   ),
@@ -616,35 +622,22 @@ class _TrainingsPageState extends State<TrainingsPage> {
     );
   }
 
-  Widget buildSelectedTrainingList({
-    required String title,
-    required List<TrainingModel> items,
-    required String emptyText,
-  }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        buildSectionTitle(title, items.length),
-        if (items.isEmpty)
-          Container(
-            width: double.infinity,
-            margin: const EdgeInsets.only(bottom: 14),
-            padding: const EdgeInsets.all(18),
-            decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.76),
-              borderRadius: BorderRadius.circular(24),
-            ),
-            child: Text(
-              emptyText,
-              style: const TextStyle(
-                color: Color(0xFF606A61),
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-          )
-        else
-          ...items.map(buildTrainingCard),
-      ],
+  Widget buildSelectedEmptyCard() {
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.only(bottom: 14),
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.76),
+        borderRadius: BorderRadius.circular(24),
+      ),
+      child: Text(
+        selectedEmptyText,
+        style: const TextStyle(
+          color: Color(0xFF606A61),
+          fontWeight: FontWeight.w700,
+        ),
+      ),
     );
   }
 
@@ -705,31 +698,32 @@ class _TrainingsPageState extends State<TrainingsPage> {
                   );
                 }
 
-                final items = snapshot.data ?? [];
+                final selectedItems = selectedTrainings;
 
-                final upcoming = upcomingTrainings(items);
-                final ongoing = ongoingTrainings(items);
-                final completed = completedTrainings(items);
+                final headerWidgets = <Widget>[
+                  buildHeroCard(),
+                  const SizedBox(height: 16),
+                  buildTopMenu(
+                    upcomingCount: upcoming.length,
+                    ongoingCount: ongoing.length,
+                    completedCount: completed.length,
+                  ),
+                  const SizedBox(height: 18),
+                  buildSectionTitle(selectedTitle, selectedItems.length),
+                  if (selectedItems.isEmpty) buildSelectedEmptyCard(),
+                ];
 
-                final selectedItems = selectedTrainings(items);
-
-                return ListView(
+                return ListView.builder(
                   padding: const EdgeInsets.fromLTRB(18, 18, 18, 28),
-                  children: [
-                    buildHeroCard(),
-                    const SizedBox(height: 16),
-                    buildTopMenu(
-                      upcomingCount: upcoming.length,
-                      ongoingCount: ongoing.length,
-                      completedCount: completed.length,
-                    ),
-                    const SizedBox(height: 18),
-                    buildSelectedTrainingList(
-                      title: selectedTitle,
-                      items: selectedItems,
-                      emptyText: selectedEmptyText,
-                    ),
-                  ],
+                  itemCount: headerWidgets.length + selectedItems.length,
+                  itemBuilder: (context, index) {
+                    if (index < headerWidgets.length) {
+                      return headerWidgets[index];
+                    }
+
+                    final training = selectedItems[index - headerWidgets.length];
+                    return buildTrainingCard(training);
+                  },
                 );
               },
             ),

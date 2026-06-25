@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 
 class TeacherCard extends StatelessWidget {
@@ -91,8 +92,9 @@ class TeacherCard extends StatelessWidget {
                       child: CircleAvatar(
                         radius: 38,
                         backgroundColor: Colors.white.withOpacity(0.85),
-                        backgroundImage:
-                            hasImage ? NetworkImage(imageUrl!) : null,
+                        backgroundImage: hasImage
+                            ? CachedNetworkImageProvider(imageUrl!, maxWidth: 150)
+                            : null,
                         child: hasImage
                             ? null
                             : const Icon(
