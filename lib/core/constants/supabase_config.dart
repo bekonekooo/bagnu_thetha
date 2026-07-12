@@ -4,5 +4,4 @@ class SupabaseConfig {
 
  static const String stripePublishableKey = 'pk_test_51TZQa1EfQz5p300n9O6LHvNU9EK5cs008JpEPoKkPIVVJtViWEJ7PhI2ovv2QSThK68wzBlArURSbJT2glXqhhO100i0koT9z8';
 
-
 }

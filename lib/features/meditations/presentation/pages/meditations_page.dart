@@ -326,16 +326,23 @@ class _MeditationsPageState extends State<MeditationsPage> {
     }
   }
 
-Future<void> handleMeditationTap(MeditationModel meditation) async {
-  await stopAudioIfPlaying();
+  Future<void> handleMeditationTap(MeditationModel meditation) async {
+    await stopAudioIfPlaying();
 
-  if (!mounted) return;
+    if (!mounted) return;
 
-  context.push(
-    '/meditation-detail',
-    extra: meditation,
-  );
-}
+    await context.push(
+      '/meditation-detail',
+      extra: meditation,
+    );
+
+    if (!mounted) return;
+
+    setState(() {
+      meditationsFuture = meditationService.fetchActiveMeditations();
+    });
+  }
+
   IconData iconForType(String type) {
     switch (type) {
       case 'audio':
@@ -496,6 +503,90 @@ Future<void> handleMeditationTap(MeditationModel meditation) async {
           ),
         ],
       ),
+    );
+  }
+
+  Widget buildLikeCountBadge(MeditationModel meditation) {
+    return FutureBuilder<int>(
+      future: meditationService.fetchMeditationLikeCount(meditation.id),
+      builder: (context, snapshot) {
+        final likeCount = snapshot.data ?? 0;
+
+        return Container(
+          padding: const EdgeInsets.symmetric(
+            horizontal: 9,
+            vertical: 5,
+          ),
+          decoration: BoxDecoration(
+            color: Colors.white.withOpacity(0.78),
+            borderRadius: BorderRadius.circular(999),
+            border: Border.all(
+              color: Colors.white.withOpacity(0.70),
+            ),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(
+                Icons.favorite,
+                size: 13,
+                color: Color(0xFFC85C5C),
+              ),
+              const SizedBox(width: 4),
+              Text(
+                '$likeCount',
+                style: const TextStyle(
+                  color: Color(0xFF536B4E),
+                  fontSize: 11,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget buildCommentCountBadge(MeditationModel meditation) {
+    return FutureBuilder<int>(
+      future: meditationService.fetchMeditationCommentCount(meditation.id),
+      builder: (context, snapshot) {
+        final commentCount = snapshot.data ?? 0;
+
+        return Container(
+          padding: const EdgeInsets.symmetric(
+            horizontal: 9,
+            vertical: 5,
+          ),
+          decoration: BoxDecoration(
+            color: Colors.white.withOpacity(0.78),
+            borderRadius: BorderRadius.circular(999),
+            border: Border.all(
+              color: Colors.white.withOpacity(0.70),
+            ),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(
+                Icons.mode_comment_outlined,
+                size: 13,
+                color: Color(0xFF536B4E),
+              ),
+              const SizedBox(width: 4),
+              Text(
+                '$commentCount',
+                style: const TextStyle(
+                  color: Color(0xFF536B4E),
+                  fontSize: 11,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 
@@ -674,6 +765,8 @@ Future<void> handleMeditationTap(MeditationModel meditation) async {
                               runSpacing: 7,
                               children: [
                                 _MiniTag(text: meditation.typeLabel),
+                                buildLikeCountBadge(meditation),
+                                buildCommentCountBadge(meditation),
                                 ...categoriesForMeditation(meditation).map(
                                   (category) => _MiniTag(text: category),
                                 ),

@@ -3,7 +3,10 @@ import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:video_player/video_player.dart';
 
+import 'package:flutter_application_1/core/services/supabase_service.dart';
+import 'package:flutter_application_1/features/meditations/data/models/meditation_comment_model.dart';
 import 'package:flutter_application_1/features/meditations/data/models/meditation_model.dart';
+import 'package:flutter_application_1/features/meditations/data/services/meditation_service.dart';
 
 class MeditationDetailPage extends StatefulWidget {
   final MeditationModel meditation;
@@ -19,9 +22,20 @@ class MeditationDetailPage extends StatefulWidget {
 
 class _MeditationDetailPageState extends State<MeditationDetailPage> {
   final AudioPlayer audioPlayer = AudioPlayer();
+  final MeditationService meditationService = MeditationService();
+  final TextEditingController commentController = TextEditingController();
 
   bool isPlaying = false;
   bool isPaused = false;
+
+  bool isLoadingSocial = true;
+  bool isLikeLoading = false;
+  bool isSendingComment = false;
+
+  int likeCount = 0;
+  bool isLikedByMe = false;
+
+  List<MeditationCommentModel> comments = [];
 
   Duration currentPosition = Duration.zero;
   Duration totalDuration = Duration.zero;
@@ -32,6 +46,8 @@ class _MeditationDetailPageState extends State<MeditationDetailPage> {
   @override
   void initState() {
     super.initState();
+
+    loadSocialData();
 
     audioPlayer.onDurationChanged.listen((duration) {
       if (!mounted) return;
@@ -63,8 +79,141 @@ class _MeditationDetailPageState extends State<MeditationDetailPage> {
 
   @override
   void dispose() {
+    commentController.dispose();
     audioPlayer.dispose();
     super.dispose();
+  }
+
+  Future<void> loadSocialData() async {
+    try {
+      final results = await Future.wait([
+        meditationService.fetchMeditationLikeCount(widget.meditation.id),
+        meditationService.fetchIsMeditationLikedByMe(widget.meditation.id),
+        meditationService.fetchMeditationComments(widget.meditation.id),
+      ]);
+
+      if (!mounted) return;
+
+      setState(() {
+        likeCount = results[0] as int;
+        isLikedByMe = results[1] as bool;
+        comments = results[2] as List<MeditationCommentModel>;
+        isLoadingSocial = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+
+      setState(() {
+        isLoadingSocial = false;
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Beğeni ve yorumlar yüklenemedi: $e'),
+        ),
+      );
+    }
+  }
+
+  Future<void> toggleLike() async {
+    if (isLikeLoading) return;
+
+    setState(() {
+      isLikeLoading = true;
+    });
+
+    try {
+      final newLikedState = await meditationService.toggleMeditationLike(
+        widget.meditation.id,
+      );
+
+      if (!mounted) return;
+
+      setState(() {
+        isLikedByMe = newLikedState;
+        likeCount = newLikedState ? likeCount + 1 : likeCount - 1;
+
+        if (likeCount < 0) {
+          likeCount = 0;
+        }
+
+        isLikeLoading = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+
+      setState(() {
+        isLikeLoading = false;
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Beğeni işlemi yapılamadı: $e'),
+        ),
+      );
+    }
+  }
+
+  Future<void> sendComment() async {
+    final text = commentController.text.trim();
+
+    if (text.isEmpty || isSendingComment) return;
+
+    setState(() {
+      isSendingComment = true;
+    });
+
+    try {
+      await meditationService.addMeditationComment(
+        meditationId: widget.meditation.id,
+        commentText: text,
+      );
+
+      commentController.clear();
+
+      final updatedComments = await meditationService.fetchMeditationComments(
+        widget.meditation.id,
+      );
+
+      if (!mounted) return;
+
+      setState(() {
+        comments = updatedComments;
+        isSendingComment = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+
+      setState(() {
+        isSendingComment = false;
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Yorum gönderilemedi: $e'),
+        ),
+      );
+    }
+  }
+
+  Future<void> deleteComment(MeditationCommentModel comment) async {
+    try {
+      await meditationService.deleteMeditationComment(comment.id);
+
+      if (!mounted) return;
+
+      setState(() {
+        comments = comments.where((item) => item.id != comment.id).toList();
+      });
+    } catch (e) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Yorum silinemedi: $e'),
+        ),
+      );
+    }
   }
 
   String formatDuration(Duration duration) {
@@ -73,6 +222,19 @@ class _MeditationDetailPageState extends State<MeditationDetailPage> {
     final seconds = totalSeconds % 60;
 
     return '${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
+  }
+
+  String formatCommentDate(DateTime? date) {
+    if (date == null) return '';
+
+    final localDate = date.toLocal();
+    final day = localDate.day.toString().padLeft(2, '0');
+    final month = localDate.month.toString().padLeft(2, '0');
+    final year = localDate.year.toString();
+    final hour = localDate.hour.toString().padLeft(2, '0');
+    final minute = localDate.minute.toString().padLeft(2, '0');
+
+    return '$day.$month.$year $hour:$minute';
   }
 
   double get progressValue {
@@ -543,6 +705,280 @@ class _MeditationDetailPageState extends State<MeditationDetailPage> {
     );
   }
 
+  Widget buildLikeButton() {
+    return InkWell(
+      onTap: isLikeLoading ? null : toggleLike,
+      borderRadius: BorderRadius.circular(18),
+      child: Container(
+        padding: const EdgeInsets.symmetric(
+          horizontal: 14,
+          vertical: 11,
+        ),
+        decoration: BoxDecoration(
+          color: isLikedByMe
+              ? const Color(0xFF536B4E)
+              : Colors.white.withOpacity(0.86),
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(
+            color: isLikedByMe
+                ? const Color(0xFF536B4E)
+                : Colors.white.withOpacity(0.74),
+          ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (isLikeLoading)
+              SizedBox(
+                width: 18,
+                height: 18,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: isLikedByMe ? Colors.white : const Color(0xFF536B4E),
+                ),
+              )
+            else
+              Icon(
+                isLikedByMe ? Icons.favorite : Icons.favorite_border,
+                color: isLikedByMe ? Colors.white : const Color(0xFF536B4E),
+                size: 21,
+              ),
+            const SizedBox(width: 8),
+            Text(
+              '$likeCount Beğeni',
+              style: TextStyle(
+                color: isLikedByMe ? Colors.white : const Color(0xFF536B4E),
+                fontWeight: FontWeight.w900,
+                fontSize: 13,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget buildCommentInput() {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(12, 10, 10, 10),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.82),
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(
+          color: Colors.white.withOpacity(0.72),
+        ),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: TextField(
+              controller: commentController,
+              minLines: 1,
+              maxLines: 4,
+              textInputAction: TextInputAction.newline,
+              decoration: const InputDecoration(
+                hintText: 'Yorum yaz...',
+                border: InputBorder.none,
+                isDense: true,
+              ),
+              style: const TextStyle(
+                color: Color(0xFF2F3A32),
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+          CircleAvatar(
+            radius: 22,
+            backgroundColor: const Color(0xFF536B4E),
+            child: IconButton(
+              onPressed: isSendingComment ? null : sendComment,
+              icon: isSendingComment
+                  ? const SizedBox(
+                      width: 17,
+                      height: 17,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.white,
+                      ),
+                    )
+                  : const Icon(
+                      Icons.send_rounded,
+                      color: Colors.white,
+                      size: 20,
+                    ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget buildCommentItem(MeditationCommentModel comment) {
+    final currentUserId = supabase.auth.currentUser?.id;
+    final isMine = currentUserId != null && currentUserId == comment.userId;
+
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.only(top: 12),
+      padding: const EdgeInsets.all(13),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.78),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: Colors.white.withOpacity(0.70),
+        ),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (comment.userImageUrl.trim().isNotEmpty)
+            CircleAvatar(
+              radius: 19,
+              backgroundImage: NetworkImage(comment.userImageUrl),
+              backgroundColor: const Color(0xFFEEF3EA),
+            )
+          else
+            const CircleAvatar(
+              radius: 19,
+              backgroundColor: Color(0xFFEEF3EA),
+              child: Icon(
+                Icons.person,
+                color: Color(0xFF536B4E),
+                size: 20,
+              ),
+            ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        comment.userFullName,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: Color(0xFF2F3A32),
+                          fontWeight: FontWeight.w900,
+                          fontSize: 13.5,
+                        ),
+                      ),
+                    ),
+                    if (formatCommentDate(comment.createdAt).isNotEmpty)
+                      Text(
+                        formatCommentDate(comment.createdAt),
+                        style: const TextStyle(
+                          color: Color(0xFF7B857C),
+                          fontWeight: FontWeight.w600,
+                          fontSize: 10.8,
+                        ),
+                      ),
+                    if (isMine) ...[
+                      const SizedBox(width: 4),
+                      InkWell(
+                        onTap: () => deleteComment(comment),
+                        borderRadius: BorderRadius.circular(999),
+                        child: const Padding(
+                          padding: EdgeInsets.all(4),
+                          child: Icon(
+                            Icons.delete_outline,
+                            color: Color(0xFFC85C5C),
+                            size: 18,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+                const SizedBox(height: 5),
+                Text(
+                  comment.commentText,
+                  style: const TextStyle(
+                    color: Color(0xFF4F5A51),
+                    fontWeight: FontWeight.w600,
+                    fontSize: 13.2,
+                    height: 1.35,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget buildSocialCard() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.fromLTRB(18, 18, 18, 18),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.78),
+        borderRadius: BorderRadius.circular(28),
+        border: Border.all(
+          color: Colors.white.withOpacity(0.70),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.10),
+            blurRadius: 24,
+            offset: const Offset(0, 12),
+          ),
+        ],
+      ),
+      child: isLoadingSocial
+          ? const Center(
+              child: Padding(
+                padding: EdgeInsets.all(18),
+                child: CircularProgressIndicator(
+                  color: Color(0xFF536B4E),
+                ),
+              ),
+            )
+          : Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                buildLikeButton(),
+                const SizedBox(height: 20),
+                const Text(
+                  'Yorumlar',
+                  style: TextStyle(
+                    color: Color(0xFF2F3A32),
+                    fontWeight: FontWeight.w900,
+                    fontSize: 18,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                buildCommentInput(),
+                const SizedBox(height: 4),
+                if (comments.isEmpty)
+                  Container(
+                    width: double.infinity,
+                    margin: const EdgeInsets.only(top: 14),
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.64),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: const Text(
+                      'Henüz yorum yok. İlk yorumu sen yaz.',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: Color(0xFF606A61),
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  )
+                else
+                  ...comments.map(buildCommentItem),
+              ],
+            ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -576,6 +1012,8 @@ class _MeditationDetailPageState extends State<MeditationDetailPage> {
                 if (widget.meditation.isAudio && isPlaying)
                   const SizedBox(height: 16),
                 buildActionButton(),
+                const SizedBox(height: 16),
+                buildSocialCard(),
               ],
             ),
           ),

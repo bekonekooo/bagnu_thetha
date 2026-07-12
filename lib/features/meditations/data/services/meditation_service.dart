@@ -2,6 +2,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter_application_1/core/services/supabase_service.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../models/meditation_comment_model.dart';
 import '../models/meditation_model.dart';
 
 class MeditationService {
@@ -38,6 +39,131 @@ class MeditationService {
     return (response as List)
         .map((item) => MeditationModel.fromMap(Map<String, dynamic>.from(item)))
         .toList();
+  }
+
+  Future<int> fetchMeditationLikeCount(String meditationId) async {
+    final response = await supabase
+        .from('meditation_likes')
+        .select('id')
+        .eq('meditation_id', meditationId);
+
+    return (response as List).length;
+  }
+
+  Future<int> fetchMeditationCommentCount(String meditationId) async {
+    final response = await supabase
+        .from('meditation_comments')
+        .select('id')
+        .eq('meditation_id', meditationId);
+
+    return (response as List).length;
+  }
+
+  Future<bool> fetchIsMeditationLikedByMe(String meditationId) async {
+    final user = supabase.auth.currentUser;
+
+    if (user == null) {
+      return false;
+    }
+
+    final response = await supabase
+        .from('meditation_likes')
+        .select('id')
+        .eq('meditation_id', meditationId)
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+    return response != null;
+  }
+
+  Future<bool> toggleMeditationLike(String meditationId) async {
+    final user = supabase.auth.currentUser;
+
+    if (user == null) {
+      throw Exception('Beğenmek için giriş yapmalısın.');
+    }
+
+    final isLiked = await fetchIsMeditationLikedByMe(meditationId);
+
+    if (isLiked) {
+      await supabase
+          .from('meditation_likes')
+          .delete()
+          .eq('meditation_id', meditationId)
+          .eq('user_id', user.id);
+
+      return false;
+    }
+
+    await supabase.from('meditation_likes').insert({
+      'meditation_id': meditationId,
+      'user_id': user.id,
+    });
+
+    return true;
+  }
+
+  Future<List<MeditationCommentModel>> fetchMeditationComments(
+    String meditationId,
+  ) async {
+    final response = await supabase
+        .from('meditation_comments')
+        .select('''
+          id,
+          meditation_id,
+          user_id,
+          comment_text,
+          created_at,
+          profiles (
+            full_name,
+            image_url
+          )
+        ''')
+        .eq('meditation_id', meditationId)
+        .order('created_at', ascending: false);
+
+    return (response as List).map((item) {
+      return MeditationCommentModel.fromMap(
+        Map<String, dynamic>.from(item),
+      );
+    }).toList();
+  }
+
+  Future<void> addMeditationComment({
+    required String meditationId,
+    required String commentText,
+  }) async {
+    final user = supabase.auth.currentUser;
+
+    if (user == null) {
+      throw Exception('Yorum yazmak için giriş yapmalısın.');
+    }
+
+    final cleanedComment = commentText.trim();
+
+    if (cleanedComment.isEmpty) {
+      throw Exception('Yorum boş olamaz.');
+    }
+
+    await supabase.from('meditation_comments').insert({
+      'meditation_id': meditationId,
+      'user_id': user.id,
+      'comment_text': cleanedComment,
+    });
+  }
+
+  Future<void> deleteMeditationComment(String commentId) async {
+    final user = supabase.auth.currentUser;
+
+    if (user == null) {
+      throw Exception('Devam etmek için giriş yapmalısın.');
+    }
+
+    await supabase
+        .from('meditation_comments')
+        .delete()
+        .eq('id', commentId)
+        .eq('user_id', user.id);
   }
 
   Future<String> uploadMeditationMedia({
