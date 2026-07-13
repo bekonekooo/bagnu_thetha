@@ -41,6 +41,16 @@ class HomeMenuGrid extends StatelessWidget {
         title: 'Topluluk',
         route: '/community',
       ),
+      _HomeMenuItem(
+        icon: Icons.bookmark_border_rounded,
+        title: 'Favorilerim',
+        route: '/favorites',
+      ),
+      _HomeMenuItem(
+        icon: Icons.auto_awesome_mosaic_outlined,
+        title: 'Atölyeler',
+        route: '/workshops',
+      ),
     ];
 
     return Padding(

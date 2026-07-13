@@ -33,6 +33,8 @@ import 'package:flutter_application_1/features/trainings/presentation/pages/teac
 
 import 'package:flutter_application_1/features/guidance/presentation/pages/guidance_page.dart';
 import 'package:flutter_application_1/features/community/presentation/pages/community_page.dart';
+import 'package:flutter_application_1/features/favorites/presentation/pages/favorites_page.dart';
+import 'package:flutter_application_1/features/workshops/presentation/pages/workshops_page.dart';
 
 import 'package:flutter_application_1/features/meditations/data/models/meditation_model.dart';
 import 'package:flutter_application_1/features/meditations/presentation/pages/meditations_page.dart';
@@ -151,6 +153,8 @@ final GoRouter appRouter = GoRouter(
       '/training-detail',
       '/guidance',
       '/community',
+      '/favorites',
+      '/workshops',
       '/meditations',
       '/meditation-detail',
     ];
@@ -468,6 +472,14 @@ final GoRouter appRouter = GoRouter(
         GoRoute(
           path: '/community',
           builder: (context, state) => const CommunityPage(),
+        ),
+        GoRoute(
+          path: '/favorites',
+          builder: (context, state) => const FavoritesPage(),
+        ),
+        GoRoute(
+          path: '/workshops',
+          builder: (context, state) => const WorkshopsPage(),
         ),
       ],
     ),
