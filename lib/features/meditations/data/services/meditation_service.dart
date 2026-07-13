@@ -22,6 +22,54 @@ class MeditationService {
         .toList();
   }
 
+  Future<List<MeditationModel>> fetchMyFavoriteMeditations() async {
+    final user = supabase.auth.currentUser;
+
+    if (user == null) {
+      throw Exception('Favorileri görmek için giriş yapmalısın.');
+    }
+
+    final likesResponse = await supabase
+        .from('meditation_likes')
+        .select('meditation_id, created_at')
+        .eq('user_id', user.id)
+        .order('created_at', ascending: false);
+
+    final likedRows = likesResponse as List;
+
+    if (likedRows.isEmpty) {
+      return [];
+    }
+
+    final meditationIds = likedRows
+        .map((item) => item['meditation_id']?.toString() ?? '')
+        .where((id) => id.trim().isNotEmpty)
+        .toList();
+
+    if (meditationIds.isEmpty) {
+      return [];
+    }
+
+    final meditationsResponse = await supabase
+        .from('meditations')
+        .select()
+        .inFilter('id', meditationIds)
+        .eq('is_active', true);
+
+    final meditations = (meditationsResponse as List)
+        .map((item) => MeditationModel.fromMap(Map<String, dynamic>.from(item)))
+        .toList();
+
+    meditations.sort((a, b) {
+      final aIndex = meditationIds.indexOf(a.id);
+      final bIndex = meditationIds.indexOf(b.id);
+
+      return aIndex.compareTo(bIndex);
+    });
+
+    return meditations;
+  }
+
   Future<List<MeditationModel>> fetchMyTeacherMeditations() async {
     final user = supabase.auth.currentUser;
 
