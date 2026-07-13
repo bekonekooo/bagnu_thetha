@@ -53,28 +53,25 @@ class HomeMenuGrid extends StatelessWidget {
       ),
     ];
 
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 4),
-      child: GridView.builder(
-        shrinkWrap: true,
-        physics: const NeverScrollableScrollPhysics(),
-        itemCount: items.length,
-        padding: EdgeInsets.zero,
-        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: 2,
-          crossAxisSpacing: 14,
-          mainAxisSpacing: 14,
-          childAspectRatio: 1.55,
-        ),
-        itemBuilder: (context, index) {
-          final item = items[index];
-
-          return _NatureMenuCard(
-            item: item,
-            onTap: () => onTap(item.route),
-          );
-        },
+    return GridView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      itemCount: items.length,
+      padding: EdgeInsets.zero,
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 2,
+        crossAxisSpacing: 13,
+        mainAxisSpacing: 13,
+        childAspectRatio: 1.62,
       ),
+      itemBuilder: (context, index) {
+        final item = items[index];
+
+        return _SoftMenuCard(
+          item: item,
+          onTap: () => onTap(item.route),
+        );
+      },
     );
   }
 }
@@ -91,11 +88,11 @@ class _HomeMenuItem {
   });
 }
 
-class _NatureMenuCard extends StatelessWidget {
+class _SoftMenuCard extends StatelessWidget {
   final _HomeMenuItem item;
   final VoidCallback onTap;
 
-  const _NatureMenuCard({
+  const _SoftMenuCard({
     required this.item,
     required this.onTap,
   });
@@ -104,41 +101,40 @@ class _NatureMenuCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Material(
       color: Colors.transparent,
-      borderRadius: BorderRadius.circular(30),
+      borderRadius: BorderRadius.circular(26),
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(30),
-        splashColor: const Color(0xFF536B4E).withOpacity(0.10),
-        highlightColor: const Color(0xFF536B4E).withOpacity(0.06),
+        borderRadius: BorderRadius.circular(26),
+        splashColor: const Color(0xFF536B4E).withOpacity(0.08),
+        highlightColor: const Color(0xFF536B4E).withOpacity(0.04),
         child: Ink(
           decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.74),
-            borderRadius: BorderRadius.circular(30),
+            color: const Color(0xFFFFFCF6),
+            borderRadius: BorderRadius.circular(26),
             border: Border.all(
-              color: Colors.white.withOpacity(0.65),
+              color: const Color(0xFFE8DDC9),
             ),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.08),
-                blurRadius: 22,
-                offset: const Offset(0, 10),
+                color: const Color(0xFF536B4E).withOpacity(0.08),
+                blurRadius: 18,
+                offset: const Offset(0, 9),
               ),
             ],
           ),
           child: Padding(
             padding: const EdgeInsets.symmetric(
-              horizontal: 12,
-              vertical: 14,
+              horizontal: 13,
+              vertical: 13,
             ),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
+            child: Row(
               children: [
                 Container(
                   width: 48,
                   height: 48,
                   decoration: BoxDecoration(
-                    color: const Color(0xFFEEF3EA).withOpacity(0.95),
-                    borderRadius: BorderRadius.circular(17),
+                    color: const Color(0xFFEEF3EA),
+                    borderRadius: BorderRadius.circular(18),
                     border: Border.all(
                       color: const Color(0xFFD7E1D0),
                     ),
@@ -149,18 +145,19 @@ class _NatureMenuCard extends StatelessWidget {
                     size: 26,
                   ),
                 ),
-                const SizedBox(height: 10),
-                Text(
-                  item.title,
-                  maxLines: 2,
-                  textAlign: TextAlign.center,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w900,
-                    color: Color(0xFF2F3A32),
-                    height: 1.08,
-                    letterSpacing: -0.35,
+                const SizedBox(width: 11),
+                Expanded(
+                  child: Text(
+                    item.title,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontSize: 15.2,
+                      fontWeight: FontWeight.w900,
+                      color: Color(0xFF2F3A32),
+                      height: 1.08,
+                      letterSpacing: -0.35,
+                    ),
                   ),
                 ),
               ],

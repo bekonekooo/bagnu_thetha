@@ -61,17 +61,16 @@ class _TeachersPageState extends State<TeachersPage> {
     });
   }
 
-  void goToTeacherDetail(TeacherModel teacher) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => TeacherDetailPage(
-          teacher: teacher.toMap(),
-        ),
+void goToTeacherDetail(TeacherModel teacher) {
+  Navigator.push(
+    context,
+    MaterialPageRoute(
+      builder: (context) => TeacherDetailPage(
+        teacher: teacher,
       ),
-    );
-  }
-
+    ),
+  );
+}
   Widget buildBackgroundBody({
     required Widget child,
   }) {

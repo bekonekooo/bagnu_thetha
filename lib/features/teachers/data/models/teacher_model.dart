@@ -1,5 +1,7 @@
 class TeacherModel {
   final String id;
+  final String? userId;
+
   final String name;
   final String specialty;
   final String category;
@@ -11,8 +13,9 @@ class TeacherModel {
   final double sessionPrice;
   final String currency;
 
-  TeacherModel({
+  const TeacherModel({
     required this.id,
+    required this.userId,
     required this.name,
     required this.specialty,
     required this.category,
@@ -28,16 +31,22 @@ class TeacherModel {
   factory TeacherModel.fromMap(Map<String, dynamic> map) {
     return TeacherModel(
       id: map['id']?.toString() ?? '',
+      userId: map['user_id']?.toString(),
       name: map['name']?.toString() ?? '',
       specialty: map['specialty']?.toString() ?? '',
       category: map['category']?.toString() ?? '',
       experience: map['experience']?.toString() ?? '',
-      rating: double.tryParse(map['rating']?.toString() ?? '0') ?? 0,
+      rating: double.tryParse(
+            map['rating']?.toString() ?? '0',
+          ) ??
+          0,
       bio: map['bio']?.toString() ?? '',
       imageUrl: map['image_url']?.toString() ?? '',
-      isActive: map['is_active'] ?? true,
-      sessionPrice:
-          double.tryParse(map['session_price']?.toString() ?? '0') ?? 0,
+      isActive: map['is_active'] == true,
+      sessionPrice: double.tryParse(
+            map['session_price']?.toString() ?? '0',
+          ) ??
+          0,
       currency: map['currency']?.toString() ?? 'try',
     );
   }
@@ -45,6 +54,7 @@ class TeacherModel {
   Map<String, dynamic> toMap() {
     return {
       'id': id,
+      'user_id': userId,
       'name': name,
       'specialty': specialty,
       'category': category,

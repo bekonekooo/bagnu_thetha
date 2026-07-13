@@ -1,5 +1,6 @@
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter_application_1/core/services/supabase_service.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../models/meditation_comment_model.dart';
@@ -8,6 +9,9 @@ import '../models/meditation_model.dart';
 class MeditationService {
   static const String mediaBucket = 'meditation-media';
   static const String thumbnailsBucket = 'meditation-thumbnails';
+
+  static const String recentlyPlayedMeditationIdsKey =
+      'recently_played_meditation_ids';
 
   Future<List<MeditationModel>> fetchActiveMeditations() async {
     final response = await supabase
@@ -70,6 +74,57 @@ class MeditationService {
     return meditations;
   }
 
+  Future<void> saveRecentlyPlayedMeditation(String meditationId) async {
+    final cleanedId = meditationId.trim();
+
+    if (cleanedId.isEmpty) return;
+
+    final prefs = await SharedPreferences.getInstance();
+
+    final currentIds =
+        prefs.getStringList(recentlyPlayedMeditationIdsKey) ?? [];
+
+    final updatedIds = [
+      cleanedId,
+      ...currentIds.where((id) => id != cleanedId),
+    ].take(20).toList();
+
+    await prefs.setStringList(
+      recentlyPlayedMeditationIdsKey,
+      updatedIds,
+    );
+  }
+
+  Future<List<MeditationModel>> fetchRecentlyPlayedMeditations() async {
+    final prefs = await SharedPreferences.getInstance();
+
+    final meditationIds =
+        prefs.getStringList(recentlyPlayedMeditationIdsKey) ?? [];
+
+    if (meditationIds.isEmpty) {
+      return [];
+    }
+
+    final response = await supabase
+        .from('meditations')
+        .select()
+        .inFilter('id', meditationIds)
+        .eq('is_active', true);
+
+    final meditations = (response as List)
+        .map((item) => MeditationModel.fromMap(Map<String, dynamic>.from(item)))
+        .toList();
+
+    meditations.sort((a, b) {
+      final aIndex = meditationIds.indexOf(a.id);
+      final bIndex = meditationIds.indexOf(b.id);
+
+      return aIndex.compareTo(bIndex);
+    });
+
+    return meditations;
+  }
+
   Future<List<MeditationModel>> fetchMyTeacherMeditations() async {
     final user = supabase.auth.currentUser;
 
@@ -88,6 +143,32 @@ class MeditationService {
         .map((item) => MeditationModel.fromMap(Map<String, dynamic>.from(item)))
         .toList();
   }
+
+  Future<List<MeditationModel>> fetchMeditationsByTeacherUserId(
+  String teacherUserId,
+) async {
+  final cleanUserId = teacherUserId.trim();
+
+  if (cleanUserId.isEmpty) {
+    return [];
+  }
+
+  final response = await supabase
+      .from('meditations')
+      .select()
+      .eq('created_by', cleanUserId)
+      .eq('is_active', true)
+      .order('sort_order', ascending: true)
+      .order('created_at', ascending: false);
+
+  return (response as List)
+      .map(
+        (item) => MeditationModel.fromMap(
+          Map<String, dynamic>.from(item),
+        ),
+      )
+      .toList();
+}
 
   Future<int> fetchMeditationLikeCount(String meditationId) async {
     final response = await supabase

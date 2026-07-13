@@ -47,6 +47,10 @@ class _MeditationDetailPageState extends State<MeditationDetailPage> {
   void initState() {
     super.initState();
 
+    meditationService.saveRecentlyPlayedMeditation(
+      widget.meditation.id,
+    );
+
     loadSocialData();
 
     audioPlayer.onDurationChanged.listen((duration) {
@@ -365,6 +369,10 @@ class _MeditationDetailPageState extends State<MeditationDetailPage> {
   }
 
   Future<void> handleMainAction() async {
+    await meditationService.saveRecentlyPlayedMeditation(
+      widget.meditation.id,
+    );
+
     if (widget.meditation.isAudio) {
       await playOrPauseAudio();
       return;

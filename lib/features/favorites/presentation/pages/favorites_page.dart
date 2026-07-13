@@ -4,6 +4,11 @@ import 'package:go_router/go_router.dart';
 import 'package:flutter_application_1/features/meditations/data/models/meditation_model.dart';
 import 'package:flutter_application_1/features/meditations/data/services/meditation_service.dart';
 
+enum FavoriteTab {
+  recentlyPlayed,
+  liked,
+}
+
 class FavoritesPage extends StatefulWidget {
   const FavoritesPage({super.key});
 
@@ -14,7 +19,9 @@ class FavoritesPage extends StatefulWidget {
 class _FavoritesPageState extends State<FavoritesPage> {
   final MeditationService meditationService = MeditationService();
 
-  late Future<List<MeditationModel>> favoriteMeditationsFuture;
+  FavoriteTab selectedTab = FavoriteTab.recentlyPlayed;
+
+  late Future<List<MeditationModel>> selectedMeditationsFuture;
 
   static const String backgroundImage =
       'assets/images/backgrounds/home_bg_1.jpg';
@@ -23,15 +30,32 @@ class _FavoritesPageState extends State<FavoritesPage> {
   void initState() {
     super.initState();
 
-    favoriteMeditationsFuture = meditationService.fetchMyFavoriteMeditations();
+    selectedMeditationsFuture = loadSelectedMeditations();
+  }
+
+  Future<List<MeditationModel>> loadSelectedMeditations() {
+    if (selectedTab == FavoriteTab.recentlyPlayed) {
+      return meditationService.fetchRecentlyPlayedMeditations();
+    }
+
+    return meditationService.fetchMyFavoriteMeditations();
   }
 
   Future<void> refreshFavorites() async {
     setState(() {
-      favoriteMeditationsFuture = meditationService.fetchMyFavoriteMeditations();
+      selectedMeditationsFuture = loadSelectedMeditations();
     });
 
-    await favoriteMeditationsFuture;
+    await selectedMeditationsFuture;
+  }
+
+  void changeTab(FavoriteTab tab) {
+    if (selectedTab == tab) return;
+
+    setState(() {
+      selectedTab = tab;
+      selectedMeditationsFuture = loadSelectedMeditations();
+    });
   }
 
   Future<void> openMeditationDetail(MeditationModel meditation) async {
@@ -43,6 +67,30 @@ class _FavoritesPageState extends State<FavoritesPage> {
     if (!mounted) return;
 
     await refreshFavorites();
+  }
+
+  String get selectedTitle {
+    if (selectedTab == FavoriteTab.recentlyPlayed) {
+      return 'En Son Oynatılanlar';
+    }
+
+    return 'Beğenilenler';
+  }
+
+  String get emptyTitle {
+    if (selectedTab == FavoriteTab.recentlyPlayed) {
+      return 'Henüz oynatılan meditasyon yok.';
+    }
+
+    return 'Henüz beğenilen meditasyon yok.';
+  }
+
+  String get emptySubtitle {
+    if (selectedTab == FavoriteTab.recentlyPlayed) {
+      return 'Meditasyon detayında başlatınca burada görünecek.';
+    }
+
+    return 'Meditasyon detayında kalbe bastığında burada görünecek.';
   }
 
   List<String> categoriesForMeditation(MeditationModel meditation) {
@@ -105,70 +153,47 @@ class _FavoritesPageState extends State<FavoritesPage> {
     );
   }
 
-  Widget buildHeroCard() {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.fromLTRB(22, 24, 22, 24),
-      decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.76),
-        borderRadius: BorderRadius.circular(30),
-        border: Border.all(
-          color: Colors.white.withOpacity(0.68),
+  Widget buildTopTitle() {
+    return const Padding(
+      padding: EdgeInsets.only(left: 4, right: 4, bottom: 18),
+      child: Text(
+        'Favorilerim',
+        style: TextStyle(
+          color: Color(0xFF2F3A32),
+          fontSize: 32,
+          fontWeight: FontWeight.w900,
+          letterSpacing: -1.1,
+          height: 1,
         ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.10),
-            blurRadius: 24,
-            offset: const Offset(0, 12),
-          ),
-        ],
-      ),
-      child: Column(
-        children: [
-          Container(
-            width: 70,
-            height: 70,
-            decoration: BoxDecoration(
-              color: const Color(0xFFEEF3EA).withOpacity(0.95),
-              shape: BoxShape.circle,
-              border: Border.all(
-                color: const Color(0xFFD7E1D0),
-              ),
-            ),
-            child: const Icon(
-              Icons.bookmark_border_rounded,
-              color: Color(0xFF536B4E),
-              size: 36,
-            ),
-          ),
-          const SizedBox(height: 18),
-          const Text(
-            'Favorilerim',
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              color: Color(0xFF2F3A32),
-              fontSize: 25,
-              fontWeight: FontWeight.w900,
-              letterSpacing: -0.6,
-            ),
-          ),
-          const SizedBox(height: 10),
-          const Text(
-            'Beğendiğin meditasyonlar burada toplanır. Kalbi kaldırırsan bu listeden de çıkar.',
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              color: Color(0xFF4F5A51),
-              fontSize: 15,
-              height: 1.45,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-        ],
       ),
     );
   }
 
-  Widget buildFavoriteMeditationCard(MeditationModel meditation) {
+  Widget buildTabCards() {
+    return Row(
+      children: [
+        Expanded(
+          child: _FavoriteCollectionCard(
+            title: 'En Son\nOynatılan',
+            icon: Icons.history_rounded,
+            isSelected: selectedTab == FavoriteTab.recentlyPlayed,
+            onTap: () => changeTab(FavoriteTab.recentlyPlayed),
+          ),
+        ),
+        const SizedBox(width: 14),
+        Expanded(
+          child: _FavoriteCollectionCard(
+            title: 'Beğenilen',
+            icon: Icons.favorite_rounded,
+            isSelected: selectedTab == FavoriteTab.liked,
+            onTap: () => changeTab(FavoriteTab.liked),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget buildMeditationCard(MeditationModel meditation) {
     return Container(
       width: double.infinity,
       margin: const EdgeInsets.only(bottom: 14),
@@ -295,9 +320,13 @@ class _FavoritesPageState extends State<FavoritesPage> {
                       CircleAvatar(
                         radius: 19,
                         backgroundColor: Colors.white.withOpacity(0.84),
-                        child: const Icon(
-                          Icons.favorite_rounded,
-                          color: Color(0xFFC85C5C),
+                        child: Icon(
+                          selectedTab == FavoriteTab.recentlyPlayed
+                              ? Icons.history_rounded
+                              : Icons.favorite_rounded,
+                          color: selectedTab == FavoriteTab.recentlyPlayed
+                              ? const Color(0xFF536B4E)
+                              : const Color(0xFFC85C5C),
                           size: 21,
                         ),
                       ),
@@ -323,28 +352,30 @@ class _FavoritesPageState extends State<FavoritesPage> {
           color: Colors.white.withOpacity(0.66),
         ),
       ),
-      child: const Column(
+      child: Column(
         children: [
           Icon(
-            Icons.favorite_border_rounded,
-            color: Color(0xFF536B4E),
+            selectedTab == FavoriteTab.recentlyPlayed
+                ? Icons.history_rounded
+                : Icons.favorite_border_rounded,
+            color: const Color(0xFF536B4E),
             size: 46,
           ),
-          SizedBox(height: 12),
+          const SizedBox(height: 12),
           Text(
-            'Henüz favori meditasyonun yok.',
+            emptyTitle,
             textAlign: TextAlign.center,
-            style: TextStyle(
+            style: const TextStyle(
               color: Color(0xFF2F3A32),
               fontSize: 17,
               fontWeight: FontWeight.w900,
             ),
           ),
-          SizedBox(height: 7),
+          const SizedBox(height: 7),
           Text(
-            'Meditasyon detayında kalbe bastığında burada görünecek.',
+            emptySubtitle,
             textAlign: TextAlign.center,
-            style: TextStyle(
+            style: const TextStyle(
               color: Color(0xFF606A61),
               fontSize: 14,
               height: 1.35,
@@ -368,7 +399,7 @@ class _FavoritesPageState extends State<FavoritesPage> {
         ),
       ),
       child: Text(
-        'Favoriler yüklenemedi: $error',
+        'İçerikler yüklenemedi: $error',
         style: const TextStyle(
           color: Color(0xFF2F3A32),
           fontWeight: FontWeight.w800,
@@ -382,14 +413,16 @@ class _FavoritesPageState extends State<FavoritesPage> {
     return RefreshIndicator(
       onRefresh: refreshFavorites,
       child: FutureBuilder<List<MeditationModel>>(
-        future: favoriteMeditationsFuture,
+        future: selectedMeditationsFuture,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return ListView(
               padding: const EdgeInsets.fromLTRB(18, 18, 18, 30),
-              children: const [
-                SizedBox(height: 180),
-                Center(
+              children: [
+                buildTopTitle(),
+                buildTabCards(),
+                const SizedBox(height: 34),
+                const Center(
                   child: CircularProgressIndicator(
                     color: Color(0xFF536B4E),
                   ),
@@ -398,33 +431,33 @@ class _FavoritesPageState extends State<FavoritesPage> {
             );
           }
 
-          final favoriteMeditations = snapshot.data ?? [];
+          final meditations = snapshot.data ?? [];
 
           return ListView(
             physics: const AlwaysScrollableScrollPhysics(),
             padding: const EdgeInsets.fromLTRB(18, 18, 18, 30),
             children: [
-              buildHeroCard(),
-              const SizedBox(height: 18),
-              if (snapshot.hasError)
-                buildErrorState(snapshot.error!)
-              else if (favoriteMeditations.isEmpty)
-                buildEmptyState()
-              else ...[
-                const Padding(
-                  padding: EdgeInsets.only(left: 4, bottom: 12),
-                  child: Text(
-                    'Beğendiğin Meditasyonlar',
-                    style: TextStyle(
-                      color: Color(0xFF2F3A32),
-                      fontSize: 18,
-                      fontWeight: FontWeight.w900,
-                      letterSpacing: -0.3,
-                    ),
+              buildTopTitle(),
+              buildTabCards(),
+              const SizedBox(height: 24),
+              Padding(
+                padding: const EdgeInsets.only(left: 4, bottom: 12),
+                child: Text(
+                  selectedTitle,
+                  style: const TextStyle(
+                    color: Color(0xFF2F3A32),
+                    fontSize: 18,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: -0.3,
                   ),
                 ),
-                ...favoriteMeditations.map(buildFavoriteMeditationCard),
-              ],
+              ),
+              if (snapshot.hasError)
+                buildErrorState(snapshot.error!)
+              else if (meditations.isEmpty)
+                buildEmptyState()
+              else
+                ...meditations.map(buildMeditationCard),
             ],
           );
         },
@@ -453,6 +486,95 @@ class _FavoritesPageState extends State<FavoritesPage> {
       body: buildBackground(
         child: SafeArea(
           child: buildContent(),
+        ),
+      ),
+    );
+  }
+}
+
+class _FavoriteCollectionCard extends StatelessWidget {
+  final String title;
+  final IconData icon;
+  final bool isSelected;
+  final VoidCallback onTap;
+
+  const _FavoriteCollectionCard({
+    required this.title,
+    required this.icon,
+    required this.isSelected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      borderRadius: BorderRadius.circular(28),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(28),
+        child: Ink(
+          height: 154,
+          decoration: BoxDecoration(
+            color: isSelected
+                ? const Color(0xFF536B4E)
+                : Colors.white.withOpacity(0.78),
+            borderRadius: BorderRadius.circular(28),
+            border: Border.all(
+              color: isSelected
+                  ? const Color(0xFF536B4E)
+                  : Colors.white.withOpacity(0.68),
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(isSelected ? 0.16 : 0.10),
+                blurRadius: 22,
+                offset: const Offset(0, 11),
+              ),
+            ],
+          ),
+          child: Stack(
+            children: [
+              Positioned(
+                right: -26,
+                top: -30,
+                child: Container(
+                  width: 96,
+                  height: 96,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: Colors.white.withOpacity(
+                      isSelected ? 0.10 : 0.42,
+                    ),
+                  ),
+                ),
+              ),
+              Positioned(
+                right: 18,
+                top: 18,
+                child: Icon(
+                  icon,
+                  color: isSelected ? Colors.white : const Color(0xFF536B4E),
+                  size: 34,
+                ),
+              ),
+              Positioned(
+                left: 18,
+                right: 18,
+                bottom: 18,
+                child: Text(
+                  title,
+                  style: TextStyle(
+                    color: isSelected ? Colors.white : const Color(0xFF2F3A32),
+                    fontSize: 22,
+                    fontWeight: FontWeight.w900,
+                    height: 1.08,
+                    letterSpacing: -0.7,
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

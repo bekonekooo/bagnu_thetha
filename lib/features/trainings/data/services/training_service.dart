@@ -48,6 +48,63 @@ class TrainingService {
     return trainings;
   }
 
+  Future<List<TrainingModel>> fetchActiveTrainingsByTeacherId(
+  String teacherId,
+) async {
+  final cleanTeacherId = teacherId.trim();
+
+  if (cleanTeacherId.isEmpty) {
+    return [];
+  }
+
+  final response = await supabase
+      .from('trainings')
+      .select('''
+        *,
+        teachers (
+          id,
+          name,
+          specialty,
+          image_url
+        ),
+        training_sessions (
+          id,
+          training_id,
+          session_date,
+          start_time,
+          end_time,
+          sort_order,
+          created_at
+        )
+      ''')
+      .eq('teacher_id', cleanTeacherId)
+      .eq('is_active', true)
+      .order('created_at', ascending: false);
+
+  final trainings = (response as List)
+      .map(
+        (item) => TrainingModel.fromMap(
+          Map<String, dynamic>.from(item as Map),
+        ),
+      )
+      .toList();
+
+  trainings.sort((a, b) {
+    final aDate = a.firstStartDateTime;
+    final bDate = b.firstStartDateTime;
+
+    if (aDate == null && bDate == null) return 0;
+    if (aDate == null) return 1;
+    if (bDate == null) return -1;
+
+    return aDate.compareTo(bDate);
+  });
+
+  return trainings;
+}
+
+
+
   Future<List<TrainingModel>> fetchMyTeacherTrainings() async {
     final user = supabase.auth.currentUser;
 
