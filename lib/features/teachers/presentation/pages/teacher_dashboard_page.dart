@@ -439,31 +439,40 @@ class _TeacherDashboardPageState extends State<TeacherDashboardPage> {
                                 context.push('/teacher-meditations');
                               },
                             ),
-                            dashboardButton(
-                              icon: Icons.school_outlined,
-                              label: 'Eğitim Yönetimi',
-                              subtitle:
-                                  'Tek günlük veya çok günlü eğitim programları oluştur.',
-                              onPressed: () {
-                                context.push('/teacher-trainings');
-                              },
-                            ),
-                            dashboardButton(
-                              icon: Icons.edit,
-                              label: 'Profilimi Düzenle',
-                              subtitle:
-                                  'Öğretmen profilindeki bilgileri ve görselini güncelle.',
-                              onPressed: () async {
-                                final result = await context.push(
-                                  '/teacher-edit-profile',
-                                  extra: teacher,
-                                );
+                         dashboardButton(
+  icon: Icons.school_outlined,
+  label: 'Eğitim Yönetimi',
+  subtitle:
+      'Tek günlük veya çok günlü eğitim programları oluştur.',
+  onPressed: () {
+    context.push('/teacher-trainings');
+  },
+),
+dashboardButton(
+  icon: Icons.auto_awesome_mosaic_outlined,
+  label: 'Atölye Yönetimi',
+  subtitle:
+      '1–20 günlük ses, video veya bağlantı içerikli atölyeler oluştur.',
+  onPressed: () {
+    context.push('/teacher-workshops');
+  },
+),
+dashboardButton(
+  icon: Icons.edit,
+  label: 'Profilimi Düzenle',
+  subtitle:
+      'Öğretmen profilindeki bilgileri ve görselini güncelle.',
+  onPressed: () async {
+    final result = await context.push(
+      '/teacher-edit-profile',
+      extra: teacher,
+    );
 
-                                if (result == true) {
-                                  loadTeacher();
-                                }
-                              },
-                            ),
+    if (result == true) {
+      loadTeacher();
+    }
+  },
+),
                           ],
                         ),
                       ),

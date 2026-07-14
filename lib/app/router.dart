@@ -13,6 +13,7 @@ import 'package:flutter_application_1/features/auth/presentation/pages/profile_o
 import 'package:flutter_application_1/features/auth/presentation/pages/splash_page.dart';
 
 import 'package:flutter_application_1/features/home/presentation/pages/home_page.dart';
+
 import 'package:flutter_application_1/features/profile/presentation/pages/profile_page.dart';
 import 'package:flutter_application_1/features/profile/presentation/pages/profile_edit_page.dart';
 
@@ -20,11 +21,11 @@ import 'package:flutter_application_1/features/sessions/data/models/session_mode
 import 'package:flutter_application_1/features/sessions/presentation/pages/sessions_page.dart';
 import 'package:flutter_application_1/features/sessions/presentation/pages/teacher_sessions_page.dart';
 
+import 'package:flutter_application_1/features/teachers/data/models/teacher_model.dart';
 import 'package:flutter_application_1/features/teachers/presentation/pages/teachers_page.dart';
 import 'package:flutter_application_1/features/teachers/presentation/pages/teacher_availability_page.dart';
 import 'package:flutter_application_1/features/teachers/presentation/pages/teacher_dashboard_page.dart';
 import 'package:flutter_application_1/features/teachers/presentation/pages/teacher_edit_profile_page.dart';
-import 'package:flutter_application_1/features/teachers/data/models/teacher_model.dart';
 
 import 'package:flutter_application_1/features/trainings/data/models/training_model.dart';
 import 'package:flutter_application_1/features/trainings/presentation/pages/trainings_page.dart';
@@ -34,7 +35,12 @@ import 'package:flutter_application_1/features/trainings/presentation/pages/teac
 import 'package:flutter_application_1/features/guidance/presentation/pages/guidance_page.dart';
 import 'package:flutter_application_1/features/community/presentation/pages/community_page.dart';
 import 'package:flutter_application_1/features/favorites/presentation/pages/favorites_page.dart';
+
+import 'package:flutter_application_1/features/workshops/data/models/workshop_model.dart';
 import 'package:flutter_application_1/features/workshops/presentation/pages/workshops_page.dart';
+import 'package:flutter_application_1/features/workshops/presentation/pages/workshop_detail_page.dart';
+import 'package:flutter_application_1/features/workshops/presentation/pages/teacher_workshops_page.dart';
+import 'package:flutter_application_1/features/workshops/presentation/pages/create_workshop_page.dart';
 
 import 'package:flutter_application_1/features/meditations/data/models/meditation_model.dart';
 import 'package:flutter_application_1/features/meditations/presentation/pages/meditations_page.dart';
@@ -98,21 +104,34 @@ Future<Map<String, dynamic>?> fetchCurrentUserProfileStatus(
   }
 }
 
-bool hasStringValue(Map<String, dynamic> map, String key) {
+bool hasStringValue(
+  Map<String, dynamic> map,
+  String key,
+) {
   final value = map[key];
-  return value is String && value.trim().isNotEmpty;
+
+  return value is String &&
+      value.trim().isNotEmpty;
 }
 
-double parseExtraDouble(Map<String, dynamic> map, String key) {
+double parseExtraDouble(
+  Map<String, dynamic> map,
+  String key,
+) {
   final value = map[key];
 
-  if (value == null) return 0;
+  if (value == null) {
+    return 0;
+  }
 
   if (value is num) {
     return value.toDouble();
   }
 
-  return double.tryParse(value.toString()) ?? 0;
+  return double.tryParse(
+        value.toString(),
+      ) ??
+      0;
 }
 
 final GoRouter appRouter = GoRouter(
@@ -138,6 +157,8 @@ final GoRouter appRouter = GoRouter(
       '/teacher-availability',
       '/teacher-meditations',
       '/teacher-trainings',
+      '/teacher-workshops',
+      '/create-workshop',
     ];
 
     final studentOnlyRoutes = [
@@ -155,13 +176,19 @@ final GoRouter appRouter = GoRouter(
       '/community',
       '/favorites',
       '/workshops',
+      '/workshop-detail',
       '/meditations',
       '/meditation-detail',
     ];
 
-    final isPublicRoute = publicRoutes.contains(location);
-    final isTeacherOnlyRoute = teacherOnlyRoutes.contains(location);
-    final isStudentOnlyRoute = studentOnlyRoutes.contains(location);
+    final isPublicRoute =
+        publicRoutes.contains(location);
+
+    final isTeacherOnlyRoute =
+        teacherOnlyRoutes.contains(location);
+
+    final isStudentOnlyRoute =
+        studentOnlyRoutes.contains(location);
 
     if (user == null) {
       if (isPublicRoute) {
@@ -171,11 +198,18 @@ final GoRouter appRouter = GoRouter(
       return '/login';
     }
 
-    final profileStatus = await fetchCurrentUserProfileStatus(user.id);
+    final profileStatus =
+        await fetchCurrentUserProfileStatus(
+      user.id,
+    );
 
-    final role = profileStatus?['role']?.toString() ?? 'student';
+    final role =
+        profileStatus?['role']?.toString() ??
+            'student';
+
     final onboardingCompleted =
-        profileStatus?['onboarding_completed'] == true;
+        profileStatus?['onboarding_completed'] ==
+            true;
 
     if (isPublicRoute) {
       if (role == 'teacher') {
@@ -195,11 +229,13 @@ final GoRouter appRouter = GoRouter(
       return '/profile-onboarding';
     }
 
-    if (role == 'student' && isTeacherOnlyRoute) {
+    if (role == 'student' &&
+        isTeacherOnlyRoute) {
       return '/home';
     }
 
-    if (role == 'teacher' && isStudentOnlyRoute) {
+    if (role == 'teacher' &&
+        isStudentOnlyRoute) {
       return '/teacher-dashboard';
     }
 
@@ -208,35 +244,68 @@ final GoRouter appRouter = GoRouter(
   routes: [
     GoRoute(
       path: '/splash',
-      builder: (context, state) => const SplashPage(),
+      builder: (context, state) {
+        return const SplashPage();
+      },
     ),
     GoRoute(
       path: '/onboarding',
-      builder: (context, state) => const OnboardingPage(),
+      builder: (context, state) {
+        return const OnboardingPage();
+      },
     ),
     GoRoute(
       path: '/login',
-      builder: (context, state) => const LoginPage(),
+      builder: (context, state) {
+        return const LoginPage();
+      },
     ),
     GoRoute(
       path: '/register',
-      builder: (context, state) => const RegisterPage(),
+      builder: (context, state) {
+        return const RegisterPage();
+      },
     ),
     GoRoute(
       path: '/profile-onboarding',
-      builder: (context, state) => const ProfileOnboardingPage(),
+      builder: (context, state) {
+        return const ProfileOnboardingPage();
+      },
     ),
+
+    // =====================================================
+    // ÖĞRETMEN ROTALARI
+    // =====================================================
+
     GoRoute(
       path: '/teacher-dashboard',
-      builder: (context, state) => const TeacherDashboardPage(),
+      builder: (context, state) {
+        return const TeacherDashboardPage();
+      },
     ),
     GoRoute(
       path: '/teacher-meditations',
-      builder: (context, state) => const TeacherMeditationsPage(),
+      builder: (context, state) {
+        return const TeacherMeditationsPage();
+      },
     ),
     GoRoute(
       path: '/teacher-trainings',
-      builder: (context, state) => const TeacherTrainingsPage(),
+      builder: (context, state) {
+        return const TeacherTrainingsPage();
+      },
+    ),
+    GoRoute(
+      path: '/teacher-workshops',
+      builder: (context, state) {
+        return const TeacherWorkshopsPage();
+      },
+    ),
+    GoRoute(
+      path: '/create-workshop',
+      builder: (context, state) {
+        return const CreateWorkshopPage();
+      },
     ),
     GoRoute(
       path: '/teacher-edit-profile',
@@ -248,47 +317,69 @@ final GoRouter appRouter = GoRouter(
         return null;
       },
       builder: (context, state) {
-        final teacher = state.extra as TeacherModel;
+        final teacher =
+            state.extra as TeacherModel;
 
-        return TeacherEditProfilePage(teacher: teacher);
+        return TeacherEditProfilePage(
+          teacher: teacher,
+        );
       },
     ),
     GoRoute(
       path: '/teacher-sessions',
-      builder: (context, state) => const TeacherSessionsPage(),
+      builder: (context, state) {
+        return const TeacherSessionsPage();
+      },
     ),
     GoRoute(
       path: '/teacher-availability',
       redirect: (context, state) {
         final extra = state.extra;
 
-        if (extra is! Map<String, dynamic>) {
+        if (extra
+            is! Map<String, dynamic>) {
           return '/teacher-dashboard';
         }
 
-        if (!hasStringValue(extra, 'teacherId') ||
-            !hasStringValue(extra, 'teacherName')) {
+        if (!hasStringValue(
+              extra,
+              'teacherId',
+            ) ||
+            !hasStringValue(
+              extra,
+              'teacherName',
+            )) {
           return '/teacher-dashboard';
         }
 
         return null;
       },
       builder: (context, state) {
-        final extra = state.extra as Map<String, dynamic>;
+        final extra =
+            state.extra as Map<String, dynamic>;
 
         return TeacherAvailabilityPage(
-          teacherId: extra['teacherId'] as String,
-          teacherName: extra['teacherName'] as String,
+          teacherId:
+              extra['teacherId'] as String,
+          teacherName:
+              extra['teacherName'] as String,
         );
       },
     ),
+
+    // =====================================================
+    // VİDEO GÖRÜŞME
+    // =====================================================
+
     GoRoute(
       path: '/video-call',
       redirect: (context, state) {
         final extra = state.extra;
 
-        if (extra is! Map<String, dynamic>) {
-          final user = supabase.auth.currentUser;
+        if (extra
+            is! Map<String, dynamic>) {
+          final user =
+              supabase.auth.currentUser;
 
           if (user == null) {
             return '/login';
@@ -297,16 +388,24 @@ final GoRouter appRouter = GoRouter(
           return '/home';
         }
 
-        if (extra['session'] is! SessionModel) {
+        if (extra['session']
+            is! SessionModel) {
           return '/home';
         }
 
         return null;
       },
       builder: (context, state) {
-        final extra = state.extra as Map<String, dynamic>;
-        final session = extra['session'] as SessionModel;
-        final participantName = extra['participantName']?.toString() ?? '';
+        final extra =
+            state.extra as Map<String, dynamic>;
+
+        final session =
+            extra['session'] as SessionModel;
+
+        final participantName =
+            extra['participantName']
+                    ?.toString() ??
+                '';
 
         return VideoCallPage(
           session: session,
@@ -314,83 +413,139 @@ final GoRouter appRouter = GoRouter(
         );
       },
     ),
+
+    // =====================================================
+    // ÖĞRENCİ SHELL ROTALARI
+    // =====================================================
+
     ShellRoute(
-      builder: (context, state, child) => MainShellPage(child: child),
+      builder: (
+        context,
+        state,
+        child,
+      ) {
+        return MainShellPage(
+          child: child,
+        );
+      },
       routes: [
         GoRoute(
           path: '/home',
-          builder: (context, state) => const HomePage(),
+          builder: (context, state) {
+            return const HomePage();
+          },
         ),
         GoRoute(
           path: '/sessions',
-          builder: (context, state) => const SessionsPage(),
+          builder: (context, state) {
+            return const SessionsPage();
+          },
         ),
         GoRoute(
           path: '/profile',
-          builder: (context, state) => const ProfilePage(),
+          builder: (context, state) {
+            return const ProfilePage();
+          },
         ),
         GoRoute(
           path: '/profile-edit',
           redirect: (context, state) {
             final extra = state.extra;
 
-            if (extra is! Map<String, dynamic>) {
+            if (extra
+                is! Map<String, dynamic>) {
               return '/profile';
             }
 
             return null;
           },
           builder: (context, state) {
-            final profile = state.extra as Map<String, dynamic>;
+            final profile =
+                state.extra
+                    as Map<String, dynamic>;
 
-            return ProfileEditPage(profile: profile);
+            return ProfileEditPage(
+              profile: profile,
+            );
           },
         ),
         GoRoute(
           path: '/notifications',
-          builder: (context, state) => const NotificationsPage(),
+          builder: (context, state) {
+            return const NotificationsPage();
+          },
         ),
         GoRoute(
           path: '/teachers',
-          builder: (context, state) => const TeachersPage(),
+          builder: (context, state) {
+            return const TeachersPage();
+          },
         ),
+
+        // =================================================
+        // MEDITASYON
+        // =================================================
+
         GoRoute(
           path: '/meditations',
-          builder: (context, state) => const MeditationsPage(),
+          builder: (context, state) {
+            return const MeditationsPage();
+          },
         ),
         GoRoute(
           path: '/meditation-detail',
           redirect: (context, state) {
-            if (state.extra is! MeditationModel) {
+            if (state.extra
+                is! MeditationModel) {
               return '/meditations';
             }
 
             return null;
           },
           builder: (context, state) {
-            final meditation = state.extra as MeditationModel;
+            final meditation =
+                state.extra as MeditationModel;
 
             return MeditationDetailPage(
               meditation: meditation,
             );
           },
         ),
+
+        // =================================================
+        // RANDEVU
+        // =================================================
+
         GoRoute(
           path: '/booking',
           redirect: (context, state) {
             final extra = state.extra;
 
-            if (extra is! Map<String, dynamic>) {
+            if (extra
+                is! Map<String, dynamic>) {
               return '/teachers';
             }
 
-            if (!hasStringValue(extra, 'teacherId') ||
-                !hasStringValue(extra, 'teacherName') ||
-                !hasStringValue(extra, 'currency')) {
+            if (!hasStringValue(
+                  extra,
+                  'teacherId',
+                ) ||
+                !hasStringValue(
+                  extra,
+                  'teacherName',
+                ) ||
+                !hasStringValue(
+                  extra,
+                  'currency',
+                )) {
               return '/teachers';
             }
 
-            final sessionPrice = parseExtraDouble(extra, 'sessionPrice');
+            final sessionPrice =
+                parseExtraDouble(
+              extra,
+              'sessionPrice',
+            );
 
             if (sessionPrice <= 0) {
               return '/teachers';
@@ -399,13 +554,22 @@ final GoRouter appRouter = GoRouter(
             return null;
           },
           builder: (context, state) {
-            final extra = state.extra as Map<String, dynamic>;
+            final extra =
+                state.extra
+                    as Map<String, dynamic>;
 
             return BookingPage(
-              teacherId: extra['teacherId'] as String,
-              teacherName: extra['teacherName'] as String,
-              sessionPrice: parseExtraDouble(extra, 'sessionPrice'),
-              currency: extra['currency'] as String,
+              teacherId:
+                  extra['teacherId'] as String,
+              teacherName:
+                  extra['teacherName'] as String,
+              sessionPrice:
+                  parseExtraDouble(
+                extra,
+                'sessionPrice',
+              ),
+              currency:
+                  extra['currency'] as String,
             );
           },
         ),
@@ -414,72 +578,151 @@ final GoRouter appRouter = GoRouter(
           redirect: (context, state) {
             final extra = state.extra;
 
-            if (extra is! Map<String, dynamic>) {
+            if (extra
+                is! Map<String, dynamic>) {
               return '/sessions';
             }
 
-            if (!hasStringValue(extra, 'teacherName') ||
-                !hasStringValue(extra, 'sessionDate') ||
-                !hasStringValue(extra, 'sessionTime')) {
+            if (!hasStringValue(
+                  extra,
+                  'teacherName',
+                ) ||
+                !hasStringValue(
+                  extra,
+                  'sessionDate',
+                ) ||
+                !hasStringValue(
+                  extra,
+                  'sessionTime',
+                )) {
               return '/sessions';
             }
 
             return null;
           },
           builder: (context, state) {
-            final extra = state.extra as Map<String, dynamic>;
+            final extra =
+                state.extra
+                    as Map<String, dynamic>;
 
             return BookingSuccessPage(
-              teacherName: extra['teacherName'] as String,
-              sessionDate: extra['sessionDate'] as String,
-              sessionTime: extra['sessionTime'] as String,
-              notes: extra['notes'] as String?,
+              teacherName:
+                  extra['teacherName'] as String,
+              sessionDate:
+                  extra['sessionDate'] as String,
+              sessionTime:
+                  extra['sessionTime'] as String,
+              notes:
+                  extra['notes'] as String?,
             );
           },
         ),
+
+        // =================================================
+        // EĞİTİMLER
+        // =================================================
+
         GoRoute(
           path: '/trainings',
-          builder: (context, state) => const TrainingsPage(),
+          builder: (context, state) {
+            return const TrainingsPage();
+          },
         ),
         GoRoute(
           path: '/training-detail',
           redirect: (context, state) {
             final extra = state.extra;
 
-            if (extra is! Map<String, dynamic>) {
+            if (extra
+                is! Map<String, dynamic>) {
               return '/trainings';
             }
 
-            if (extra['training'] is! TrainingModel) {
+            if (extra['training']
+                is! TrainingModel) {
               return '/trainings';
             }
 
             return null;
           },
           builder: (context, state) {
-            final extra = state.extra as Map<String, dynamic>;
+            final extra =
+                state.extra
+                    as Map<String, dynamic>;
 
             return TrainingDetailPage(
-              training: extra['training'] as TrainingModel,
-              initiallyJoined: extra['isJoined'] == true,
+              training:
+                  extra['training']
+                      as TrainingModel,
+              initiallyJoined:
+                  extra['isJoined'] == true,
             );
           },
         ),
+
+        // =================================================
+        // ATÖLYELER
+        // =================================================
+
+        GoRoute(
+          path: '/workshops',
+          builder: (context, state) {
+            return const WorkshopsPage();
+          },
+        ),
+        GoRoute(
+          path: '/workshop-detail',
+          redirect: (context, state) {
+            final extra = state.extra;
+
+            if (extra
+                is! Map<String, dynamic>) {
+              return '/workshops';
+            }
+
+            if (extra['workshop']
+                is! WorkshopModel) {
+              return '/workshops';
+            }
+
+            return null;
+          },
+          builder: (context, state) {
+            final extra =
+                state.extra
+                    as Map<String, dynamic>;
+
+            return WorkshopDetailPage(
+              workshop:
+                  extra['workshop']
+                      as WorkshopModel,
+              initiallyJoined:
+                  extra['isJoined'] == true,
+            );
+          },
+        ),
+
+        // =================================================
+        // DİĞER ÖĞRENCİ SAYFALARI
+        // =================================================
+
         GoRoute(
           path: '/guidance',
-          builder: (context, state) => const GuidancePage(),
+          builder: (context, state) {
+            return const GuidancePage();
+          },
         ),
         GoRoute(
           path: '/community',
-          builder: (context, state) => const CommunityPage(),
+          builder: (context, state) {
+            return const CommunityPage();
+          },
         ),
         GoRoute(
           path: '/favorites',
-          builder: (context, state) => const FavoritesPage(),
-        ),
-        GoRoute(
-          path: '/workshops',
-          builder: (context, state) => const WorkshopsPage(),
+          builder: (context, state) {
+            return const FavoritesPage();
+          },
         ),
       ],
     ),
