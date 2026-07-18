@@ -77,36 +77,35 @@ class _WorkshopDetailPageState extends State<WorkshopDetailPage> {
     }
 
     try {
-      final joinedResult =
-          await workshopService.hasJoinedWorkshop(
-        widget.workshop.id,
-      );
+      final results = await Future.wait([
+        workshopService.hasJoinedWorkshop(
+          widget.workshop.id,
+        ),
+        workshopService.fetchIsWorkshopLikedByMe(
+          widget.workshop.id,
+        ),
+        workshopService.fetchWorkshopLikeCount(
+          widget.workshop.id,
+        ),
+        workshopService.fetchWorkshopComments(
+          widget.workshop.id,
+        ),
+        workshopService.fetchWorkshopStudentCount(
+          widget.workshop.id,
+        ),
+      ]);
 
-      final likedResult =
-          await workshopService.fetchIsWorkshopLikedByMe(
-        widget.workshop.id,
-      );
-
-      final likesResult =
-          await workshopService.fetchWorkshopLikeCount(
-        widget.workshop.id,
-      );
-
+      final joinedResult = results[0] as bool;
+      final likedResult = results[1] as bool;
+      final likesResult = results[2] as int;
       final commentsResult =
-          await workshopService.fetchWorkshopComments(
-        widget.workshop.id,
-      );
-
-      final studentsResult =
-          await workshopService.fetchWorkshopStudentCount(
-        widget.workshop.id,
-      );
+          results[3] as List<WorkshopCommentModel>;
+      final studentsResult = results[4] as int;
 
       List<WorkshopDayModel> daysResult = [];
 
       if (joinedResult) {
-        daysResult =
-            await workshopService.fetchWorkshopDays(
+        daysResult = await workshopService.fetchWorkshopDays(
           widget.workshop.id,
         );
       }
@@ -154,7 +153,7 @@ class _WorkshopDetailPageState extends State<WorkshopDetailPage> {
       if (isJoined) {
         final shouldLeave = await showDialog<bool>(
           context: context,
-          builder: (context) {
+          builder: (dialogContext) {
             return AlertDialog(
               title: const Text(
                 'Atölyeden ayrıl',
@@ -166,7 +165,7 @@ class _WorkshopDetailPageState extends State<WorkshopDetailPage> {
                 TextButton(
                   onPressed: () {
                     Navigator.pop(
-                      context,
+                      dialogContext,
                       false,
                     );
                   },
@@ -177,7 +176,7 @@ class _WorkshopDetailPageState extends State<WorkshopDetailPage> {
                 ElevatedButton(
                   onPressed: () {
                     Navigator.pop(
-                      context,
+                      dialogContext,
                       true,
                     );
                   },
@@ -213,8 +212,11 @@ class _WorkshopDetailPageState extends State<WorkshopDetailPage> {
         setState(() {
           isJoined = false;
           workshopDays = [];
-          studentCount =
-              studentCount > 0 ? studentCount - 1 : 0;
+
+          if (studentCount > 0) {
+            studentCount--;
+          }
+
           isJoinProcessing = false;
         });
 
@@ -229,8 +231,7 @@ class _WorkshopDetailPageState extends State<WorkshopDetailPage> {
         widget.workshop.id,
       );
 
-      final days =
-          await workshopService.fetchWorkshopDays(
+      final days = await workshopService.fetchWorkshopDays(
         widget.workshop.id,
       );
 
@@ -308,9 +309,10 @@ class _WorkshopDetailPageState extends State<WorkshopDetailPage> {
       return;
     }
 
-    final comment = commentController.text.trim();
+    final commentText =
+        commentController.text.trim();
 
-    if (comment.isEmpty) {
+    if (commentText.isEmpty) {
       showMessage(
         'Yorum boş olamaz.',
       );
@@ -324,7 +326,7 @@ class _WorkshopDetailPageState extends State<WorkshopDetailPage> {
     try {
       await workshopService.addWorkshopComment(
         workshopId: widget.workshop.id,
-        commentText: comment,
+        commentText: commentText,
       );
 
       final refreshedComments =
@@ -365,7 +367,7 @@ class _WorkshopDetailPageState extends State<WorkshopDetailPage> {
   ) async {
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (context) {
+      builder: (dialogContext) {
         return AlertDialog(
           title: const Text(
             'Yorumu sil',
@@ -377,7 +379,7 @@ class _WorkshopDetailPageState extends State<WorkshopDetailPage> {
             TextButton(
               onPressed: () {
                 Navigator.pop(
-                  context,
+                  dialogContext,
                   false,
                 );
               },
@@ -388,7 +390,7 @@ class _WorkshopDetailPageState extends State<WorkshopDetailPage> {
             ElevatedButton(
               onPressed: () {
                 Navigator.pop(
-                  context,
+                  dialogContext,
                   true,
                 );
               },
@@ -453,34 +455,66 @@ class _WorkshopDetailPageState extends State<WorkshopDetailPage> {
 
     final uri = Uri.tryParse(urlText);
 
-    if (uri == null) {
+    if (uri == null ||
+        !uri.hasScheme ||
+        ![
+          'http',
+          'https',
+        ].contains(uri.scheme.toLowerCase())) {
       showMessage(
         'İçerik bağlantısı geçersiz.',
       );
       return;
     }
 
-    final canOpen = await canLaunchUrl(uri);
+    try {
+      final canOpen = await canLaunchUrl(uri);
 
-    if (!canOpen) {
-      showMessage(
-        'Bu içerik açılamadı.',
+      if (!canOpen) {
+        showMessage(
+          'Bu içerik cihazda açılamadı.',
+        );
+        return;
+      }
+
+      /*
+       * İçerik açılmadan hemen önce Supabase geçmişine kaydedilir.
+       *
+       * Aynı atölye günü daha önce açılmışsa yeni satır oluşturulmaz.
+       * Mevcut satırın played_at alanı güncellenir.
+       */
+      await workshopService.saveRecentlyPlayedWorkshopDay(
+        workshopId: widget.workshop.id,
+        workshopDayId: day.id,
       );
-      return;
+
+      final launchMode = day.isLink
+          ? LaunchMode.externalApplication
+          : LaunchMode.platformDefault;
+
+      final launched = await launchUrl(
+        uri,
+        mode: launchMode,
+      );
+
+      if (!launched) {
+        showMessage(
+          'İçerik açılamadı.',
+        );
+      }
+    } catch (error) {
+      showMessage(
+        'İçerik açılamadı: $error',
+      );
     }
-
-    final launchMode = day.isLink
-        ? LaunchMode.externalApplication
-        : LaunchMode.platformDefault;
-
-    await launchUrl(
-      uri,
-      mode: launchMode,
-    );
   }
 
-  void showMessage(String message) {
+  void showMessage(
+    String message,
+  ) {
     if (!mounted) return;
+
+    ScaffoldMessenger.of(context).hideCurrentSnackBar();
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -536,6 +570,7 @@ class _WorkshopDetailPageState extends State<WorkshopDetailPage> {
 
   Widget buildCoverSection() {
     final workshop = widget.workshop;
+
     final hasImage =
         workshop.imageUrl.trim().isNotEmpty;
 
@@ -632,8 +667,7 @@ class _WorkshopDetailPageState extends State<WorkshopDetailPage> {
                   runSpacing: 8,
                   children: [
                     buildInfoBadge(
-                      icon: Icons
-                          .calendar_view_day_outlined,
+                      icon: Icons.calendar_view_day_outlined,
                       text: workshop.durationLabel,
                     ),
                     buildInfoBadge(
@@ -663,6 +697,7 @@ class _WorkshopDetailPageState extends State<WorkshopDetailPage> {
 
   Widget buildTeacherRow() {
     final workshop = widget.workshop;
+
     final hasTeacherImage =
         workshop.teacherImageUrl.trim().isNotEmpty;
 
@@ -743,7 +778,9 @@ class _WorkshopDetailPageState extends State<WorkshopDetailPage> {
           ),
           const SizedBox(width: 5),
           Text(
-            isJoined ? 'Kayıtlısın' : 'Kayıt Gerekli',
+            isJoined
+                ? 'Kayıtlısın'
+                : 'Kayıt Gerekli',
             style: TextStyle(
               color: isJoined
                   ? const Color(0xFF3D7A48)
@@ -789,10 +826,8 @@ class _WorkshopDetailPageState extends State<WorkshopDetailPage> {
                         )
                       : Icon(
                           isJoined
-                              ? Icons
-                                  .logout_outlined
-                              : Icons
-                                  .how_to_reg_outlined,
+                              ? Icons.logout_outlined
+                              : Icons.how_to_reg_outlined,
                         ),
                   label: Text(
                     isJoinProcessing
@@ -879,8 +914,9 @@ class _WorkshopDetailPageState extends State<WorkshopDetailPage> {
                     ? Icons.favorite
                     : Icons.favorite_border,
                 text: '$likeCount beğeni',
-                color:
-                    isLiked ? dangerColor : primaryColor,
+                color: isLiked
+                    ? dangerColor
+                    : primaryColor,
               ),
               const SizedBox(width: 20),
               buildSocialCounter(
@@ -1117,8 +1153,7 @@ class _WorkshopDetailPageState extends State<WorkshopDetailPage> {
                 day.isAudio
                     ? Icons.headphones_outlined
                     : day.isVideo
-                        ? Icons
-                            .play_circle_outline
+                        ? Icons.play_circle_outline
                         : Icons.open_in_new,
               ),
               label: Text(
@@ -1126,7 +1161,7 @@ class _WorkshopDetailPageState extends State<WorkshopDetailPage> {
                     ? 'Ses Kaydını Aç'
                     : day.isVideo
                         ? 'Videoyu Aç'
-                        : 'Video Bağlantısını Aç',
+                        : 'Bağlantıyı Aç',
               ),
               style: ElevatedButton.styleFrom(
                 backgroundColor: primaryColor,
@@ -1646,7 +1681,9 @@ class _WorkshopDetailPageState extends State<WorkshopDetailPage> {
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(
+    BuildContext context,
+  ) {
     return Scaffold(
       extendBodyBehindAppBar: true,
       backgroundColor: Colors.transparent,

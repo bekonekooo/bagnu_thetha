@@ -1,67 +1,165 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
-import 'package:flutter_application_1/features/meditations/data/models/meditation_model.dart';
-import 'package:flutter_application_1/features/meditations/data/services/meditation_service.dart';
+import 'package:flutter_application_1/features/favorites/data/models/recent_content_model.dart';
+import 'package:flutter_application_1/features/favorites/data/services/content_history_service.dart';
+
+import 'package:flutter_application_1/features/workshops/data/services/workshop_service.dart';
 
 class HomeRecentlyPlayedSection extends StatefulWidget {
-  const HomeRecentlyPlayedSection({super.key});
+  const HomeRecentlyPlayedSection({
+    super.key,
+  });
 
   @override
   State<HomeRecentlyPlayedSection> createState() =>
       _HomeRecentlyPlayedSectionState();
 }
 
-class _HomeRecentlyPlayedSectionState extends State<HomeRecentlyPlayedSection> {
-  final MeditationService meditationService = MeditationService();
+class _HomeRecentlyPlayedSectionState
+    extends State<HomeRecentlyPlayedSection> {
+  final ContentHistoryService contentHistoryService =
+      ContentHistoryService();
 
-  late Future<List<MeditationModel>> recentlyPlayedFuture;
+  final WorkshopService workshopService =
+      WorkshopService();
+
+  late Future<List<RecentContentModel>>
+      recentlyPlayedFuture;
 
   @override
   void initState() {
     super.initState();
 
-    recentlyPlayedFuture = meditationService.fetchRecentlyPlayedMeditations();
+    recentlyPlayedFuture =
+        contentHistoryService.fetchRecentContents(
+      limit: 10,
+    );
   }
 
   Future<void> refreshRecentlyPlayed() async {
     setState(() {
-      recentlyPlayedFuture = meditationService.fetchRecentlyPlayedMeditations();
+      recentlyPlayedFuture =
+          contentHistoryService.fetchRecentContents(
+        limit: 10,
+      );
     });
+
+    await recentlyPlayedFuture;
   }
 
-  Future<void> openMeditationDetail(MeditationModel meditation) async {
-    await context.push(
-      '/meditation-detail',
-      extra: meditation,
-    );
+  Future<void> openContent(
+    RecentContentModel content,
+  ) async {
+    if (content.isMeditation &&
+        content.meditation != null) {
+      await context.push(
+        '/meditation-detail',
+        extra: content.meditation!,
+      );
 
-    if (!mounted) return;
+      if (!mounted) return;
 
-    await refreshRecentlyPlayed();
+      await refreshRecentlyPlayed();
+      return;
+    }
+
+    if (content.isWorkshopDay &&
+        content.workshop != null) {
+      final workshop = content.workshop!;
+
+      final isJoined =
+          await workshopService.hasJoinedWorkshop(
+        workshop.id,
+      );
+
+      if (!mounted) return;
+
+      await context.push(
+        '/workshop-detail',
+        extra: {
+          'workshop': workshop,
+          'isJoined': isJoined,
+        },
+      );
+
+      if (!mounted) return;
+
+      await refreshRecentlyPlayed();
+    }
   }
 
-  IconData iconForType(MeditationModel meditation) {
-    if (meditation.isVideo) {
+  IconData iconForContent(
+    RecentContentModel content,
+  ) {
+    if (content.isWorkshopDay) {
+      final day = content.workshopDay;
+
+      if (day?.isVideo == true) {
+        return Icons.videocam_rounded;
+      }
+
+      if (day?.isLink == true) {
+        return Icons.link_rounded;
+      }
+
+      return Icons.headphones_rounded;
+    }
+
+    final meditation = content.meditation;
+
+    if (meditation?.isVideo == true) {
       return Icons.videocam_rounded;
     }
 
-    if (meditation.isLink) {
+    if (meditation?.isLink == true) {
       return Icons.link_rounded;
     }
 
     return Icons.graphic_eq_rounded;
   }
 
-  String metaText(MeditationModel meditation) {
-    final type = meditation.typeLabel;
-    final duration = meditation.durationText.trim();
+  String metaText(
+    RecentContentModel content,
+  ) {
+    final type = content.typeLabel.trim();
+    final duration = content.durationText.trim();
 
     if (duration.isEmpty) {
       return type;
     }
 
     return '$type · $duration';
+  }
+
+  String categoryText(
+    RecentContentModel content,
+  ) {
+    if (content.isWorkshopDay) {
+      final workshop = content.workshop;
+
+      if (workshop == null) {
+        return 'Atölye';
+      }
+
+      if (workshop.category.trim().isNotEmpty) {
+        return workshop.category;
+      }
+
+      return workshop.title;
+    }
+
+    final meditation = content.meditation;
+
+    if (meditation == null) {
+      return 'BagnuTheta';
+    }
+
+    if (meditation.category.trim().isNotEmpty) {
+      return meditation.category;
+    }
+
+    return 'BagnuTheta';
   }
 
   Widget buildSectionHeader() {
@@ -118,7 +216,8 @@ class _HomeRecentlyPlayedSectionState extends State<HomeRecentlyPlayedSection> {
         ),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF536B4E).withOpacity(0.08),
+            color: const Color(0xFF536B4E)
+                .withOpacity(0.08),
             blurRadius: 18,
             offset: const Offset(0, 9),
           ),
@@ -145,11 +244,13 @@ class _HomeRecentlyPlayedSectionState extends State<HomeRecentlyPlayedSection> {
           const SizedBox(width: 14),
           const Expanded(
             child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment:
+                  MainAxisAlignment.center,
+              crossAxisAlignment:
+                  CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Henüz oynatılan meditasyon yok.',
+                  'Henüz oynatılan içerik yok.',
                   style: TextStyle(
                     color: Color(0xFF2F3A32),
                     fontSize: 16,
@@ -159,7 +260,7 @@ class _HomeRecentlyPlayedSectionState extends State<HomeRecentlyPlayedSection> {
                 ),
                 SizedBox(height: 7),
                 Text(
-                  'Bir meditasyonu açınca burada görünecek.',
+                  'Meditasyon veya atölye içeriği açınca burada görünecek.',
                   style: TextStyle(
                     color: Color(0xFF6D766B),
                     fontSize: 13.5,
@@ -175,10 +276,11 @@ class _HomeRecentlyPlayedSectionState extends State<HomeRecentlyPlayedSection> {
     );
   }
 
-  Widget buildErrorState() {
+  Widget buildErrorState(
+    Object error,
+  ) {
     return Container(
       width: double.infinity,
-      height: 110,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: const Color(0xFFFFFCF6),
@@ -187,20 +289,44 @@ class _HomeRecentlyPlayedSectionState extends State<HomeRecentlyPlayedSection> {
           color: const Color(0xFFE8DDC9),
         ),
       ),
-      child: const Row(
+      child: Column(
         children: [
-          Icon(
-            Icons.error_outline_rounded,
-            color: Color(0xFFC85C5C),
-          ),
-          SizedBox(width: 12),
-          Expanded(
-            child: Text(
-              'En son oynatılanlar yüklenemedi.',
-              style: TextStyle(
-                color: Color(0xFF2F3A32),
-                fontWeight: FontWeight.w800,
+          const Row(
+            children: [
+              Icon(
+                Icons.error_outline_rounded,
+                color: Color(0xFFC85C5C),
               ),
+              SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  'En son oynatılanlar yüklenemedi.',
+                  style: TextStyle(
+                    color: Color(0xFF2F3A32),
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Text(
+            error.toString(),
+            maxLines: 3,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
+              color: Color(0xFF6D766B),
+              fontSize: 11.5,
+            ),
+          ),
+          const SizedBox(height: 10),
+          TextButton.icon(
+            onPressed: refreshRecentlyPlayed,
+            icon: const Icon(
+              Icons.refresh,
+            ),
+            label: const Text(
+              'Tekrar Dene',
             ),
           ),
         ],
@@ -209,22 +335,35 @@ class _HomeRecentlyPlayedSectionState extends State<HomeRecentlyPlayedSection> {
   }
 
   @override
-  Widget build(BuildContext context) {
-    return FutureBuilder<List<MeditationModel>>(
+  Widget build(
+    BuildContext context,
+  ) {
+    return FutureBuilder<List<RecentContentModel>>(
       future: recentlyPlayedFuture,
-      builder: (context, snapshot) {
-        final items = snapshot.data ?? [];
-        final visibleItems = items.take(8).toList();
+      builder: (
+        context,
+        snapshot,
+      ) {
+        final items =
+            snapshot.data ??
+                <RecentContentModel>[];
+
+        final visibleItems =
+            items.take(8).toList();
 
         return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+          crossAxisAlignment:
+              CrossAxisAlignment.start,
           children: [
             buildSectionHeader(),
             const SizedBox(height: 14),
-            if (snapshot.connectionState == ConnectionState.waiting)
+            if (snapshot.connectionState ==
+                ConnectionState.waiting)
               const _RecentlyPlayedLoading()
             else if (snapshot.hasError)
-              buildErrorState()
+              buildErrorState(
+                snapshot.error!,
+              )
             else if (visibleItems.isEmpty)
               buildEmptyState()
             else
@@ -232,21 +371,40 @@ class _HomeRecentlyPlayedSectionState extends State<HomeRecentlyPlayedSection> {
                 height: 238,
                 child: ListView.separated(
                   scrollDirection: Axis.horizontal,
-                  physics: const BouncingScrollPhysics(),
-                  padding: const EdgeInsets.only(right: 4),
+                  physics:
+                      const BouncingScrollPhysics(),
+                  padding:
+                      const EdgeInsets.only(right: 4),
                   itemCount: visibleItems.length,
-                  separatorBuilder: (context, index) {
-                    return const SizedBox(width: 14);
+                  separatorBuilder: (
+                    context,
+                    index,
+                  ) {
+                    return const SizedBox(
+                      width: 14,
+                    );
                   },
-                  itemBuilder: (context, index) {
-                    final meditation = visibleItems[index];
+                  itemBuilder: (
+                    context,
+                    index,
+                  ) {
+                    final content =
+                        visibleItems[index];
 
                     return _RecentlyPlayedCard(
-                      meditation: meditation,
-                      icon: iconForType(meditation),
-                      metaText: metaText(meditation),
+                      content: content,
+                      icon: iconForContent(
+                        content,
+                      ),
+                      metaText: metaText(
+                        content,
+                      ),
+                      categoryText:
+                          categoryText(
+                        content,
+                      ),
                       onTap: () {
-                        openMeditationDetail(meditation);
+                        openContent(content);
                       },
                     );
                   },
@@ -260,21 +418,29 @@ class _HomeRecentlyPlayedSectionState extends State<HomeRecentlyPlayedSection> {
 }
 
 class _RecentlyPlayedCard extends StatelessWidget {
-  final MeditationModel meditation;
+  final RecentContentModel content;
   final IconData icon;
   final String metaText;
+  final String categoryText;
   final VoidCallback onTap;
 
   const _RecentlyPlayedCard({
-    required this.meditation,
+    required this.content,
     required this.icon,
     required this.metaText,
+    required this.categoryText,
     required this.onTap,
   });
 
   @override
-  Widget build(BuildContext context) {
-    final hasThumbnail = meditation.thumbnailUrl.trim().isNotEmpty;
+  Widget build(
+    BuildContext context,
+  ) {
+    final imageUrl =
+        content.imageUrl.trim();
+
+    final hasImage =
+        imageUrl.isNotEmpty;
 
     return SizedBox(
       width: 190,
@@ -282,20 +448,23 @@ class _RecentlyPlayedCard extends StatelessWidget {
         onTap: onTap,
         behavior: HitTestBehavior.opaque,
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+          crossAxisAlignment:
+              CrossAxisAlignment.start,
           children: [
             Container(
               height: 122,
               width: double.infinity,
               decoration: BoxDecoration(
                 color: const Color(0xFFFFFCF6),
-                borderRadius: BorderRadius.circular(24),
+                borderRadius:
+                    BorderRadius.circular(24),
                 border: Border.all(
                   color: const Color(0xFFE8DDC9),
                 ),
                 boxShadow: [
                   BoxShadow(
-                    color: const Color(0xFF536B4E).withOpacity(0.12),
+                    color: const Color(0xFF536B4E)
+                        .withOpacity(0.12),
                     blurRadius: 22,
                     offset: const Offset(0, 11),
                   ),
@@ -305,26 +474,69 @@ class _RecentlyPlayedCard extends StatelessWidget {
               child: Stack(
                 children: [
                   Positioned.fill(
-                    child: hasThumbnail
+                    child: hasImage
                         ? Image.network(
-                            meditation.thumbnailUrl,
+                            imageUrl,
                             fit: BoxFit.cover,
-                            errorBuilder: (context, error, stackTrace) {
-                              return const _EmptyRecentlyPlayedThumb();
+                            errorBuilder: (
+                              context,
+                              error,
+                              stackTrace,
+                            ) {
+                              return _EmptyRecentlyPlayedThumb(
+                                isWorkshop:
+                                    content
+                                        .isWorkshopDay,
+                              );
                             },
                           )
-                        : const _EmptyRecentlyPlayedThumb(),
+                        : _EmptyRecentlyPlayedThumb(
+                            isWorkshop:
+                                content.isWorkshopDay,
+                          ),
                   ),
                   Positioned.fill(
                     child: DecoratedBox(
                       decoration: BoxDecoration(
                         gradient: LinearGradient(
-                          begin: Alignment.topCenter,
-                          end: Alignment.bottomCenter,
+                          begin:
+                              Alignment.topCenter,
+                          end:
+                              Alignment.bottomCenter,
                           colors: [
-                            Colors.black.withOpacity(0.02),
-                            Colors.black.withOpacity(0.28),
+                            Colors.black
+                                .withOpacity(0.02),
+                            Colors.black
+                                .withOpacity(0.28),
                           ],
+                        ),
+                      ),
+                    ),
+                  ),
+                  Positioned(
+                    top: 11,
+                    right: 11,
+                    child: Container(
+                      padding:
+                          const EdgeInsets.symmetric(
+                        horizontal: 9,
+                        vertical: 6,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.white
+                            .withOpacity(0.92),
+                        borderRadius:
+                            BorderRadius.circular(30),
+                      ),
+                      child: Text(
+                        content.isWorkshopDay
+                            ? 'Atölye'
+                            : 'Meditasyon',
+                        style: const TextStyle(
+                          color: Color(0xFF536B4E),
+                          fontSize: 10,
+                          fontWeight:
+                              FontWeight.w900,
                         ),
                       ),
                     ),
@@ -336,12 +548,15 @@ class _RecentlyPlayedCard extends StatelessWidget {
                       width: 38,
                       height: 38,
                       decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.92),
-                        borderRadius: BorderRadius.circular(13),
+                        color: Colors.white
+                            .withOpacity(0.92),
+                        borderRadius:
+                            BorderRadius.circular(13),
                       ),
                       child: Icon(
                         icon,
-                        color: const Color(0xFF536B4E),
+                        color:
+                            const Color(0xFF536B4E),
                         size: 22,
                       ),
                     ),
@@ -351,7 +566,7 @@ class _RecentlyPlayedCard extends StatelessWidget {
             ),
             const SizedBox(height: 10),
             Text(
-              meditation.title,
+              content.title,
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
               style: const TextStyle(
@@ -375,9 +590,7 @@ class _RecentlyPlayedCard extends StatelessWidget {
             ),
             const SizedBox(height: 5),
             Text(
-              meditation.category.trim().isEmpty
-                  ? 'BagnuTheta'
-                  : meditation.category,
+              categoryText,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: const TextStyle(
@@ -393,17 +606,27 @@ class _RecentlyPlayedCard extends StatelessWidget {
   }
 }
 
-class _EmptyRecentlyPlayedThumb extends StatelessWidget {
-  const _EmptyRecentlyPlayedThumb();
+class _EmptyRecentlyPlayedThumb
+    extends StatelessWidget {
+  final bool isWorkshop;
+
+  const _EmptyRecentlyPlayedThumb({
+    required this.isWorkshop,
+  });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(
+    BuildContext context,
+  ) {
     return Container(
       color: const Color(0xFFEEF3EA),
-      child: const Center(
+      child: Center(
         child: Icon(
-          Icons.self_improvement_rounded,
-          color: Color(0xFF536B4E),
+          isWorkshop
+              ? Icons
+                  .auto_awesome_mosaic_outlined
+              : Icons.self_improvement_rounded,
+          color: const Color(0xFF536B4E),
           size: 42,
         ),
       ),
@@ -411,27 +634,38 @@ class _EmptyRecentlyPlayedThumb extends StatelessWidget {
   }
 }
 
-class _RecentlyPlayedLoading extends StatelessWidget {
+class _RecentlyPlayedLoading
+    extends StatelessWidget {
   const _RecentlyPlayedLoading();
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(
+    BuildContext context,
+  ) {
     return SizedBox(
       height: 238,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         itemCount: 2,
-        separatorBuilder: (context, index) {
+        separatorBuilder: (
+          context,
+          index,
+        ) {
           return const SizedBox(width: 14);
         },
-        itemBuilder: (context, index) {
+        itemBuilder: (
+          context,
+          index,
+        ) {
           return Container(
             width: 190,
             decoration: BoxDecoration(
               color: Colors.white.withOpacity(0.44),
-              borderRadius: BorderRadius.circular(24),
+              borderRadius:
+                  BorderRadius.circular(24),
               border: Border.all(
-                color: Colors.white.withOpacity(0.55),
+                color:
+                    Colors.white.withOpacity(0.55),
               ),
             ),
           );
