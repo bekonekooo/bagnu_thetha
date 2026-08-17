@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_application_1/core/services/supabase_service.dart';
+import 'package:flutter_application_1/features/auth/data/services/social_auth_service.dart';
 import 'package:intl/intl.dart';
 
 class ProfilePage extends StatefulWidget {
@@ -66,6 +67,7 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   Future<void> signOut() async {
+    await SocialAuthService().signOutProviderSessions();
     await supabase.auth.signOut();
 
     if (!mounted) return;
@@ -127,36 +129,9 @@ class _ProfilePageState extends State<ProfilePage> {
   Widget buildBackgroundBody({
     required Widget child,
   }) {
-    return Stack(
-      children: [
-        Positioned.fill(
-          child: Image.asset(
-            profileBackground,
-            fit: BoxFit.cover,
-          ),
-        ),
-        Positioned.fill(
-          child: Container(
-            color: Colors.white.withOpacity(0.16),
-          ),
-        ),
-        Positioned.fill(
-          child: Container(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [
-                  Colors.white.withOpacity(0.16),
-                  Colors.white.withOpacity(0.05),
-                  Colors.black.withOpacity(0.18),
-                ],
-              ),
-            ),
-          ),
-        ),
-        child,
-      ],
+    return Container(
+      color: const Color(0xFFF5F0E8),
+      child: child,
     );
   }
 

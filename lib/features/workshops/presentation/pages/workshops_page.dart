@@ -80,45 +80,9 @@ class _WorkshopsPageState extends State<WorkshopsPage> {
   Widget buildBackgroundBody({
     required Widget child,
   }) {
-    return Stack(
-      children: [
-        Positioned.fill(
-          child: Image.asset(
-            backgroundImage,
-            fit: BoxFit.cover,
-            errorBuilder: (
-              context,
-              error,
-              stackTrace,
-            ) {
-              return Container(
-                color: softGreen,
-              );
-            },
-          ),
-        ),
-        Positioned.fill(
-          child: Container(
-            color: Colors.white.withOpacity(0.20),
-          ),
-        ),
-        Positioned.fill(
-          child: Container(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [
-                  Colors.white.withOpacity(0.20),
-                  Colors.white.withOpacity(0.08),
-                  Colors.black.withOpacity(0.16),
-                ],
-              ),
-            ),
-          ),
-        ),
-        child,
-      ],
+    return Container(
+      color: const Color(0xFFF5F0E8),
+      child: child,
     );
   }
 

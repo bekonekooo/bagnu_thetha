@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 
 class AppTheme {
-  static const Color primaryPurple = Color(0xFF7C5CFF);
-  static const Color darkPurple = Color(0xFF4B2E83);
-  static const Color softPurple = Color(0xFFF1EDFF);
-  static const Color softCream = Color(0xFFF8F5EF);
-  static const Color gold = Color(0xFFD4AF37);
-  static const Color textDark = Color(0xFF2D2438);
-  static const Color textSoft = Color(0xFF756B80);
+  static const Color primaryPurple = Color(0xFFC76D4B);
+  static const Color darkPurple = Color(0xFF653B3C);
+  static const Color softPurple = Color(0xFFE7C0AF);
+  static const Color softCream = Color(0xFFF5F0E8);
+  static const Color gold = Color(0xFFB4956A);
+  static const Color textDark = Color(0xFF18202A);
+  static const Color textSoft = Color(0xFF72706B);
   static const Color cardWhite = Colors.white;
 
   static ThemeData get lightTheme {
@@ -85,9 +85,9 @@ class AppTheme {
       cardTheme: CardThemeData(
         color: cardWhite,
         elevation: 2,
-        shadowColor: Colors.black.withOpacity(0.08),
+        shadowColor: Colors.black.withOpacity(0.045),
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(22),
+          borderRadius: BorderRadius.circular(18),
         ),
         margin: EdgeInsets.zero,
       ),
@@ -107,29 +107,29 @@ class AppTheme {
           vertical: 16,
         ),
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(18),
+          borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide(color: Colors.grey.shade300),
         ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(18),
+          borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide(color: Colors.grey.shade300),
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(18),
+          borderRadius: BorderRadius.circular(12),
           borderSide: const BorderSide(
             color: primaryPurple,
             width: 1.6,
           ),
         ),
         errorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(18),
+          borderRadius: BorderRadius.circular(12),
           borderSide: const BorderSide(
             color: Colors.red,
             width: 1.4,
           ),
         ),
         focusedErrorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(18),
+          borderRadius: BorderRadius.circular(12),
           borderSide: const BorderSide(
             color: Colors.red,
             width: 1.6,
@@ -153,7 +153,7 @@ class AppTheme {
             fontWeight: FontWeight.bold,
           ),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(18),
+            borderRadius: BorderRadius.circular(12),
           ),
         ),
       ),
@@ -175,7 +175,7 @@ class AppTheme {
             width: 1.2,
           ),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(18),
+            borderRadius: BorderRadius.circular(12),
           ),
         ),
       ),

@@ -41,20 +41,28 @@ class MainShellPage extends StatelessWidget {
 
     return Scaffold(
       body: child,
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: currentIndex,
-        onTap: (index) => _onItemTapped(context, index),
-        items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.home),
+      bottomNavigationBar: NavigationBar(
+        height: 72,
+        elevation: 0,
+        backgroundColor: const Color(0xFFFFFDF9),
+        indicatorColor: const Color(0xFFEEF3EA),
+        surfaceTintColor: Colors.transparent,
+        selectedIndex: currentIndex,
+        onDestinationSelected: (index) => _onItemTapped(context, index),
+        destinations: const [
+          NavigationDestination(
+            icon: Icon(Icons.home_outlined),
+            selectedIcon: Icon(Icons.home_rounded),
             label: 'Ana Sayfa',
           ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.calendar_month),
+          NavigationDestination(
+            icon: Icon(Icons.calendar_month_outlined),
+            selectedIcon: Icon(Icons.calendar_month_rounded),
             label: 'Seanslar',
           ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.person),
+          NavigationDestination(
+            icon: Icon(Icons.person_outline_rounded),
+            selectedIcon: Icon(Icons.person_rounded),
             label: 'Profil',
           ),
         ],

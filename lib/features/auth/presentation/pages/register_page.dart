@@ -4,6 +4,8 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/services/supabase_service.dart';
 import '../../../../shared/widgets/custom_button.dart';
 import '../../../../shared/widgets/custom_text_field.dart';
+import '../../data/services/social_auth_service.dart';
+import '../widgets/social_auth_buttons.dart';
 
 class RegisterPage extends StatefulWidget {
   const RegisterPage({super.key});
@@ -20,6 +22,8 @@ class _RegisterPageState extends State<RegisterPage> {
   final passwordAgainController = TextEditingController();
 
   bool isLoading = false;
+  String? socialLoadingLabel;
+  final SocialAuthService socialAuthService = SocialAuthService();
 
   bool validateForm() {
     final name = nameController.text.trim();
@@ -129,6 +133,67 @@ class _RegisterPageState extends State<RegisterPage> {
     }
   }
 
+  Future<void> signInWithGoogle() async {
+    await _signInWithSocial(
+      label: 'Google ile devam ediliyor...',
+      action: socialAuthService.signInWithGoogle,
+    );
+  }
+
+  Future<void> signInWithApple() async {
+    await _signInWithSocial(
+      label: 'Apple ile devam ediliyor...',
+      action: socialAuthService.signInWithApple,
+    );
+  }
+
+  Future<void> _signInWithSocial({
+    required String label,
+    required Future<dynamic> Function() action,
+  }) async {
+    if (isLoading) return;
+    setState(() {
+      isLoading = true;
+      socialLoadingLabel = label;
+    });
+
+    try {
+      await action();
+      final user = supabase.auth.currentUser;
+      if (user == null) throw Exception('Kullanıcı bulunamadı.');
+      final profile = await supabase
+          .from('profiles')
+          .select('role, onboarding_completed')
+          .eq('id', user.id)
+          .maybeSingle();
+      final role = profile?['role']?.toString() ?? 'student';
+      final onboardingCompleted = profile?['onboarding_completed'] == true;
+
+      if (!mounted) return;
+      if (role == 'teacher') {
+        context.go('/teacher-dashboard');
+      } else if (!onboardingCompleted) {
+        context.go('/profile-onboarding');
+      } else {
+        context.go('/home');
+      }
+    } on SocialAuthCancelledException {
+      // Provider dialog was dismissed.
+    } catch (_) {
+      if (!mounted) return;
+      final provider = label.startsWith('Google') ? 'Google' : 'Apple';
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('$provider ile giriş yapılamadı. Lütfen tekrar deneyin.')),
+      );
+    } finally {
+      if (!mounted) return;
+      setState(() {
+        isLoading = false;
+        socialLoadingLabel = null;
+      });
+    }
+  }
+
   @override
   void dispose() {
     nameController.dispose();
@@ -144,40 +209,19 @@ class _RegisterPageState extends State<RegisterPage> {
       width: double.infinity,
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            Colors.deepPurple.shade400,
-            Colors.deepPurple.shade700,
-          ],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(28),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.deepPurple.withOpacity(0.20),
-            blurRadius: 22,
-            offset: const Offset(0, 10),
-          ),
-        ],
+        color: const Color(0xFFFFFDF9),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: const Color(0xFFE5DED3)),
       ),
       child: Column(
         children: [
-          const CircleAvatar(
-            radius: 42,
-            backgroundColor: Colors.white,
-            child: Icon(
-              Icons.person_add_alt_1,
-              color: Colors.deepPurple,
-              size: 44,
-            ),
-          ),
+          const Icon(Icons.person_add_alt_1, color: Color(0xFFC76D4B), size: 42),
           const SizedBox(height: 18),
           const Text(
             'BagnuTheta’ya Katıl',
             textAlign: TextAlign.center,
             style: TextStyle(
-              color: Colors.white,
+              color: Color(0xFF18202A),
               fontSize: 26,
               fontWeight: FontWeight.bold,
             ),
@@ -187,7 +231,7 @@ class _RegisterPageState extends State<RegisterPage> {
             'Hesabını oluştur, ardından seni daha iyi tanıyalım.',
             textAlign: TextAlign.center,
             style: TextStyle(
-              color: Colors.white.withOpacity(0.9),
+              color: Color(0xFF72706B),
               height: 1.35,
             ),
           ),
@@ -309,7 +353,14 @@ class _RegisterPageState extends State<RegisterPage> {
                 icon: Icons.person_add_alt_1,
                 onPressed: signUp,
               ),
-              const SizedBox(height: 18),
+              const SizedBox(height: 20),
+              SocialAuthButtons(
+                onGoogle: signInWithGoogle,
+                onApple: signInWithApple,
+                isLoading: isLoading,
+                loadingLabel: socialLoadingLabel,
+              ),
+              const SizedBox(height: 16),
               Center(
                 child: TextButton(
                   onPressed: isLoading

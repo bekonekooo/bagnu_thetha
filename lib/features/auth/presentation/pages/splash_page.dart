@@ -61,26 +61,17 @@ class _SplashPageState extends State<SplashPage> {
         width: double.infinity,
         height: double.infinity,
         padding: const EdgeInsets.all(28),
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: [
-              Colors.deepPurple.shade400,
-              Colors.deepPurple.shade800,
-            ],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-        ),
+        color: const Color(0xFFF5F0E8),
         child: const Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             CircleAvatar(
               radius: 52,
-              backgroundColor: Colors.white,
+              backgroundColor: Color(0xFFFFFDF9),
               child: Icon(
                 Icons.self_improvement,
                 size: 58,
-                color: Colors.deepPurple,
+                color: Color(0xFFC76D4B),
               ),
             ),
             SizedBox(height: 24),
@@ -89,7 +80,7 @@ class _SplashPageState extends State<SplashPage> {
               style: TextStyle(
                 fontSize: 32,
                 fontWeight: FontWeight.bold,
-                color: Colors.white,
+                color: Color(0xFF18202A),
               ),
             ),
             SizedBox(height: 10),
@@ -98,13 +89,13 @@ class _SplashPageState extends State<SplashPage> {
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 16,
-                color: Colors.white70,
+                color: Color(0xFF72706B),
                 height: 1.35,
               ),
             ),
             SizedBox(height: 34),
             CircularProgressIndicator(
-              color: Colors.white,
+              color: Color(0xFFC76D4B),
             ),
           ],
         ),

@@ -398,45 +398,9 @@ class _CreateWorkshopPageState extends State<CreateWorkshopPage> {
   Widget buildBackgroundBody({
     required Widget child,
   }) {
-    return Stack(
-      children: [
-        Positioned.fill(
-          child: Image.asset(
-            backgroundImage,
-            fit: BoxFit.cover,
-            errorBuilder: (
-              context,
-              error,
-              stackTrace,
-            ) {
-              return Container(
-                color: softGreen,
-              );
-            },
-          ),
-        ),
-        Positioned.fill(
-          child: Container(
-            color: Colors.white.withOpacity(0.18),
-          ),
-        ),
-        Positioned.fill(
-          child: Container(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [
-                  Colors.white.withOpacity(0.18),
-                  Colors.white.withOpacity(0.05),
-                  Colors.black.withOpacity(0.20),
-                ],
-              ),
-            ),
-          ),
-        ),
-        child,
-      ],
+    return Container(
+      color: const Color(0xFFF5F0E8),
+      child: child,
     );
   }
 

@@ -28,6 +28,9 @@ dependencies:
   # Video görüşme
   livekit_client: ^2.7.0
   permission_handler: ^12.0.1
+  google_sign_in: ^7.2.0
+  sign_in_with_apple: ^8.1.0
+  crypto: ^3.0.6
 
 dev_dependencies:
   flutter_test:

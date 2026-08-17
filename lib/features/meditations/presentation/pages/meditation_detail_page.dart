@@ -434,41 +434,9 @@ class _MeditationDetailPageState extends State<MeditationDetailPage> {
   }
 
   Widget buildBackground({required Widget child}) {
-    return Stack(
-      children: [
-        Positioned.fill(
-          child: Image.asset(
-            backgroundImage,
-            fit: BoxFit.cover,
-            errorBuilder: (context, error, stackTrace) {
-              return Container(
-                color: const Color(0xFFEEF3EA),
-              );
-            },
-          ),
-        ),
-        Positioned.fill(
-          child: Container(
-            color: Colors.white.withOpacity(0.14),
-          ),
-        ),
-        Positioned.fill(
-          child: Container(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [
-                  Colors.white.withOpacity(0.20),
-                  Colors.white.withOpacity(0.04),
-                  Colors.black.withOpacity(0.28),
-                ],
-              ),
-            ),
-          ),
-        ),
-        child,
-      ],
+    return Container(
+      color: const Color(0xFFF5F0E8),
+      child: child,
     );
   }
 

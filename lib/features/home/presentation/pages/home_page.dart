@@ -4,10 +4,10 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_application_1/core/services/supabase_service.dart';
 import 'package:flutter_application_1/features/notifications/data/presentation/widgets/notification_badge_button.dart';
+import 'package:flutter_application_1/features/auth/data/services/social_auth_service.dart';
 
 import '../../data/models/home_daily_message_model.dart';
 import '../../data/services/home_daily_message_service.dart';
-import '../widgets/home_header.dart';
 import '../widgets/home_menu_grid.dart';
 import '../widgets/home_recently_played_section.dart';
 import '../widgets/home_meditation_spotlight_section.dart';
@@ -165,6 +165,7 @@ class _HomePageState extends State<HomePage> {
   }
 
   Future<void> signOut() async {
+    await SocialAuthService().signOutProviderSessions();
     await supabase.auth.signOut();
 
     if (!mounted) return;
@@ -237,12 +238,53 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
+  void showAppMenu() {
+    showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: const Color(0xFFFFFDF9),
+      showDragHandle: true,
+      builder: (sheetContext) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            _menuItem(sheetContext, 'Profilim', Icons.person_outline, '/profile'),
+            _menuItem(sheetContext, 'Favorilerim', Icons.bookmark_border, '/favorites'),
+            _menuItem(sheetContext, 'Bize Ulaşın', Icons.mail_outline, '/contact'),
+            _menuItem(sheetContext, 'Hakkımızda', Icons.info_outline, '/about'),
+            _menuItem(sheetContext, 'Gizlilik Politikası', Icons.lock_outline, null),
+            _menuItem(sheetContext, 'Kullanım Koşulları', Icons.description_outlined, null),
+            ListTile(
+              leading: const Icon(Icons.logout_outlined, color: Color(0xFF653B3C)),
+              title: const Text('Çıkış Yap'),
+              onTap: () {
+                Navigator.pop(sheetContext);
+                confirmSignOut();
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _menuItem(BuildContext sheetContext, String label, IconData icon, String? route) {
+    return ListTile(
+      leading: Icon(icon, color: const Color(0xFF667783)),
+      title: Text(label),
+      trailing: route == null ? null : const Icon(Icons.chevron_right),
+      onTap: route == null ? null : () {
+        Navigator.pop(sheetContext);
+        context.push(route);
+      },
+    );
+  }
+
   Widget buildSoftBackground({required Widget child}) {
     return Stack(
       children: [
         Positioned.fill(
           child: Container(
-            color: const Color(0xFFF7F4EC),
+            color: const Color(0xFFF5F0E8),
           ),
         ),
         Positioned(
@@ -253,7 +295,7 @@ class _HomePageState extends State<HomePage> {
             height: 230,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: const Color(0xFFD7E1D0).withOpacity(0.75),
+              color: const Color(0xFFE7C0AF).withOpacity(0.26),
             ),
           ),
         ),
@@ -265,7 +307,7 @@ class _HomePageState extends State<HomePage> {
             height: 260,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: const Color(0xFFEEF3EA).withOpacity(0.95),
+              color: const Color(0xFFFFFDF9).withOpacity(0.72),
             ),
           ),
         ),
@@ -277,22 +319,7 @@ class _HomePageState extends State<HomePage> {
             height: 290,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: const Color(0xFFE9DFC8).withOpacity(0.70),
-            ),
-          ),
-        ),
-        Positioned.fill(
-          child: Container(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [
-                  Colors.white.withOpacity(0.32),
-                  Colors.white.withOpacity(0.08),
-                  Colors.white.withOpacity(0.20),
-                ],
-              ),
+              color: const Color(0xFFB4956A).withOpacity(0.16),
             ),
           ),
         ),
@@ -317,17 +344,18 @@ class _HomePageState extends State<HomePage> {
     }
 
     final fullName = profile?['full_name']?.toString() ?? '';
-    final email = profile?['email']?.toString() ?? '';
 
     return Scaffold(
       backgroundColor: const Color(0xFFF7F4EC),
       appBar: AppBar(
+        titleSpacing: 20,
         title: const Text(
           'BagnuTheta',
           style: TextStyle(
-            fontWeight: FontWeight.w900,
-            color: Color(0xFF2F3A32),
-            letterSpacing: -0.4,
+            fontWeight: FontWeight.w800,
+            fontSize: 21,
+            color: Color(0xFF273128),
+            letterSpacing: -0.5,
           ),
         ),
         backgroundColor: const Color(0xFFF7F4EC).withOpacity(0.96),
@@ -337,10 +365,10 @@ class _HomePageState extends State<HomePage> {
         actions: [
           const NotificationBadgeButton(),
           IconButton(
-            onPressed: confirmSignOut,
-            icon: const Icon(Icons.logout_rounded),
-            tooltip: 'Çıkış Yap',
-            color: const Color(0xFF2F3A32),
+            onPressed: showAppMenu,
+            icon: const Icon(Icons.menu_rounded),
+            tooltip: 'Menü',
+            color: const Color(0xFF18202A),
           ),
         ],
       ),
@@ -353,20 +381,12 @@ class _HomePageState extends State<HomePage> {
             child: SingleChildScrollView(
               physics: const AlwaysScrollableScrollPhysics(),
               child: Padding(
-                padding: const EdgeInsets.fromLTRB(16, 18, 16, 28),
+                padding: const EdgeInsets.fromLTRB(20, 18, 20, 28),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    HomeHeader(
-                      fullName: fullName,
-                      email: email,
-                    ),
-                    const SizedBox(height: 20),
-                    const _SectionTitle(
-                      title: 'Bugün ne yapmak istersin?',
-                      subtitle: 'Seanslar, meditasyonlar ve özel alanların.',
-                    ),
-                    const SizedBox(height: 14),
+                    _EditorialHero(fullName: fullName),
+                    const SizedBox(height: 24),
                     HomeMenuGrid(
                       onTap: goToPage,
                     ),
@@ -391,6 +411,40 @@ class _HomePageState extends State<HomePage> {
             ),
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _EditorialHero extends StatelessWidget {
+  final String fullName;
+
+  const _EditorialHero({required this.fullName});
+
+  @override
+  Widget build(BuildContext context) {
+    final name = fullName.trim().isEmpty ? '' : ', ${fullName.split(' ').first}';
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 8),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'İçine dön$name.',
+            style: Theme.of(context).textTheme.displaySmall?.copyWith(
+                  color: const Color(0xFF18202A),
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: -1.2,
+                ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Bugün kendin için birkaç dakika ayır.',
+            style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                  color: const Color(0xFF72706B),
+                ),
+          ),
+        ],
       ),
     );
   }

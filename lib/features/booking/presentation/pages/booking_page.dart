@@ -377,36 +377,9 @@ class _BookingPageState extends State<BookingPage> {
   Widget buildBackgroundBody({
     required Widget child,
   }) {
-    return Stack(
-      children: [
-        Positioned.fill(
-          child: Image.asset(
-            bookingBackground,
-            fit: BoxFit.cover,
-          ),
-        ),
-        Positioned.fill(
-          child: Container(
-            color: Colors.white.withOpacity(0.16),
-          ),
-        ),
-        Positioned.fill(
-          child: Container(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [
-                  Colors.white.withOpacity(0.16),
-                  Colors.white.withOpacity(0.04),
-                  Colors.black.withOpacity(0.18),
-                ],
-              ),
-            ),
-          ),
-        ),
-        child,
-      ],
+    return Container(
+      color: const Color(0xFFF5F0E8),
+      child: child,
     );
   }
 

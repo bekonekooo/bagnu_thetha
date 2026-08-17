@@ -27,14 +27,7 @@ class HomeHeader extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(20, 22, 20, 22),
       decoration: BoxDecoration(
         color: const Color(0xFF536B4E),
-        borderRadius: BorderRadius.circular(32),
-        boxShadow: [
-          BoxShadow(
-            color: const Color(0xFF536B4E).withOpacity(0.22),
-            blurRadius: 28,
-            offset: const Offset(0, 14),
-          ),
-        ],
+        borderRadius: BorderRadius.circular(22),
       ),
       child: Stack(
         children: [
@@ -70,7 +63,7 @@ class HomeHeader extends StatelessWidget {
                 height: 58,
                 decoration: BoxDecoration(
                   color: Colors.white.withOpacity(0.16),
-                  borderRadius: BorderRadius.circular(22),
+                  borderRadius: BorderRadius.circular(16),
                   border: Border.all(
                     color: Colors.white.withOpacity(0.18),
                   ),

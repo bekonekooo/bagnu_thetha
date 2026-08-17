@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 class HomeMenuGrid extends StatelessWidget {
+  static const bool showCommunity = false;
   final Function(String) onTap;
 
   const HomeMenuGrid({
@@ -10,7 +11,7 @@ class HomeMenuGrid extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final items = [
+    final items = <_HomeMenuItem>[
       _HomeMenuItem(
         icon: Icons.calendar_month_outlined,
         title: 'Seanslarım',
@@ -37,11 +38,6 @@ class HomeMenuGrid extends StatelessWidget {
         route: '/trainings',
       ),
       _HomeMenuItem(
-        icon: Icons.groups_2_outlined,
-        title: 'Topluluk',
-        route: '/community',
-      ),
-      _HomeMenuItem(
         icon: Icons.bookmark_border_rounded,
         title: 'Favorilerim',
         route: '/favorites',
@@ -52,26 +48,18 @@ class HomeMenuGrid extends StatelessWidget {
         route: '/workshops',
       ),
     ];
+    // Community remains implemented and routable, but is intentionally hidden
+    // from the current consumer UI until the feature is reintroduced.
 
-    return GridView.builder(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      itemCount: items.length,
-      padding: EdgeInsets.zero,
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2,
-        crossAxisSpacing: 13,
-        mainAxisSpacing: 13,
-        childAspectRatio: 1.62,
-      ),
-      itemBuilder: (context, index) {
-        final item = items[index];
-
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      children: items.map((item) {
         return _SoftMenuCard(
           item: item,
           onTap: () => onTap(item.route),
         );
-      },
+      }).toList(),
     );
   }
 }
@@ -101,40 +89,30 @@ class _SoftMenuCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Material(
       color: Colors.transparent,
-      borderRadius: BorderRadius.circular(26),
+      borderRadius: BorderRadius.circular(12),
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(26),
+        borderRadius: BorderRadius.circular(12),
         splashColor: const Color(0xFF536B4E).withOpacity(0.08),
         highlightColor: const Color(0xFF536B4E).withOpacity(0.04),
         child: Ink(
           decoration: BoxDecoration(
             color: const Color(0xFFFFFCF6),
-            borderRadius: BorderRadius.circular(26),
+            borderRadius: BorderRadius.circular(12),
             border: Border.all(
               color: const Color(0xFFE8DDC9),
             ),
-            boxShadow: [
-              BoxShadow(
-                color: const Color(0xFF536B4E).withOpacity(0.08),
-                blurRadius: 18,
-                offset: const Offset(0, 9),
-              ),
-            ],
           ),
           child: Padding(
-            padding: const EdgeInsets.symmetric(
-              horizontal: 13,
-              vertical: 13,
-            ),
+            padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 8),
             child: Row(
               children: [
                 Container(
-                  width: 48,
-                  height: 48,
+                  width: 34,
+                  height: 34,
                   decoration: BoxDecoration(
                     color: const Color(0xFFEEF3EA),
-                    borderRadius: BorderRadius.circular(18),
+                    borderRadius: BorderRadius.circular(10),
                     border: Border.all(
                       color: const Color(0xFFD7E1D0),
                     ),
@@ -142,18 +120,18 @@ class _SoftMenuCard extends StatelessWidget {
                   child: Icon(
                     item.icon,
                     color: const Color(0xFF536B4E),
-                    size: 26,
+                    size: 18,
                   ),
                 ),
-                const SizedBox(width: 11),
+                const SizedBox(width: 7),
                 Expanded(
                   child: Text(
                     item.title,
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
-                      fontSize: 15.2,
-                      fontWeight: FontWeight.w900,
+                      fontSize: 13.5,
+                      fontWeight: FontWeight.w700,
                       color: Color(0xFF2F3A32),
                       height: 1.08,
                       letterSpacing: -0.35,

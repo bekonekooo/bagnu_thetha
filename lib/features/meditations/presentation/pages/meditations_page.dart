@@ -378,41 +378,9 @@ class _MeditationsPageState extends State<MeditationsPage> {
   }
 
   Widget buildBackgroundBody({required Widget child}) {
-    return Stack(
-      children: [
-        Positioned.fill(
-          child: Image.asset(
-            meditationsBackground,
-            fit: BoxFit.cover,
-            errorBuilder: (context, error, stackTrace) {
-              return Container(
-                color: const Color(0xFFEEF3EA),
-              );
-            },
-          ),
-        ),
-        Positioned.fill(
-          child: Container(
-            color: Colors.white.withOpacity(0.16),
-          ),
-        ),
-        Positioned.fill(
-          child: Container(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [
-                  Colors.white.withOpacity(0.18),
-                  Colors.white.withOpacity(0.04),
-                  Colors.black.withOpacity(0.22),
-                ],
-              ),
-            ),
-          ),
-        ),
-        child,
-      ],
+    return Container(
+      color: const Color(0xFFF5F0E8),
+      child: child,
     );
   }
 
@@ -696,16 +664,8 @@ class _MeditationsPageState extends State<MeditationsPage> {
         borderRadius: BorderRadius.circular(28),
         child: Stack(
           children: [
-            Positioned.fill(
-              child: Image.asset(
-                meditationCardBackground,
-                fit: BoxFit.cover,
-                errorBuilder: (context, error, stackTrace) {
-                  return Container(
-                    color: const Color(0xFFEEF3EA),
-                  );
-                },
-              ),
+            const Positioned.fill(
+              child: ColoredBox(color: Color(0xFFFFFDF9)),
             ),
             Positioned.fill(
               child: Container(

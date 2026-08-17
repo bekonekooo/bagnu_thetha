@@ -4,6 +4,8 @@ import 'package:go_router/go_router.dart';
 import 'package:flutter_application_1/features/favorites/data/models/recent_content_model.dart';
 import 'package:flutter_application_1/features/favorites/data/services/content_history_service.dart';
 
+import 'package:flutter_application_1/features/guidance/data/services/guidance_service.dart';
+
 import 'package:flutter_application_1/features/meditations/data/models/meditation_model.dart';
 import 'package:flutter_application_1/features/meditations/data/services/meditation_service.dart';
 
@@ -13,16 +15,21 @@ import 'package:flutter_application_1/features/workshops/data/services/workshop_
 enum FavoriteTab {
   recentlyPlayed,
   liked,
+  guidance,
 }
 
 class FavoritesPage extends StatefulWidget {
-  const FavoritesPage({super.key});
+  const FavoritesPage({
+    super.key,
+  });
 
   @override
-  State<FavoritesPage> createState() => _FavoritesPageState();
+  State<FavoritesPage> createState() =>
+      _FavoritesPageState();
 }
 
-class _FavoritesPageState extends State<FavoritesPage> {
+class _FavoritesPageState
+    extends State<FavoritesPage> {
   final ContentHistoryService contentHistoryService =
       ContentHistoryService();
 
@@ -32,15 +39,29 @@ class _FavoritesPageState extends State<FavoritesPage> {
   final WorkshopService workshopService =
       WorkshopService();
 
-  FavoriteTab selectedTab = FavoriteTab.recentlyPlayed;
+  final GuidanceService guidanceService =
+      GuidanceService();
 
-  late Future<List<_FavoriteEntry>> entriesFuture;
+  FavoriteTab selectedTab =
+      FavoriteTab.recentlyPlayed;
 
-  static const Color primaryColor = Color(0xFF536B4E);
-  static const Color textColor = Color(0xFF2F3A32);
-  static const Color secondaryTextColor = Color(0xFF606A61);
-  static const Color softGreen = Color(0xFFEEF3EA);
-  static const Color dangerColor = Color(0xFFC85C5C);
+  late Future<List<_FavoriteEntry>>
+      entriesFuture;
+
+  static const Color primaryColor =
+      Color(0xFF536B4E);
+
+  static const Color textColor =
+      Color(0xFF2F3A32);
+
+  static const Color secondaryTextColor =
+      Color(0xFF606A61);
+
+  static const Color softGreen =
+      Color(0xFFEEF3EA);
+
+  static const Color dangerColor =
+      Color(0xFFC85C5C);
 
   static const String backgroundImage =
       'assets/images/backgrounds/home_bg_1.jpg';
@@ -48,44 +69,75 @@ class _FavoritesPageState extends State<FavoritesPage> {
   @override
   void initState() {
     super.initState();
+
     entriesFuture = loadEntries();
   }
 
-  Future<List<_FavoriteEntry>> loadEntries() async {
-    if (selectedTab == FavoriteTab.recentlyPlayed) {
-      final recentContents =
-          await contentHistoryService.fetchRecentContents(
-        limit: 10,
-      );
+  Future<List<_FavoriteEntry>>
+      loadEntries() async {
+    switch (selectedTab) {
+      case FavoriteTab.recentlyPlayed:
+        final recentContents =
+            await contentHistoryService
+                .fetchRecentContents(
+          limit: 10,
+        );
 
-      return recentContents
-          .map(
-            (content) => _FavoriteEntry.recent(content),
-          )
-          .toList();
+        return recentContents
+            .map(
+              (content) =>
+                  _FavoriteEntry.recent(
+                content,
+              ),
+            )
+            .toList();
+
+      case FavoriteTab.liked:
+        final results =
+            await Future.wait<dynamic>([
+          meditationService
+              .fetchMyFavoriteMeditations(),
+          workshopService
+              .fetchMyFavoriteWorkshops(),
+        ]);
+
+        final meditations =
+            results[0]
+                as List<MeditationModel>;
+
+        final workshops =
+            results[1]
+                as List<WorkshopModel>;
+
+        return [
+          ...meditations.map(
+            (meditation) =>
+                _FavoriteEntry.meditation(
+              meditation,
+            ),
+          ),
+          ...workshops.map(
+            (workshop) =>
+                _FavoriteEntry.workshop(
+              workshop,
+            ),
+          ),
+        ];
+
+      case FavoriteTab.guidance:
+        final guidanceItems =
+            await guidanceService
+                .fetchMyGuidanceHistory();
+
+        return guidanceItems
+            .map(
+              (guidance) =>
+                  _FavoriteEntry.guidance(
+                guidance,
+              ),
+            )
+            .toList();
     }
-
-    final results = await Future.wait<dynamic>([
-      meditationService.fetchMyFavoriteMeditations(),
-      workshopService.fetchMyFavoriteWorkshops(),
-    ]);
-
-    final meditations =
-        results[0] as List<MeditationModel>;
-
-    final workshops =
-        results[1] as List<WorkshopModel>;
-
-    return [
-      ...meditations.map(
-        (meditation) =>
-            _FavoriteEntry.meditation(meditation),
-      ),
-      ...workshops.map(
-        (workshop) =>
-            _FavoriteEntry.workshop(workshop),
-      ),
-    ];
   }
 
   Future<void> refreshFavorites() async {
@@ -98,7 +150,9 @@ class _FavoritesPageState extends State<FavoritesPage> {
     await newFuture;
   }
 
-  void changeTab(FavoriteTab tab) {
+  void changeTab(
+    FavoriteTab tab,
+  ) {
     if (selectedTab == tab) {
       return;
     }
@@ -112,7 +166,15 @@ class _FavoritesPageState extends State<FavoritesPage> {
   Future<void> openEntry(
     _FavoriteEntry entry,
   ) async {
-    final recentContent = entry.recentContent;
+    if (entry.guidance != null) {
+      showGuidanceResult(
+        entry.guidance!,
+      );
+      return;
+    }
+
+    final recentContent =
+        entry.recentContent;
 
     if (recentContent != null) {
       if (recentContent.isMeditation &&
@@ -124,7 +186,8 @@ class _FavoritesPageState extends State<FavoritesPage> {
       } else if (recentContent.isWorkshopDay &&
           recentContent.workshop != null) {
         final joined =
-            await workshopService.hasJoinedWorkshop(
+            await workshopService
+                .hasJoinedWorkshop(
           recentContent.workshop!.id,
         );
 
@@ -133,7 +196,8 @@ class _FavoritesPageState extends State<FavoritesPage> {
         await context.push(
           '/workshop-detail',
           extra: {
-            'workshop': recentContent.workshop!,
+            'workshop':
+                recentContent.workshop!,
             'isJoined': joined,
           },
         );
@@ -159,7 +223,8 @@ class _FavoritesPageState extends State<FavoritesPage> {
 
     if (entry.workshop != null) {
       final joined =
-          await workshopService.hasJoinedWorkshop(
+          await workshopService
+              .hasJoinedWorkshop(
         entry.workshop!.id,
       );
 
@@ -179,10 +244,264 @@ class _FavoritesPageState extends State<FavoritesPage> {
     }
   }
 
-  Future<void> clearHistory() async {
-    final confirmed = await showDialog<bool>(
+  void showGuidanceResult(
+    GuidanceHistoryModel guidance,
+  ) {
+    showModalBottomSheet<void>(
       context: context,
-      builder: (dialogContext) {
+      isScrollControlled: true,
+      backgroundColor:
+          Colors.transparent,
+      builder: (sheetContext) {
+        return DraggableScrollableSheet(
+          initialChildSize: 0.88,
+          minChildSize: 0.55,
+          maxChildSize: 0.95,
+          builder: (
+            context,
+            scrollController,
+          ) {
+            return Container(
+              decoration: const BoxDecoration(
+                color: Color(0xFFF8F6F0),
+                borderRadius:
+                    BorderRadius.vertical(
+                  top: Radius.circular(30),
+                ),
+              ),
+              child: ListView(
+                controller: scrollController,
+                padding:
+                    const EdgeInsets.fromLTRB(
+                  20,
+                  12,
+                  20,
+                  34,
+                ),
+                children: [
+                  Center(
+                    child: Container(
+                      width: 46,
+                      height: 5,
+                      decoration: BoxDecoration(
+                        color:
+                            Colors.grey.shade400,
+                        borderRadius:
+                            BorderRadius.circular(
+                          20,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 22),
+                  Row(
+                    children: [
+                      Container(
+                        width: 52,
+                        height: 52,
+                        decoration:
+                            BoxDecoration(
+                          color: softGreen,
+                          borderRadius:
+                              BorderRadius
+                                  .circular(17),
+                        ),
+                        child: const Icon(
+                          Icons.auto_awesome,
+                          color: primaryColor,
+                          size: 27,
+                        ),
+                      ),
+                      const SizedBox(width: 13),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment:
+                              CrossAxisAlignment
+                                  .start,
+                          children: [
+                            Text(
+                              guidance.typeLabel,
+                              style:
+                                  const TextStyle(
+                                color: textColor,
+                                fontSize: 20,
+                                fontWeight:
+                                    FontWeight
+                                        .w900,
+                              ),
+                            ),
+                            if (guidance
+                                .fullName
+                                .trim()
+                                .isNotEmpty)
+                              Text(
+                                guidance.fullName,
+                                style:
+                                    const TextStyle(
+                                  color:
+                                      secondaryTextColor,
+                                  fontWeight:
+                                      FontWeight
+                                          .w700,
+                                ),
+                              ),
+                          ],
+                        ),
+                      ),
+                      IconButton(
+                        onPressed: () {
+                          Navigator.pop(
+                            sheetContext,
+                          );
+                        },
+                        icon: const Icon(
+                          Icons.close,
+                        ),
+                      ),
+                    ],
+                  ),
+                  if (guidance
+                      .formattedDate
+                      .isNotEmpty) ...[
+                    const SizedBox(height: 14),
+                    buildGuidanceInfoTag(
+                      icon:
+                          Icons.calendar_today,
+                      text:
+                          guidance.formattedDate,
+                    ),
+                  ],
+                  if (guidance
+                      .chartImageUrl
+                      .trim()
+                      .isNotEmpty) ...[
+                    const SizedBox(height: 20),
+                    ClipRRect(
+                      borderRadius:
+                          BorderRadius.circular(
+                        24,
+                      ),
+                      child: Image.network(
+                        guidance.chartImageUrl,
+                        fit: BoxFit.cover,
+                        errorBuilder: (
+                          context,
+                          error,
+                          stackTrace,
+                        ) {
+                          return Container(
+                            height: 180,
+                            color: softGreen,
+                            alignment:
+                                Alignment.center,
+                            child: const Icon(
+                              Icons
+                                  .image_not_supported_outlined,
+                              color:
+                                  primaryColor,
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                  ],
+                  const SizedBox(height: 20),
+                  Container(
+                    width: double.infinity,
+                    padding:
+                        const EdgeInsets.all(
+                      20,
+                    ),
+                    decoration:
+                        BoxDecoration(
+                      color: Colors.white,
+                      borderRadius:
+                          BorderRadius.circular(
+                        24,
+                      ),
+                    ),
+                    child: Text(
+                      guidance.result,
+                      style:
+                          const TextStyle(
+                        color: textColor,
+                        fontSize: 14.5,
+                        height: 1.55,
+                        fontWeight:
+                            FontWeight.w500,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 15),
+                  const Text(
+                    'Bu yorum kişisel farkındalık ve eğlence amaçlıdır; kesin gelecek tahmini değildir.',
+                    style: TextStyle(
+                      color:
+                          secondaryTextColor,
+                      fontSize: 12,
+                      height: 1.4,
+                      fontStyle:
+                          FontStyle.italic,
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Widget buildGuidanceInfoTag({
+    required IconData icon,
+    required String text,
+  }) {
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: Container(
+        padding:
+            const EdgeInsets.symmetric(
+          horizontal: 11,
+          vertical: 7,
+        ),
+        decoration: BoxDecoration(
+          color: softGreen,
+          borderRadius:
+              BorderRadius.circular(30),
+        ),
+        child: Row(
+          mainAxisSize:
+              MainAxisSize.min,
+          children: [
+            Icon(
+              icon,
+              color: primaryColor,
+              size: 15,
+            ),
+            const SizedBox(width: 6),
+            Text(
+              text,
+              style: const TextStyle(
+                color: primaryColor,
+                fontSize: 11.5,
+                fontWeight:
+                    FontWeight.w800,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> clearHistory() async {
+    final confirmed =
+        await showDialog<bool>(
+      context: context,
+      builder: (
+        dialogContext,
+      ) {
         return AlertDialog(
           title: const Text(
             'Geçmişi temizle',
@@ -209,13 +528,15 @@ class _FavoritesPageState extends State<FavoritesPage> {
                   true,
                 );
               },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: dangerColor,
-                foregroundColor: Colors.white,
+              style:
+                  ElevatedButton.styleFrom(
+                backgroundColor:
+                    dangerColor,
+                foregroundColor:
+                    Colors.white,
               ),
-              child: const Text(
-                'Temizle',
-              ),
+              child:
+                  const Text('Temizle'),
             ),
           ],
         );
@@ -227,7 +548,8 @@ class _FavoritesPageState extends State<FavoritesPage> {
     }
 
     try {
-      await contentHistoryService.clearMyHistory();
+      await contentHistoryService
+          .clearMyHistory();
 
       if (!mounted) return;
 
@@ -243,13 +565,16 @@ class _FavoritesPageState extends State<FavoritesPage> {
     }
   }
 
-  void showMessage(String message) {
+  void showMessage(
+    String message,
+  ) {
     if (!mounted) return;
 
     ScaffoldMessenger.of(context)
         .hideCurrentSnackBar();
 
-    ScaffoldMessenger.of(context).showSnackBar(
+    ScaffoldMessenger.of(context)
+        .showSnackBar(
       SnackBar(
         content: Text(message),
       ),
@@ -257,71 +582,50 @@ class _FavoritesPageState extends State<FavoritesPage> {
   }
 
   String get sectionTitle {
-    if (selectedTab == FavoriteTab.recentlyPlayed) {
-      return 'En Son Oynatılan 10 İçerik';
-    }
+    switch (selectedTab) {
+      case FavoriteTab.recentlyPlayed:
+        return 'En Son Oynatılan 10 İçerik';
 
-    return 'Beğenilenler';
+      case FavoriteTab.liked:
+        return 'Beğenilenler';
+
+      case FavoriteTab.guidance:
+        return 'Rehberlik Geçmişim';
+    }
   }
 
   String get emptyTitle {
-    if (selectedTab == FavoriteTab.recentlyPlayed) {
-      return 'Henüz oynatılan içerik yok';
-    }
+    switch (selectedTab) {
+      case FavoriteTab.recentlyPlayed:
+        return 'Henüz oynatılan içerik yok';
 
-    return 'Henüz beğenilen içerik yok';
+      case FavoriteTab.liked:
+        return 'Henüz beğenilen içerik yok';
+
+      case FavoriteTab.guidance:
+        return 'Henüz rehberlik sonucu yok';
+    }
   }
 
   String get emptySubtitle {
-    if (selectedTab == FavoriteTab.recentlyPlayed) {
-      return 'Meditasyon veya atölye içeriği oynattığında burada görünecek.';
-    }
+    switch (selectedTab) {
+      case FavoriteTab.recentlyPlayed:
+        return 'Meditasyon veya atölye içeriği oynattığında burada görünecek.';
 
-    return 'Beğendiğin meditasyonlar ve atölyeler burada görünecek.';
+      case FavoriteTab.liked:
+        return 'Beğendiğin meditasyonlar ve atölyeler burada görünecek.';
+
+      case FavoriteTab.guidance:
+        return 'AI rehberliği oluşturduğunda sonuçların burada saklanacak.';
+    }
   }
 
   Widget buildBackground({
     required Widget child,
   }) {
-    return Stack(
-      children: [
-        Positioned.fill(
-          child: Image.asset(
-            backgroundImage,
-            fit: BoxFit.cover,
-            errorBuilder: (
-              context,
-              error,
-              stackTrace,
-            ) {
-              return Container(
-                color: softGreen,
-              );
-            },
-          ),
-        ),
-        Positioned.fill(
-          child: Container(
-            color: Colors.white.withOpacity(0.18),
-          ),
-        ),
-        Positioned.fill(
-          child: Container(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [
-                  Colors.white.withOpacity(0.18),
-                  Colors.white.withOpacity(0.05),
-                  Colors.black.withOpacity(0.18),
-                ],
-              ),
-            ),
-          ),
-        ),
-        child,
-      ],
+    return Container(
+      color: const Color(0xFFF5F0E8),
+      child: child,
     );
   }
 
@@ -334,7 +638,8 @@ class _FavoritesPageState extends State<FavoritesPage> {
             style: TextStyle(
               color: textColor,
               fontSize: 30,
-              fontWeight: FontWeight.w900,
+              fontWeight:
+                  FontWeight.w900,
               letterSpacing: -0.8,
             ),
           ),
@@ -343,14 +648,19 @@ class _FavoritesPageState extends State<FavoritesPage> {
             FavoriteTab.recentlyPlayed)
           IconButton(
             onPressed: clearHistory,
-            tooltip: 'Geçmişi Temizle',
-            style: IconButton.styleFrom(
+            tooltip:
+                'Geçmişi Temizle',
+            style:
+                IconButton.styleFrom(
               backgroundColor:
-                  Colors.white.withOpacity(0.76),
-              foregroundColor: dangerColor,
+                  Colors.white
+                      .withOpacity(0.76),
+              foregroundColor:
+                  dangerColor,
             ),
             icon: const Icon(
-              Icons.delete_sweep_outlined,
+              Icons
+                  .delete_sweep_outlined,
             ),
           ),
       ],
@@ -360,29 +670,51 @@ class _FavoritesPageState extends State<FavoritesPage> {
   Widget buildTabSelector() {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(5),
+      padding:
+          const EdgeInsets.all(5),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.76),
-        borderRadius: BorderRadius.circular(23),
+        color:
+            Colors.white.withOpacity(
+          0.76,
+        ),
+        borderRadius:
+            BorderRadius.circular(23),
         border: Border.all(
-          color: Colors.white.withOpacity(0.68),
+          color:
+              Colors.white.withOpacity(
+            0.68,
+          ),
         ),
       ),
       child: Row(
         children: [
           Expanded(
             child: buildTabButton(
-              tab: FavoriteTab.recentlyPlayed,
-              icon: Icons.history_rounded,
-              title: 'Son Oynatılan',
+              tab: FavoriteTab
+                  .recentlyPlayed,
+              icon:
+                  Icons.history_rounded,
+              title:
+                  'Son\nOynatılan',
             ),
           ),
-          const SizedBox(width: 6),
+          const SizedBox(width: 5),
           Expanded(
             child: buildTabButton(
               tab: FavoriteTab.liked,
-              icon: Icons.favorite_rounded,
-              title: 'Beğenilenler',
+              icon:
+                  Icons.favorite_rounded,
+              title: 'Beğeniler',
+            ),
+          ),
+          const SizedBox(width: 5),
+          Expanded(
+            child: buildTabButton(
+              tab:
+                  FavoriteTab.guidance,
+              icon:
+                  Icons.auto_awesome,
+              title: 'Rehberlik',
             ),
           ),
         ],
@@ -395,27 +727,31 @@ class _FavoritesPageState extends State<FavoritesPage> {
     required IconData icon,
     required String title,
   }) {
-    final selected = selectedTab == tab;
+    final selected =
+        selectedTab == tab;
 
     return InkWell(
       onTap: () {
         changeTab(tab);
       },
-      borderRadius: BorderRadius.circular(18),
+      borderRadius:
+          BorderRadius.circular(18),
       child: AnimatedContainer(
         duration: const Duration(
           milliseconds: 200,
         ),
-        height: 78,
-        padding: const EdgeInsets.symmetric(
-          horizontal: 8,
-          vertical: 10,
+        height: 82,
+        padding:
+            const EdgeInsets.symmetric(
+          horizontal: 5,
+          vertical: 9,
         ),
         decoration: BoxDecoration(
           color: selected
               ? primaryColor
               : Colors.transparent,
-          borderRadius: BorderRadius.circular(18),
+          borderRadius:
+              BorderRadius.circular(18),
         ),
         child: Column(
           mainAxisAlignment:
@@ -426,20 +762,21 @@ class _FavoritesPageState extends State<FavoritesPage> {
               color: selected
                   ? Colors.white
                   : primaryColor,
-              size: 23,
+              size: 22,
             ),
-            const SizedBox(height: 6),
+            const SizedBox(height: 5),
             Text(
               title,
-              textAlign: TextAlign.center,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
+              textAlign:
+                  TextAlign.center,
               style: TextStyle(
                 color: selected
                     ? Colors.white
                     : textColor,
-                fontSize: 12,
-                fontWeight: FontWeight.w900,
+                fontSize: 11,
+                height: 1.08,
+                fontWeight:
+                    FontWeight.w900,
               ),
             ),
           ],
@@ -451,24 +788,37 @@ class _FavoritesPageState extends State<FavoritesPage> {
   Widget buildEntryCard(
     _FavoriteEntry entry,
   ) {
-    final imageUrl = entry.imageUrl.trim();
+    final imageUrl =
+        entry.imageUrl.trim();
 
     return Container(
       width: double.infinity,
-      margin: const EdgeInsets.only(
+      margin:
+          const EdgeInsets.only(
         bottom: 14,
       ),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.82),
-        borderRadius: BorderRadius.circular(26),
+        color:
+            Colors.white.withOpacity(
+          0.82,
+        ),
+        borderRadius:
+            BorderRadius.circular(26),
         border: Border.all(
-          color: Colors.white.withOpacity(0.72),
+          color:
+              Colors.white.withOpacity(
+            0.72,
+          ),
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.09),
+            color:
+                Colors.black.withOpacity(
+              0.09,
+            ),
             blurRadius: 22,
-            offset: const Offset(0, 10),
+            offset:
+                const Offset(0, 10),
           ),
         ],
       ),
@@ -478,92 +828,123 @@ class _FavoritesPageState extends State<FavoritesPage> {
           onTap: () {
             openEntry(entry);
           },
-          borderRadius: BorderRadius.circular(26),
+          borderRadius:
+              BorderRadius.circular(26),
           child: Padding(
-            padding: const EdgeInsets.all(14),
+            padding:
+                const EdgeInsets.all(
+              14,
+            ),
             child: Row(
               crossAxisAlignment:
-                  CrossAxisAlignment.start,
+                  CrossAxisAlignment
+                      .start,
               children: [
                 ClipRRect(
                   borderRadius:
-                      BorderRadius.circular(18),
+                      BorderRadius
+                          .circular(18),
                   child: SizedBox(
                     width: 82,
                     height: 82,
-                    child: imageUrl.isNotEmpty
-                        ? Image.network(
-                            imageUrl,
-                            fit: BoxFit.cover,
-                            errorBuilder: (
-                              context,
-                              error,
-                              stackTrace,
-                            ) {
-                              return buildPlaceholder(
+                    child:
+                        imageUrl.isNotEmpty
+                            ? Image.network(
+                                imageUrl,
+                                fit:
+                                    BoxFit.cover,
+                                errorBuilder: (
+                                  context,
+                                  error,
+                                  stackTrace,
+                                ) {
+                                  return buildPlaceholder(
+                                    entry.icon,
+                                  );
+                                },
+                              )
+                            : buildPlaceholder(
                                 entry.icon,
-                              );
-                            },
-                          )
-                        : buildPlaceholder(
-                            entry.icon,
-                          ),
+                              ),
                   ),
                 ),
-                const SizedBox(width: 13),
+                const SizedBox(
+                  width: 13,
+                ),
                 Expanded(
                   child: Column(
                     crossAxisAlignment:
-                        CrossAxisAlignment.start,
+                        CrossAxisAlignment
+                            .start,
                     children: [
                       Wrap(
                         spacing: 6,
                         runSpacing: 6,
                         children: [
                           buildTag(
-                            entry.contentKindLabel,
+                            entry
+                                .contentKindLabel,
                           ),
-                          buildTag(
-                            entry.typeLabel,
-                          ),
-                          if (entry.durationText
+                          if (entry
+                              .typeLabel
                               .trim()
                               .isNotEmpty)
                             buildTag(
-                              entry.durationText,
+                              entry.typeLabel,
+                            ),
+                          if (entry
+                              .durationText
+                              .trim()
+                              .isNotEmpty)
+                            buildTag(
+                              entry
+                                  .durationText,
                             ),
                         ],
                       ),
-                      const SizedBox(height: 8),
+                      const SizedBox(
+                        height: 8,
+                      ),
                       Text(
                         entry.title,
                         maxLines: 2,
                         overflow:
-                            TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          color: textColor,
+                            TextOverflow
+                                .ellipsis,
+                        style:
+                            const TextStyle(
+                          color:
+                              textColor,
                           fontSize: 16,
                           fontWeight:
-                              FontWeight.w900,
+                              FontWeight
+                                  .w900,
                           height: 1.2,
                         ),
                       ),
-                      if (entry.subtitle
+                      if (entry
+                          .subtitle
                           .trim()
                           .isNotEmpty) ...[
-                        const SizedBox(height: 6),
+                        const SizedBox(
+                          height: 6,
+                        ),
                         Text(
                           entry.subtitle,
                           maxLines: 2,
                           overflow:
-                              TextOverflow.ellipsis,
-                          style: const TextStyle(
+                              TextOverflow
+                                  .ellipsis,
+                          style:
+                              const TextStyle(
                             color:
                                 secondaryTextColor,
-                            fontSize: 12.5,
+                            fontSize:
+                                12.5,
                             height: 1.35,
                             fontWeight:
-                                FontWeight.w600,
+                                FontWeight
+                                    .w600,
                           ),
                         ),
                       ],
@@ -573,16 +954,12 @@ class _FavoritesPageState extends State<FavoritesPage> {
                 const SizedBox(width: 8),
                 CircleAvatar(
                   radius: 18,
-                  backgroundColor: softGreen,
+                  backgroundColor:
+                      softGreen,
                   child: Icon(
-                    selectedTab ==
-                            FavoriteTab.recentlyPlayed
-                        ? Icons.history_rounded
-                        : Icons.favorite_rounded,
-                    color: selectedTab ==
-                            FavoriteTab.recentlyPlayed
-                        ? primaryColor
-                        : dangerColor,
+                    entry.trailingIcon,
+                    color:
+                        entry.trailingColor,
                     size: 19,
                   ),
                 ),
@@ -599,7 +976,8 @@ class _FavoritesPageState extends State<FavoritesPage> {
   ) {
     return Container(
       color: softGreen,
-      alignment: Alignment.center,
+      alignment:
+          Alignment.center,
       child: Icon(
         icon,
         color: primaryColor,
@@ -608,26 +986,32 @@ class _FavoritesPageState extends State<FavoritesPage> {
     );
   }
 
-  Widget buildTag(String text) {
+  Widget buildTag(
+    String text,
+  ) {
     if (text.trim().isEmpty) {
-      return const SizedBox.shrink();
+      return const SizedBox
+          .shrink();
     }
 
     return Container(
-      padding: const EdgeInsets.symmetric(
+      padding:
+          const EdgeInsets.symmetric(
         horizontal: 9,
         vertical: 5,
       ),
       decoration: BoxDecoration(
         color: softGreen,
-        borderRadius: BorderRadius.circular(30),
+        borderRadius:
+            BorderRadius.circular(30),
       ),
       child: Text(
         text,
         style: const TextStyle(
           color: primaryColor,
           fontSize: 10.5,
-          fontWeight: FontWeight.w900,
+          fontWeight:
+              FontWeight.w900,
         ),
       ),
     );
@@ -636,42 +1020,55 @@ class _FavoritesPageState extends State<FavoritesPage> {
   Widget buildEmptyState() {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(24),
+      padding:
+          const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.82),
-        borderRadius: BorderRadius.circular(26),
-        border: Border.all(
-          color: Colors.white.withOpacity(0.72),
+        color:
+            Colors.white.withOpacity(
+          0.82,
         ),
+        borderRadius:
+            BorderRadius.circular(26),
       ),
       child: Column(
         children: [
           Icon(
             selectedTab ==
-                    FavoriteTab.recentlyPlayed
-                ? Icons.history_rounded
-                : Icons.favorite_border_rounded,
+                    FavoriteTab.guidance
+                ? Icons.auto_awesome
+                : selectedTab ==
+                        FavoriteTab
+                            .recentlyPlayed
+                    ? Icons
+                        .history_rounded
+                    : Icons
+                        .favorite_border_rounded,
             color: primaryColor,
             size: 48,
           ),
           const SizedBox(height: 13),
           Text(
             emptyTitle,
-            textAlign: TextAlign.center,
+            textAlign:
+                TextAlign.center,
             style: const TextStyle(
               color: textColor,
               fontSize: 17,
-              fontWeight: FontWeight.w900,
+              fontWeight:
+                  FontWeight.w900,
             ),
           ),
           const SizedBox(height: 7),
           Text(
             emptySubtitle,
-            textAlign: TextAlign.center,
+            textAlign:
+                TextAlign.center,
             style: const TextStyle(
-              color: secondaryTextColor,
+              color:
+                  secondaryTextColor,
               height: 1.4,
-              fontWeight: FontWeight.w600,
+              fontWeight:
+                  FontWeight.w600,
             ),
           ),
         ],
@@ -679,13 +1076,20 @@ class _FavoritesPageState extends State<FavoritesPage> {
     );
   }
 
-  Widget buildErrorState(Object error) {
+  Widget buildErrorState(
+    Object error,
+  ) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(20),
+      padding:
+          const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.84),
-        borderRadius: BorderRadius.circular(24),
+        color:
+            Colors.white.withOpacity(
+          0.84,
+        ),
+        borderRadius:
+            BorderRadius.circular(24),
       ),
       child: Column(
         children: [
@@ -700,30 +1104,37 @@ class _FavoritesPageState extends State<FavoritesPage> {
             style: TextStyle(
               color: textColor,
               fontSize: 17,
-              fontWeight: FontWeight.w900,
+              fontWeight:
+                  FontWeight.w900,
             ),
           ),
           const SizedBox(height: 8),
           Text(
             error.toString(),
-            textAlign: TextAlign.center,
+            textAlign:
+                TextAlign.center,
             style: const TextStyle(
-              color: secondaryTextColor,
+              color:
+                  secondaryTextColor,
               height: 1.4,
             ),
           ),
           const SizedBox(height: 15),
           ElevatedButton.icon(
-            onPressed: refreshFavorites,
+            onPressed:
+                refreshFavorites,
             icon: const Icon(
               Icons.refresh,
             ),
             label: const Text(
               'Tekrar Dene',
             ),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: primaryColor,
-              foregroundColor: Colors.white,
+            style: ElevatedButton
+                .styleFrom(
+              backgroundColor:
+                  primaryColor,
+              foregroundColor:
+                  Colors.white,
             ),
           ),
         ],
@@ -733,9 +1144,11 @@ class _FavoritesPageState extends State<FavoritesPage> {
 
   Widget buildContent() {
     return RefreshIndicator(
-      onRefresh: refreshFavorites,
+      onRefresh:
+          refreshFavorites,
       color: primaryColor,
-      child: FutureBuilder<List<_FavoriteEntry>>(
+      child: FutureBuilder<
+          List<_FavoriteEntry>>(
         future: entriesFuture,
         builder: (
           context,
@@ -748,7 +1161,9 @@ class _FavoritesPageState extends State<FavoritesPage> {
           return ListView(
             physics:
                 const AlwaysScrollableScrollPhysics(),
-            padding: const EdgeInsets.fromLTRB(
+            padding:
+                const EdgeInsets
+                    .fromLTRB(
               18,
               18,
               18,
@@ -756,34 +1171,50 @@ class _FavoritesPageState extends State<FavoritesPage> {
             ),
             children: [
               buildHeader(),
-              const SizedBox(height: 18),
+              const SizedBox(
+                height: 18,
+              ),
               buildTabSelector(),
-              const SizedBox(height: 24),
+              const SizedBox(
+                height: 24,
+              ),
               Text(
                 sectionTitle,
-                style: const TextStyle(
+                style:
+                    const TextStyle(
                   color: textColor,
                   fontSize: 19,
-                  fontWeight: FontWeight.w900,
+                  fontWeight:
+                      FontWeight.w900,
                 ),
               ),
-              const SizedBox(height: 13),
-              if (snapshot.connectionState ==
-                  ConnectionState.waiting)
+              const SizedBox(
+                height: 13,
+              ),
+              if (snapshot
+                      .connectionState ==
+                  ConnectionState
+                      .waiting)
                 const Padding(
-                  padding: EdgeInsets.all(35),
+                  padding:
+                      EdgeInsets.all(
+                    35,
+                  ),
                   child: Center(
                     child:
                         CircularProgressIndicator(
-                      color: primaryColor,
+                      color:
+                          primaryColor,
                     ),
                   ),
                 )
-              else if (snapshot.hasError)
+              else if (snapshot
+                  .hasError)
                 buildErrorState(
                   snapshot.error!,
                 )
-              else if (entries.isEmpty)
+              else if (entries
+                  .isEmpty)
                 buildEmptyState()
               else
                 ...entries.map(
@@ -797,23 +1228,32 @@ class _FavoritesPageState extends State<FavoritesPage> {
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(
+    BuildContext context,
+  ) {
     return Scaffold(
-      extendBodyBehindAppBar: true,
-      backgroundColor: Colors.transparent,
+      extendBodyBehindAppBar:
+          true,
+      backgroundColor:
+          Colors.transparent,
       appBar: AppBar(
         title: const Text(
           'Favorilerim',
           style: TextStyle(
             color: textColor,
-            fontWeight: FontWeight.w900,
+            fontWeight:
+                FontWeight.w900,
           ),
         ),
         backgroundColor:
-            Colors.white.withOpacity(0.14),
+            Colors.white.withOpacity(
+          0.14,
+        ),
         elevation: 0,
-        surfaceTintColor: Colors.transparent,
-        foregroundColor: textColor,
+        surfaceTintColor:
+            Colors.transparent,
+        foregroundColor:
+            textColor,
       ),
       body: buildBackground(
         child: SafeArea(
@@ -828,11 +1268,13 @@ class _FavoriteEntry {
   final RecentContentModel? recentContent;
   final MeditationModel? meditation;
   final WorkshopModel? workshop;
+  final GuidanceHistoryModel? guidance;
 
   const _FavoriteEntry._({
     required this.recentContent,
     required this.meditation,
     required this.workshop,
+    required this.guidance,
   });
 
   factory _FavoriteEntry.recent(
@@ -842,6 +1284,7 @@ class _FavoriteEntry {
       recentContent: content,
       meditation: null,
       workshop: null,
+      guidance: null,
     );
   }
 
@@ -852,6 +1295,7 @@ class _FavoriteEntry {
       recentContent: null,
       meditation: meditation,
       workshop: null,
+      guidance: null,
     );
   }
 
@@ -862,24 +1306,45 @@ class _FavoriteEntry {
       recentContent: null,
       meditation: null,
       workshop: workshop,
+      guidance: null,
+    );
+  }
+
+  factory _FavoriteEntry.guidance(
+    GuidanceHistoryModel guidance,
+  ) {
+    return _FavoriteEntry._(
+      recentContent: null,
+      meditation: null,
+      workshop: null,
+      guidance: guidance,
     );
   }
 
   bool get isWorkshop {
     if (recentContent != null) {
-      return recentContent!.isWorkshopDay;
+      return recentContent!
+          .isWorkshopDay;
     }
 
     return workshop != null;
   }
 
   String get contentKindLabel {
+    if (guidance != null) {
+      return 'Rehberlik';
+    }
+
     return isWorkshop
         ? 'Atölye'
         : 'Meditasyon';
   }
 
   String get title {
+    if (guidance != null) {
+      return guidance!.title;
+    }
+
     if (recentContent != null) {
       return recentContent!.title;
     }
@@ -888,31 +1353,42 @@ class _FavoriteEntry {
       return meditation!.title;
     }
 
-    return workshop?.title ?? 'İçerik';
+    return workshop?.title ??
+        'İçerik';
   }
 
   String get subtitle {
+    if (guidance != null) {
+      return guidance!.subtitle;
+    }
+
     if (recentContent != null) {
-      return recentContent!.subtitle;
+      return recentContent!
+          .subtitle;
     }
 
     if (meditation != null) {
-      return meditation!.description;
+      return meditation!
+          .description;
     }
 
     if (workshop != null) {
       final description =
-          workshop!.description.trim();
+          workshop!.description
+              .trim();
 
       final teacherName =
-          workshop!.teacherName.trim();
+          workshop!.teacherName
+              .trim();
 
-      if (description.isNotEmpty &&
+      if (description
+              .isNotEmpty &&
           teacherName.isNotEmpty) {
         return '$description • $teacherName';
       }
 
-      if (description.isNotEmpty) {
+      if (description
+          .isNotEmpty) {
         return description;
       }
 
@@ -923,53 +1399,87 @@ class _FavoriteEntry {
   }
 
   String get imageUrl {
+    if (guidance != null) {
+      return guidance!
+          .chartImageUrl;
+    }
+
     if (recentContent != null) {
-      return recentContent!.imageUrl;
+      return recentContent!
+          .imageUrl;
     }
 
     if (meditation != null) {
-      return meditation!.thumbnailUrl;
+      return meditation!
+          .thumbnailUrl;
     }
 
-    return workshop?.imageUrl ?? '';
+    return workshop?.imageUrl ??
+        '';
   }
 
   String get typeLabel {
+    if (guidance != null) {
+      return guidance!.typeLabel;
+    }
+
     if (recentContent != null) {
-      return recentContent!.typeLabel;
+      return recentContent!
+          .typeLabel;
     }
 
     if (meditation != null) {
-      return meditation!.typeLabel;
+      return meditation!
+          .typeLabel;
     }
 
     return 'Atölye';
   }
 
   String get durationText {
+    if (guidance != null) {
+      return guidance!
+          .formattedDate;
+    }
+
     if (recentContent != null) {
-      return recentContent!.durationText;
+      return recentContent!
+          .durationText;
     }
 
     if (meditation != null) {
-      return meditation!.durationText;
+      return meditation!
+          .durationText;
     }
 
-    return workshop?.durationLabel ?? '';
+    return workshop
+            ?.durationLabel ??
+        '';
   }
 
   IconData get icon {
+    if (guidance != null) {
+      return Icons.auto_awesome;
+    }
+
     if (recentContent != null) {
-      if (recentContent!.isWorkshopDay) {
-        return Icons.auto_awesome_mosaic_outlined;
+      if (recentContent!
+          .isWorkshopDay) {
+        return Icons
+            .auto_awesome_mosaic_outlined;
       }
 
-      if (recentContent!.meditation?.isVideo ==
+      if (recentContent!
+              .meditation
+              ?.isVideo ==
           true) {
-        return Icons.play_circle_outline;
+        return Icons
+            .play_circle_outline;
       }
 
-      if (recentContent!.meditation?.isLink ==
+      if (recentContent!
+              .meditation
+              ?.isLink ==
           true) {
         return Icons.link;
       }
@@ -979,7 +1489,8 @@ class _FavoriteEntry {
 
     if (meditation != null) {
       if (meditation!.isVideo) {
-        return Icons.play_circle_outline;
+        return Icons
+            .play_circle_outline;
       }
 
       if (meditation!.isLink) {
@@ -989,6 +1500,31 @@ class _FavoriteEntry {
       return Icons.headphones;
     }
 
-    return Icons.auto_awesome_mosaic_outlined;
+    return Icons
+        .auto_awesome_mosaic_outlined;
+  }
+
+  IconData get trailingIcon {
+    if (guidance != null) {
+      return Icons.auto_awesome;
+    }
+
+    if (recentContent != null) {
+      return Icons.history_rounded;
+    }
+
+    return Icons.favorite_rounded;
+  }
+
+  Color get trailingColor {
+    if (guidance != null) {
+      return const Color(0xFF8A6AAE);
+    }
+
+    if (recentContent != null) {
+      return const Color(0xFF536B4E);
+    }
+
+    return const Color(0xFFC85C5C);
   }
 }
