@@ -9,7 +9,7 @@ class BagnuThetaApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp.router(
       debugShowCheckedModeBanner: false,
-      title: 'BagnuTheta',
+      title: 'Yeniden Kendine',
       theme: AppTheme.lightTheme,
       routerConfig: appRouter,
     );

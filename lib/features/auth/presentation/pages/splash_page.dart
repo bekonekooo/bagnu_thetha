@@ -76,7 +76,7 @@ class _SplashPageState extends State<SplashPage> {
             ),
             SizedBox(height: 24),
             Text(
-              'BagnuTheta',
+              'Yeniden Kendine',
               style: TextStyle(
                 fontSize: 32,
                 fontWeight: FontWeight.bold,

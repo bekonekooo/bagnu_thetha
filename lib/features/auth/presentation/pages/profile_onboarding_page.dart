@@ -354,7 +354,7 @@ class _ProfileOnboardingPageState extends State<ProfileOnboardingPage> {
   Widget buildIntentionStep() {
     return buildStepShell(
       icon: Icons.edit_note_outlined,
-      title: 'BagnuTheta’ya hangi niyetle katılıyorsun?',
+      title: 'Yeniden Kendine’ye hangi niyetle katılıyorsun?',
       subtitle:
           'Kendini geliştirmek istediğin alanı veya beklentini kısaca yazabilirsin.',
       child: CustomTextField(

@@ -152,14 +152,14 @@ class _HomeRecentlyPlayedSectionState
     final meditation = content.meditation;
 
     if (meditation == null) {
-      return 'BagnuTheta';
+      return 'Yeniden Kendine';
     }
 
     if (meditation.category.trim().isNotEmpty) {
       return meditation.category;
     }
 
-    return 'BagnuTheta';
+    return 'Yeniden Kendine';
   }
 
   Widget buildSectionHeader() {

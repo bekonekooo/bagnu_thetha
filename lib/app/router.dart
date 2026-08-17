@@ -37,6 +37,10 @@ import 'package:flutter_application_1/features/community/presentation/pages/comm
 import 'package:flutter_application_1/features/favorites/presentation/pages/favorites_page.dart';
 import 'package:flutter_application_1/features/contact/presentation/pages/contact_page.dart';
 import 'package:flutter_application_1/features/about/presentation/pages/about_page.dart';
+import 'package:flutter_application_1/features/legal/presentation/pages/account_deletion_page.dart';
+import 'package:flutter_application_1/features/legal/presentation/pages/legal_document_page.dart';
+import 'package:flutter_application_1/features/legal/presentation/pages/legal_hub_page.dart';
+import 'package:flutter_application_1/core/legal/legal_content.dart';
 
 import 'package:flutter_application_1/features/workshops/data/models/workshop_model.dart';
 import 'package:flutter_application_1/features/workshops/presentation/pages/workshops_page.dart';
@@ -152,6 +156,19 @@ final GoRouter appRouter = GoRouter(
       '/onboarding',
     ];
 
+    final legalRoutes = [
+      '/about',
+      '/contact',
+      '/legal',
+      '/privacy',
+      '/kvkk',
+      '/terms',
+      '/subscription-terms',
+      '/refund-policy',
+      '/account-deletion',
+      '/minor-policy',
+    ];
+
     final teacherOnlyRoutes = [
       '/teacher-dashboard',
       '/teacher-edit-profile',
@@ -177,8 +194,6 @@ final GoRouter appRouter = GoRouter(
       '/guidance',
       '/community',
       '/favorites',
-      '/contact',
-      '/about',
       '/workshops',
       '/workshop-detail',
       '/meditations',
@@ -188,6 +203,8 @@ final GoRouter appRouter = GoRouter(
     final isPublicRoute =
         publicRoutes.contains(location);
 
+    final isLegalRoute = legalRoutes.contains(location);
+
     final isTeacherOnlyRoute =
         teacherOnlyRoutes.contains(location);
 
@@ -195,7 +212,7 @@ final GoRouter appRouter = GoRouter(
         studentOnlyRoutes.contains(location);
 
     if (user == null) {
-      if (isPublicRoute) {
+      if (isPublicRoute || isLegalRoute) {
         return null;
       }
 
@@ -225,6 +242,10 @@ final GoRouter appRouter = GoRouter(
       }
 
       return '/home';
+    }
+
+    if (isLegalRoute) {
+      return null;
     }
 
     if (role == 'student' &&
@@ -269,6 +290,53 @@ final GoRouter appRouter = GoRouter(
       builder: (context, state) {
         return const RegisterPage();
       },
+    ),
+    GoRoute(
+      path: '/about',
+      builder: (context, state) => const AboutPage(),
+    ),
+    GoRoute(
+      path: '/contact',
+      builder: (context, state) => const ContactPage(),
+    ),
+    GoRoute(
+      path: '/legal',
+      builder: (context, state) => const LegalHubPage(),
+    ),
+    GoRoute(
+      path: '/privacy',
+      builder: (context, state) =>
+          const LegalDocumentPage(document: LegalContent.privacy),
+    ),
+    GoRoute(
+      path: '/kvkk',
+      builder: (context, state) =>
+          const LegalDocumentPage(document: LegalContent.kvkk),
+    ),
+    GoRoute(
+      path: '/terms',
+      builder: (context, state) =>
+          const LegalDocumentPage(document: LegalContent.terms),
+    ),
+    GoRoute(
+      path: '/subscription-terms',
+      builder: (context, state) => const LegalDocumentPage(
+        document: LegalContent.subscriptionTerms,
+      ),
+    ),
+    GoRoute(
+      path: '/refund-policy',
+      builder: (context, state) =>
+          const LegalDocumentPage(document: LegalContent.refundPolicy),
+    ),
+    GoRoute(
+      path: '/account-deletion',
+      builder: (context, state) => const AccountDeletionPage(),
+    ),
+    GoRoute(
+      path: '/minor-policy',
+      builder: (context, state) =>
+          const LegalDocumentPage(document: LegalContent.minorPolicy),
     ),
     GoRoute(
       path: '/profile-onboarding',
@@ -727,14 +795,6 @@ final GoRouter appRouter = GoRouter(
           builder: (context, state) {
             return const FavoritesPage();
           },
-        ),
-        GoRoute(
-          path: '/contact',
-          builder: (context, state) => const ContactPage(),
-        ),
-        GoRoute(
-          path: '/about',
-          builder: (context, state) => const AboutPage(),
         ),
       ],
     ),

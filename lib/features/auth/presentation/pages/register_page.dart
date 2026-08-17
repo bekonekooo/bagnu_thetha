@@ -194,6 +194,19 @@ class _RegisterPageState extends State<RegisterPage> {
     }
   }
 
+  Widget _legalLink(String label, String route) {
+    return TextButton(
+      onPressed: isLoading ? null : () => context.push(route),
+      style: TextButton.styleFrom(
+        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+        minimumSize: Size.zero,
+        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+        textStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
+      ),
+      child: Text(label),
+    );
+  }
+
   @override
   void dispose() {
     nameController.dispose();
@@ -218,7 +231,7 @@ class _RegisterPageState extends State<RegisterPage> {
           const Icon(Icons.person_add_alt_1, color: Color(0xFFC76D4B), size: 42),
           const SizedBox(height: 18),
           const Text(
-            'BagnuTheta’ya Katıl',
+            'Yeniden Kendine’ye Katıl',
             textAlign: TextAlign.center,
             style: TextStyle(
               color: Color(0xFF18202A),
@@ -347,6 +360,25 @@ class _RegisterPageState extends State<RegisterPage> {
               const SizedBox(height: 20),
               buildInfoBox(),
               const SizedBox(height: 28),
+              const Text(
+                'Hesap oluşturarak Kullanım Koşulları’nı kabul ettiğinizi; Gizlilik Politikası ve KVKK Aydınlatma Metni’ni okuduğunuzu belirtmiş olursunuz. KVKK Aydınlatma Metni açık rıza yerine geçmez.',
+                style: TextStyle(
+                  color: Color(0xFF72706B),
+                  fontSize: 12,
+                  height: 1.45,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Wrap(
+                spacing: 2,
+                runSpacing: 0,
+                children: [
+                  _legalLink('Kullanım Koşulları', '/terms'),
+                  _legalLink('Gizlilik Politikası', '/privacy'),
+                  _legalLink('KVKK Aydınlatma Metni', '/kvkk'),
+                ],
+              ),
+              const SizedBox(height: 16),
               CustomButton(
                 text: 'Hesap Oluştur',
                 isLoading: isLoading,

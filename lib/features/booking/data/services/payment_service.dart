@@ -61,7 +61,7 @@ class PaymentService {
     await Stripe.instance.initPaymentSheet(
       paymentSheetParameters: SetupPaymentSheetParameters(
         paymentIntentClientSecret: clientSecret,
-        merchantDisplayName: 'BagnuTheta',
+        merchantDisplayName: 'Yeniden Kendine',
         style: ThemeMode.system,
         allowsDelayedPaymentMethods: false,
       ),

@@ -251,8 +251,7 @@ class _HomePageState extends State<HomePage> {
             _menuItem(sheetContext, 'Favorilerim', Icons.bookmark_border, '/favorites'),
             _menuItem(sheetContext, 'Bize Ulaşın', Icons.mail_outline, '/contact'),
             _menuItem(sheetContext, 'Hakkımızda', Icons.info_outline, '/about'),
-            _menuItem(sheetContext, 'Gizlilik Politikası', Icons.lock_outline, null),
-            _menuItem(sheetContext, 'Kullanım Koşulları', Icons.description_outlined, null),
+            _menuItem(sheetContext, 'Hukuki & Gizlilik', Icons.lock_outline, '/legal'),
             ListTile(
               leading: const Icon(Icons.logout_outlined, color: Color(0xFF653B3C)),
               title: const Text('Çıkış Yap'),
@@ -350,7 +349,7 @@ class _HomePageState extends State<HomePage> {
       appBar: AppBar(
         titleSpacing: 20,
         title: const Text(
-          'BagnuTheta',
+          'Yeniden Kendine',
           style: TextStyle(
             fontWeight: FontWeight.w800,
             fontSize: 21,

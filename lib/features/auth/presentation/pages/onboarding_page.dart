@@ -105,7 +105,7 @@ class OnboardingPage extends StatelessWidget {
                     ),
                     const SizedBox(height: 22),
                     const Text(
-                      'BagnuTheta’ya Hoş Geldin',
+                      'Yeniden Kendine’ye Hoş Geldin',
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         color: Colors.white,

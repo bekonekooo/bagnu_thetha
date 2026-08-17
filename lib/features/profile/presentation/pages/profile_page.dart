@@ -225,7 +225,7 @@ class _ProfilePageState extends State<ProfilePage> {
                 ),
                 SizedBox(width: 7),
                 Text(
-                  'BagnuTheta Alanı',
+                  'Yeniden Kendine Alanı',
                   style: TextStyle(
                     color: Color(0xFF536B4E),
                     fontSize: 13.5,
@@ -539,6 +539,52 @@ class _ProfilePageState extends State<ProfilePage> {
                         textStyle: const TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(18),
+                        ),
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 12),
+
+                  SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton.icon(
+                      onPressed: () => context.push('/legal'),
+                      icon: const Icon(Icons.privacy_tip_outlined),
+                      label: const Text('Hukuki & Gizlilik'),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: const Color(0xFF536B4E),
+                        side: const BorderSide(color: Color(0xFF536B4E)),
+                        padding: const EdgeInsets.symmetric(vertical: 15),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(18),
+                        ),
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 12),
+
+                  SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton.icon(
+                      onPressed: () => context.push('/account-deletion'),
+                      icon: const Icon(Icons.delete_outline),
+                      label: const Text('Hesabımı Sil'),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: const Color(0xFF974B43),
+                        backgroundColor: const Color(0xFFFFF3EE),
+                        side: const BorderSide(
+                          color: Color(0xFFE1A99B),
+                          width: 1.1,
+                        ),
+                        padding: const EdgeInsets.symmetric(vertical: 15),
+                        textStyle: const TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w800,
                         ),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(18),

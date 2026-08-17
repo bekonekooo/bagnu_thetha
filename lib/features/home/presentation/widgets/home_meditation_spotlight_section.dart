@@ -259,7 +259,7 @@ class _SpotlightMeditationCard extends StatelessWidget {
             const SizedBox(height: 8),
             Text(
               meditation.category.trim().isEmpty
-                  ? 'BagnuTheta'
+                  ? 'Yeniden Kendine'
                   : meditation.category,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,

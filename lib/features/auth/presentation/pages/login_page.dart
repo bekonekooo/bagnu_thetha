@@ -192,7 +192,7 @@ class _LoginPageState extends State<LoginPage> {
           const Icon(Icons.self_improvement_outlined, color: Color(0xFFC76D4B), size: 42),
           const SizedBox(height: 18),
           const Text(
-            'BagnuTheta',
+            'Yeniden Kendine',
             style: TextStyle(
               color: Color(0xFF18202A),
               fontSize: 28,

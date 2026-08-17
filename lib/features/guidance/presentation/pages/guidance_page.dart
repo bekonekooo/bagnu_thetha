@@ -560,9 +560,21 @@ class _GuidancePageState extends State<GuidancePage> {
                         subtitle:
                             'Yapay zekanın özellikle odaklanmasını istediğin konuyu yazabilirsin.',
                       ),
-                      const SizedBox(height: 12),
-                      buildExtraInfoField(),
-                      const SizedBox(height: 24),
+                       const SizedBox(height: 12),
+                       buildExtraInfoField(),
+                       const SizedBox(height: 8),
+                       const Padding(
+                         padding: EdgeInsets.symmetric(horizontal: 4),
+                         child: Text(
+                           'Sağlık bilgisi, teşhis, tıbbi kayıt veya diğer hassas kişisel bilgilerinizi bu alana yazmayınız.',
+                           style: TextStyle(
+                             color: Color(0xFF7A6D62),
+                             fontSize: 12,
+                             height: 1.4,
+                           ),
+                         ),
+                       ),
+                       const SizedBox(height: 24),
                       buildSubmitButton(),
                       if (resultText != null) ...[
                         const SizedBox(height: 24),

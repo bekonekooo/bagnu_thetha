@@ -272,7 +272,6 @@ serve(async (req) => {
       .from("payments")
       .update({
         stripe_payment_intent_id: paymentIntent.id,
-        stripe_client_secret: paymentIntent.client_secret,
       })
       .eq("id", payment.id);
 
