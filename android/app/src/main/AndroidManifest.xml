@@ -16,7 +16,7 @@
         android:required="false" />
 
     <application
-        android:label="flutter_application_1"
+        android:label="Yeniden Kendine"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
 

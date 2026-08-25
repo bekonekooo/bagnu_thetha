@@ -15,22 +15,27 @@ Türkiye''';
   static const taxOffice = 'Kalekapı Vergi Dairesi';
 
   static const supportEmail = 'destek@yenidenkendine.com';
-  static const contactEmail = 'iletisim@yenidenkendine.com';
-  static const kvkkEmail = 'kvkk@yenidenkendine.com';
+  static const contactEmail = supportEmail;
+  static const kvkkEmail = supportEmail;
   static const phone = '+90 530 303 04 98';
   static const instagramHandle = '@bagnucorakciakademi';
 
   static const websiteUrl = 'https://yenidenkendine.com/';
-  static const contactUrl = 'https://yenidenkendine.com/iletisim';
+  static const contactUrl = 'https://yenidenkendine.com/contact';
   static const instagramUrl = 'https://instagram.com/bagnucorakciakademi';
   static const whatsappUrl = 'https://wa.me/905303030498';
 
   static const privacyUrl = 'https://yenidenkendine.com/privacy';
   static const kvkkUrl = 'https://yenidenkendine.com/kvkk';
   static const termsUrl = 'https://yenidenkendine.com/terms';
+  static const subscriptionTermsUrl =
+      'https://yenidenkendine.com/subscription-terms';
+  static const refundPolicyUrl =
+      'https://yenidenkendine.com/refund-policy';
   static const accountDeletionUrl =
       'https://yenidenkendine.com/account-deletion';
-  static const supportUrl = 'https://yenidenkendine.com/support';
+  static const minorPolicyUrl = 'https://yenidenkendine.com/minors';
+  static const supportUrl = 'https://yenidenkendine.com/contact';
 
   static const paymentCompanyName = 'MIRACLETI LTD';
   static const paymentCompanyNumber = '15930177';
