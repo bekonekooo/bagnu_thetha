@@ -32,6 +32,12 @@ class RecentContentModel {
         workshopDay != null;
   }
 
+  bool get isPlusOnly {
+    if (isMeditation) return meditation!.isPlusOnly;
+    if (isWorkshopDay) return workshop!.isPlusOnly;
+    return false;
+  }
+
   String get title {
     if (isMeditation) {
       return meditation!.title;

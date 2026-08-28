@@ -4,6 +4,7 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:video_player/video_player.dart';
 
 import 'package:flutter_application_1/core/services/supabase_service.dart';
+import 'package:flutter_application_1/core/services/plus_access_service.dart';
 import 'package:flutter_application_1/features/meditations/data/models/meditation_comment_model.dart';
 import 'package:flutter_application_1/features/meditations/data/models/meditation_model.dart';
 import 'package:flutter_application_1/features/meditations/data/services/meditation_service.dart';
@@ -23,6 +24,7 @@ class MeditationDetailPage extends StatefulWidget {
 class _MeditationDetailPageState extends State<MeditationDetailPage> {
   final AudioPlayer audioPlayer = AudioPlayer();
   final MeditationService meditationService = MeditationService();
+  final PlusAccessService plusAccessService = PlusAccessService();
   final TextEditingController commentController = TextEditingController();
 
   bool isPlaying = false;
@@ -31,8 +33,10 @@ class _MeditationDetailPageState extends State<MeditationDetailPage> {
   bool isLoadingSocial = true;
   bool isLikeLoading = false;
   bool isSendingComment = false;
+  bool hasRecordedView = false;
 
   int likeCount = 0;
+  int viewCount = 0;
   bool isLikedByMe = false;
 
   List<MeditationCommentModel> comments = [];
@@ -46,6 +50,8 @@ class _MeditationDetailPageState extends State<MeditationDetailPage> {
   @override
   void initState() {
     super.initState();
+
+    viewCount = widget.meditation.viewCount;
 
     meditationService.saveRecentlyPlayedMeditation(
       widget.meditation.id,
@@ -369,9 +375,34 @@ class _MeditationDetailPageState extends State<MeditationDetailPage> {
   }
 
   Future<void> handleMainAction() async {
+    final canOpen = await plusAccessService.ensureAccess(
+      context,
+      isPlusOnly: widget.meditation.isPlusOnly,
+    );
+
+    if (!canOpen) return;
+
     await meditationService.saveRecentlyPlayedMeditation(
       widget.meditation.id,
     );
+
+    if (!hasRecordedView) {
+      try {
+        final nextViewCount = await meditationService.recordMeditationView(
+          widget.meditation.id,
+        );
+
+        if (mounted && nextViewCount != null) {
+          setState(() {
+            viewCount = nextViewCount;
+          });
+        }
+
+        hasRecordedView = true;
+      } catch (_) {
+        // Sayaç hatası içeriğin oynatılmasını engellememeli.
+      }
+    }
 
     if (widget.meditation.isAudio) {
       await playOrPauseAudio();
@@ -390,6 +421,10 @@ class _MeditationDetailPageState extends State<MeditationDetailPage> {
   }
 
   IconData get mediaIcon {
+    if (widget.meditation.isPlusOnly) {
+      return Icons.workspace_premium_outlined;
+    }
+
     if (widget.meditation.isVideo) {
       return Icons.play_circle_outline_rounded;
     }
@@ -406,6 +441,10 @@ class _MeditationDetailPageState extends State<MeditationDetailPage> {
   }
 
   String get actionText {
+    if (widget.meditation.isPlusOnly) {
+      return 'Plus içeriğini aç';
+    }
+
     if (widget.meditation.isVideo) {
       return 'Videoyu Aç';
     }
@@ -488,6 +527,12 @@ class _MeditationDetailPageState extends State<MeditationDetailPage> {
               ),
             ),
           ),
+          if (widget.meditation.isPlusOnly)
+            const Positioned(
+              top: 16,
+              right: 16,
+              child: _PlusBadge(),
+            ),
           Positioned(
             left: 18,
             bottom: 18,
@@ -556,6 +601,8 @@ class _MeditationDetailPageState extends State<MeditationDetailPage> {
             runSpacing: 8,
             children: [
               _DetailTag(text: widget.meditation.typeLabel),
+              if (widget.meditation.isPlusOnly)
+                const _PlusBadge(),
               if (widget.meditation.durationText.trim().isNotEmpty)
                 _DetailTag(text: widget.meditation.durationText),
               ...categories.map((category) {
@@ -918,6 +965,8 @@ class _MeditationDetailPageState extends State<MeditationDetailPage> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 buildLikeButton(),
+                const SizedBox(height: 12),
+                buildViewCountRow(),
                 const SizedBox(height: 20),
                 const Text(
                   'Yorumlar',
@@ -952,6 +1001,28 @@ class _MeditationDetailPageState extends State<MeditationDetailPage> {
                   ...comments.map(buildCommentItem),
               ],
             ),
+    );
+  }
+
+  Widget buildViewCountRow() {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        const Icon(
+          Icons.visibility_outlined,
+          size: 18,
+          color: Color(0xFF536B4E),
+        ),
+        const SizedBox(width: 7),
+        Text(
+          '$viewCount görüntülenme',
+          style: const TextStyle(
+            color: Color(0xFF536B4E),
+            fontWeight: FontWeight.w800,
+            fontSize: 13,
+          ),
+        ),
+      ],
     );
   }
 
@@ -1275,6 +1346,13 @@ class _MeditationDetailVideoPlayerPageState
         backgroundColor: const Color(0xFF101510),
         foregroundColor: Colors.white,
         elevation: 0,
+        actions: [
+          if (widget.meditation.isPlusOnly)
+            const Padding(
+              padding: EdgeInsets.only(right: 12),
+              child: _PlusBadge(),
+            ),
+        ],
       ),
       body: buildVideoBody(),
     );
@@ -1299,11 +1377,62 @@ class _DetailEmptyCover extends StatelessWidget {
   }
 }
 
+class _PlusBadge extends StatelessWidget {
+  const _PlusBadge();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(
+        horizontal: 11,
+        vertical: 7,
+      ),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFFF1B8),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(
+          color: const Color(0xFFE5B84B),
+          width: 1.2,
+        ),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x33000000),
+            blurRadius: 7,
+            offset: Offset(0, 3),
+          ),
+        ],
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: const [
+          Icon(
+            Icons.workspace_premium_rounded,
+            size: 16,
+            color: Color(0xFF8A6200),
+          ),
+          SizedBox(width: 5),
+          Text(
+            'PLUS',
+            style: TextStyle(
+              color: Color(0xFF8A6200),
+              fontSize: 12,
+              fontWeight: FontWeight.w900,
+              letterSpacing: 0.3,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _DetailTag extends StatelessWidget {
   final String text;
+  final IconData? icon;
 
   const _DetailTag({
     required this.text,
+    this.icon,
   });
 
   @override
@@ -1320,13 +1449,26 @@ class _DetailTag extends StatelessWidget {
           color: Colors.white.withOpacity(0.72),
         ),
       ),
-      child: Text(
-        text,
-        style: const TextStyle(
-          color: Color(0xFF536B4E),
-          fontSize: 12,
-          fontWeight: FontWeight.w900,
-        ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (icon != null) ...[
+            Icon(
+              icon,
+              size: 14,
+              color: const Color(0xFF536B4E),
+            ),
+            const SizedBox(width: 5),
+          ],
+          Text(
+            text,
+            style: const TextStyle(
+              color: Color(0xFF536B4E),
+              fontSize: 12,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+        ],
       ),
     );
   }

@@ -109,6 +109,27 @@ class MeditationService {
     );
   }
 
+  Future<int?> recordMeditationView(
+    String meditationId,
+  ) async {
+    final user = supabase.auth.currentUser;
+
+    if (user == null) return null;
+
+    final cleanedId = meditationId.trim();
+
+    if (cleanedId.isEmpty) return null;
+
+    final response = await supabase.rpc(
+      'increment_meditation_view',
+      params: {
+        'target_meditation_id': cleanedId,
+      },
+    );
+
+    return int.tryParse(response.toString());
+  }
+
   Future<List<MeditationModel>> fetchMyTeacherMeditations() async {
     final user = supabase.auth.currentUser;
 

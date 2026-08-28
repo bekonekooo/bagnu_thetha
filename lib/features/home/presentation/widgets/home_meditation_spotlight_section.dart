@@ -211,6 +211,12 @@ class _SpotlightMeditationCard extends StatelessWidget {
                       ),
                     ),
                   ),
+                  if (meditation.isPlusOnly)
+                    const Positioned(
+                      top: 13,
+                      right: 13,
+                      child: _PlusBadge(),
+                    ),
                   Positioned(
                     left: 16,
                     bottom: 16,
@@ -311,6 +317,55 @@ class _EmptyThumbnail extends StatelessWidget {
           color: Color(0xFF536B4E),
           size: 46,
         ),
+      ),
+    );
+  }
+}
+
+class _PlusBadge extends StatelessWidget {
+  const _PlusBadge();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(
+        horizontal: 10,
+        vertical: 6,
+      ),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFFF1B8),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(
+          color: const Color(0xFFE5B84B),
+          width: 1.2,
+        ),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x33000000),
+            blurRadius: 7,
+            offset: Offset(0, 3),
+          ),
+        ],
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: const [
+          Icon(
+            Icons.workspace_premium_rounded,
+            size: 15,
+            color: Color(0xFF8A6200),
+          ),
+          SizedBox(width: 4),
+          Text(
+            'PLUS',
+            style: TextStyle(
+              color: Color(0xFF8A6200),
+              fontSize: 11,
+              fontWeight: FontWeight.w900,
+              letterSpacing: 0.3,
+            ),
+          ),
+        ],
       ),
     );
   }

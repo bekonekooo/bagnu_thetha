@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import 'package:flutter_application_1/core/services/supabase_service.dart';
+import 'package:flutter_application_1/core/services/plus_access_service.dart';
 
 import '../../data/models/workshop_comment_model.dart';
 import '../../data/models/workshop_day_model.dart';
@@ -25,6 +26,7 @@ class WorkshopDetailPage extends StatefulWidget {
 
 class _WorkshopDetailPageState extends State<WorkshopDetailPage> {
   final WorkshopService workshopService = WorkshopService();
+  final PlusAccessService plusAccessService = PlusAccessService();
 
   final TextEditingController commentController =
       TextEditingController();
@@ -46,10 +48,12 @@ class _WorkshopDetailPageState extends State<WorkshopDetailPage> {
   bool isJoinProcessing = false;
   bool isLikeProcessing = false;
   bool isCommentSending = false;
+  bool hasRecordedView = false;
 
   int likeCount = 0;
   int commentCount = 0;
   int studentCount = 0;
+  int viewCount = 0;
 
   List<WorkshopDayModel> workshopDays = [];
   List<WorkshopCommentModel> comments = [];
@@ -59,6 +63,7 @@ class _WorkshopDetailPageState extends State<WorkshopDetailPage> {
     super.initState();
 
     isJoined = widget.initiallyJoined;
+    viewCount = widget.workshop.viewCount;
 
     loadPageData();
   }
@@ -444,6 +449,13 @@ class _WorkshopDetailPageState extends State<WorkshopDetailPage> {
       return;
     }
 
+    final canOpen = await plusAccessService.ensureAccess(
+      context,
+      isPlusOnly: widget.workshop.isPlusOnly,
+    );
+
+    if (!canOpen) return;
+
     final urlText = day.contentUrl.trim();
 
     if (urlText.isEmpty) {
@@ -487,6 +499,24 @@ class _WorkshopDetailPageState extends State<WorkshopDetailPage> {
         workshopId: widget.workshop.id,
         workshopDayId: day.id,
       );
+
+      if (!hasRecordedView) {
+        try {
+          final nextViewCount = await workshopService.recordWorkshopView(
+            widget.workshop.id,
+          );
+
+          if (mounted && nextViewCount != null) {
+            setState(() {
+              viewCount = nextViewCount;
+            });
+          }
+
+          hasRecordedView = true;
+        } catch (_) {
+          // Sayaç hatası içeriğin açılmasını engellememeli.
+        }
+      }
 
       final launchMode = day.isLink
           ? LaunchMode.externalApplication
@@ -558,28 +588,38 @@ class _WorkshopDetailPageState extends State<WorkshopDetailPage> {
         crossAxisAlignment:
             CrossAxisAlignment.start,
         children: [
-          ClipRRect(
-            borderRadius:
-                const BorderRadius.vertical(
-              top: Radius.circular(29),
-            ),
-            child: SizedBox(
-              width: double.infinity,
-              height: 220,
-              child: hasImage
-                  ? Image.network(
-                      workshop.imageUrl,
-                      fit: BoxFit.cover,
-                      errorBuilder: (
-                        context,
-                        error,
-                        stackTrace,
-                      ) {
-                        return buildImagePlaceholder();
-                      },
-                    )
-                  : buildImagePlaceholder(),
-            ),
+          Stack(
+            children: [
+              ClipRRect(
+                borderRadius:
+                    const BorderRadius.vertical(
+                  top: Radius.circular(29),
+                ),
+                child: SizedBox(
+                  width: double.infinity,
+                  height: 220,
+                  child: hasImage
+                      ? Image.network(
+                          workshop.imageUrl,
+                          fit: BoxFit.cover,
+                          errorBuilder: (
+                            context,
+                            error,
+                            stackTrace,
+                          ) {
+                            return buildImagePlaceholder();
+                          },
+                        )
+                      : buildImagePlaceholder(),
+                ),
+              ),
+              if (workshop.isPlusOnly)
+                const Positioned(
+                  top: 16,
+                  left: 16,
+                  child: _PlusBadge(),
+                ),
+            ],
           ),
           Padding(
             padding: const EdgeInsets.all(19),
@@ -630,9 +670,15 @@ class _WorkshopDetailPageState extends State<WorkshopDetailPage> {
                   spacing: 8,
                   runSpacing: 8,
                   children: [
+                    if (workshop.isPlusOnly)
+                      const _PlusBadge(),
                     buildInfoBadge(
                       icon: Icons.calendar_view_day_outlined,
                       text: workshop.durationLabel,
+                    ),
+                    buildInfoBadge(
+                      icon: Icons.visibility_outlined,
+                      text: '$viewCount görüntülenme',
                     ),
                     buildInfoBadge(
                       icon: Icons.payments_outlined,
@@ -1694,6 +1740,55 @@ class _WorkshopDetailPageState extends State<WorkshopDetailPage> {
                   ),
                 ),
         ),
+      ),
+    );
+  }
+}
+
+class _PlusBadge extends StatelessWidget {
+  const _PlusBadge();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(
+        horizontal: 11,
+        vertical: 7,
+      ),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFFF1B8),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(
+          color: const Color(0xFFE5B84B),
+          width: 1.2,
+        ),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x33000000),
+            blurRadius: 7,
+            offset: Offset(0, 3),
+          ),
+        ],
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: const [
+          Icon(
+            Icons.workspace_premium_rounded,
+            size: 16,
+            color: Color(0xFF8A6200),
+          ),
+          SizedBox(width: 5),
+          Text(
+            'PLUS',
+            style: TextStyle(
+              color: Color(0xFF8A6200),
+              fontSize: 12,
+              fontWeight: FontWeight.w900,
+              letterSpacing: 0.3,
+            ),
+          ),
+        ],
       ),
     );
   }

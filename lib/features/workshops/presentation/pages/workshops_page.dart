@@ -299,6 +299,12 @@ class _WorkshopsPageState extends State<WorkshopsPage> {
                         ),
                       ),
                     ),
+                    if (workshop.isPlusOnly)
+                      const Positioned(
+                        top: 13,
+                        left: 13,
+                        child: _PlusBadge(compact: true),
+                      ),
                   ],
                 ),
                 Padding(
@@ -383,6 +389,12 @@ class _WorkshopsPageState extends State<WorkshopsPage> {
                         spacing: 8,
                         runSpacing: 8,
                         children: [
+                          if (workshop.isPlusOnly)
+                            const _PlusBadge(compact: true),
+                          buildInfoBadge(
+                            icon: Icons.visibility_outlined,
+                            text: '${workshop.viewCount} görüntülenme',
+                          ),
                           buildInfoBadge(
                             icon: Icons
                                 .calendar_view_day_outlined,
@@ -698,6 +710,57 @@ class _WorkshopsPageState extends State<WorkshopsPage> {
             ),
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _PlusBadge extends StatelessWidget {
+  final bool compact;
+
+  const _PlusBadge({this.compact = false});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: EdgeInsets.symmetric(
+        horizontal: compact ? 7 : 11,
+        vertical: compact ? 5 : 7,
+      ),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFFF1B8),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(
+          color: const Color(0xFFE5B84B),
+          width: 1.2,
+        ),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x33000000),
+            blurRadius: 7,
+            offset: Offset(0, 3),
+          ),
+        ],
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            Icons.workspace_premium_rounded,
+            size: compact ? 13 : 16,
+            color: const Color(0xFF8A6200),
+          ),
+          SizedBox(width: compact ? 3 : 5),
+          Text(
+            'PLUS',
+            style: TextStyle(
+              color: const Color(0xFF8A6200),
+              fontSize: compact ? 10 : 12,
+              fontWeight: FontWeight.w900,
+              letterSpacing: 0.3,
+            ),
+          ),
+        ],
       ),
     );
   }

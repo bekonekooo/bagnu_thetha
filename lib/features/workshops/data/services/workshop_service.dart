@@ -679,6 +679,27 @@ class WorkshopService {
     );
   }
 
+  Future<int?> recordWorkshopView(
+    String workshopId,
+  ) async {
+    final user = supabase.auth.currentUser;
+
+    if (user == null) return null;
+
+    final cleanWorkshopId = workshopId.trim();
+
+    if (cleanWorkshopId.isEmpty) return null;
+
+    final response = await supabase.rpc(
+      'increment_workshop_view',
+      params: {
+        'target_workshop_id': cleanWorkshopId,
+      },
+    );
+
+    return int.tryParse(response.toString());
+  }
+
   // =======================================================
   // BEĞENİ
   // =======================================================

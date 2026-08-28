@@ -17,6 +17,8 @@ class WorkshopModel {
   final int? capacity;
 
   final bool isActive;
+  final bool isPlusOnly;
+  final int viewCount;
 
   final String teacherName;
   final String teacherImageUrl;
@@ -40,6 +42,8 @@ class WorkshopModel {
     required this.currency,
     required this.capacity,
     required this.isActive,
+    required this.isPlusOnly,
+    required this.viewCount,
     required this.teacherName,
     required this.teacherImageUrl,
     required this.teacherSpecialty,
@@ -98,6 +102,8 @@ class WorkshopModel {
               map['capacity'].toString(),
             ),
       isActive: map['is_active'] == true,
+      isPlusOnly: map['is_plus_only'] == true,
+      viewCount: _readInt(map['view_count']),
       teacherName: teacherMap is Map
           ? teacherMap['name']?.toString() ?? ''
           : '',
@@ -115,6 +121,11 @@ class WorkshopModel {
         map['updated_at']?.toString() ?? '',
       ),
     );
+  }
+
+  static int _readInt(dynamic value) {
+    if (value is int) return value;
+    return int.tryParse(value?.toString() ?? '0') ?? 0;
   }
 
   String get formattedPrice {

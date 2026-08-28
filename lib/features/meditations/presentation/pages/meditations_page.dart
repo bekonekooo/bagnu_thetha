@@ -558,6 +558,41 @@ class _MeditationsPageState extends State<MeditationsPage> {
     );
   }
 
+  Widget buildViewCountBadge(MeditationModel meditation) {
+    return Container(
+      padding: const EdgeInsets.symmetric(
+        horizontal: 9,
+        vertical: 5,
+      ),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.78),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(
+          color: Colors.white.withOpacity(0.70),
+        ),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(
+            Icons.visibility_outlined,
+            size: 13,
+            color: Color(0xFF536B4E),
+          ),
+          const SizedBox(width: 4),
+          Text(
+            '${meditation.viewCount}',
+            style: const TextStyle(
+              color: Color(0xFF536B4E),
+              fontSize: 11,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget buildAudioProgress(MeditationModel meditation) {
     final isCurrentAudio = playingMeditationId == meditation.id;
 
@@ -696,25 +731,7 @@ class _MeditationsPageState extends State<MeditationsPage> {
                   child: Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      if (meditation.thumbnailUrl.trim().isNotEmpty)
-                        ClipRRect(
-                          borderRadius: BorderRadius.circular(18),
-                          child: Image.network(
-                            meditation.thumbnailUrl,
-                            width: 66,
-                            height: 66,
-                            fit: BoxFit.cover,
-                            errorBuilder: (context, error, stackTrace) {
-                              return _MeditationIconBox(
-                                icon: iconForType(meditation.type),
-                              );
-                            },
-                          ),
-                        )
-                      else
-                        _MeditationIconBox(
-                          icon: iconForType(meditation.type),
-                        ),
+                      buildMeditationThumbnail(meditation),
                       const SizedBox(width: 14),
                       Expanded(
                         child: Column(
@@ -725,8 +742,11 @@ class _MeditationsPageState extends State<MeditationsPage> {
                               runSpacing: 7,
                               children: [
                                 _MiniTag(text: meditation.typeLabel),
+                                if (meditation.isPlusOnly)
+                                  const _PlusBadge(compact: true),
                                 buildLikeCountBadge(meditation),
                                 buildCommentCountBadge(meditation),
+                                buildViewCountBadge(meditation),
                                 ...categoriesForMeditation(meditation).map(
                                   (category) => _MiniTag(text: category),
                                 ),
@@ -766,7 +786,9 @@ class _MeditationsPageState extends State<MeditationsPage> {
                         radius: 19,
                         backgroundColor: Colors.white.withOpacity(0.82),
                         child: Icon(
-                          meditation.isAudio
+                          meditation.isPlusOnly
+                              ? Icons.workspace_premium_outlined
+                              : meditation.isAudio
                               ? isPlaying
                                   ? isPaused
                                       ? Icons.play_arrow
@@ -786,6 +808,40 @@ class _MeditationsPageState extends State<MeditationsPage> {
           ],
         ),
       ),
+    );
+  }
+
+  Widget buildMeditationThumbnail(MeditationModel meditation) {
+    final thumbnail = meditation.thumbnailUrl.trim().isNotEmpty
+        ? ClipRRect(
+            borderRadius: BorderRadius.circular(18),
+            child: Image.network(
+              meditation.thumbnailUrl,
+              width: 66,
+              height: 66,
+              fit: BoxFit.cover,
+              errorBuilder: (context, error, stackTrace) {
+                return _MeditationIconBox(
+                  icon: iconForType(meditation.type),
+                );
+              },
+            ),
+          )
+        : _MeditationIconBox(
+            icon: iconForType(meditation.type),
+          );
+
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        thumbnail,
+        if (meditation.isPlusOnly)
+          const Positioned(
+            top: -7,
+            right: -7,
+            child: _PlusBadge(compact: true),
+          ),
+      ],
     );
   }
 
@@ -1215,6 +1271,13 @@ class _MeditationVideoPlayerPageState extends State<MeditationVideoPlayerPage> {
         backgroundColor: const Color(0xFF101510),
         foregroundColor: Colors.white,
         elevation: 0,
+        actions: [
+          if (widget.meditation.isPlusOnly)
+            const Padding(
+              padding: EdgeInsets.only(right: 12),
+              child: _PlusBadge(compact: true),
+            ),
+        ],
       ),
       body: buildBackground(
         child: buildVideoBody(),
@@ -1251,11 +1314,64 @@ class _MeditationIconBox extends StatelessWidget {
   }
 }
 
+class _PlusBadge extends StatelessWidget {
+  final bool compact;
+
+  const _PlusBadge({this.compact = false});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: EdgeInsets.symmetric(
+        horizontal: compact ? 7 : 11,
+        vertical: compact ? 5 : 7,
+      ),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFFF1B8),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(
+          color: const Color(0xFFE5B84B),
+          width: 1.2,
+        ),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x33000000),
+            blurRadius: 7,
+            offset: Offset(0, 3),
+          ),
+        ],
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            Icons.workspace_premium_rounded,
+            size: compact ? 13 : 16,
+            color: const Color(0xFF8A6200),
+          ),
+          SizedBox(width: compact ? 3 : 5),
+          Text(
+            'PLUS',
+            style: TextStyle(
+              color: const Color(0xFF8A6200),
+              fontSize: compact ? 10 : 12,
+              fontWeight: FontWeight.w900,
+              letterSpacing: 0.3,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _MiniTag extends StatelessWidget {
   final String text;
+  final IconData? icon;
 
   const _MiniTag({
     required this.text,
+    this.icon,
   });
 
   @override
@@ -1272,13 +1388,26 @@ class _MiniTag extends StatelessWidget {
           color: Colors.white.withOpacity(0.70),
         ),
       ),
-      child: Text(
-        text,
-        style: const TextStyle(
-          color: Color(0xFF536B4E),
-          fontSize: 11,
-          fontWeight: FontWeight.w900,
-        ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (icon != null) ...[
+            Icon(
+              icon,
+              size: 12,
+              color: const Color(0xFF536B4E),
+            ),
+            const SizedBox(width: 4),
+          ],
+          Text(
+            text,
+            style: const TextStyle(
+              color: Color(0xFF536B4E),
+              fontSize: 11,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+        ],
       ),
     );
   }
