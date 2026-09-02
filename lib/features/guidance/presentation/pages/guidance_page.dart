@@ -18,7 +18,7 @@ class _GuidancePageState extends State<GuidancePage> {
   final TextEditingController birthPlaceController = TextEditingController();
   final TextEditingController extraInfoController = TextEditingController();
 
-  String selectedType = 'chinese_zodiac';
+  String? selectedType;
   DateTime? selectedBirthDate;
   TimeOfDay? selectedBirthTime;
 
@@ -200,6 +200,17 @@ class _GuidancePageState extends State<GuidancePage> {
       return;
     }
 
+    final guidanceType = selectedType;
+
+    if (guidanceType == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Lütfen önce bir rehberlik türü seç.'),
+        ),
+      );
+      return;
+    }
+
     final fullName = fullNameController.text.trim();
     final birthPlace = birthPlaceController.text.trim();
 
@@ -221,7 +232,7 @@ class _GuidancePageState extends State<GuidancePage> {
       return;
     }
 
-    if (selectedType == 'astrology' && birthPlace.isEmpty) {
+    if (guidanceType == 'astrology' && birthPlace.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Astroloji rehberliği için doğum yerini yazmalısın.'),
@@ -252,7 +263,7 @@ class _GuidancePageState extends State<GuidancePage> {
     try {
       final response = await guidanceService.createGuidanceRequest(
         fullName: fullName,
-        guidanceType: selectedType,
+        guidanceType: guidanceType,
         birthDate: formatBirthDateForDb(selectedBirthDate!),
         birthTime: formatBirthTimeForDb(selectedBirthTime),
         birthPlace: birthPlace.isEmpty ? null : birthPlace,
@@ -494,88 +505,93 @@ class _GuidancePageState extends State<GuidancePage> {
                           ),
                         );
                       }),
-                      const SizedBox(height: 10),
-                      const _SectionTitle(
-                        title: '2. Kişi bilgileri',
-                        subtitle:
-                            'Analiz kendi adına ya da başka biri adına yapılabilir.',
-                      ),
-                      const SizedBox(height: 12),
-                      _TextInputCard(
-                        controller: fullNameController,
-                        icon: Icons.badge_outlined,
-                        label: 'Analiz yapılacak kişinin adı soyadı',
-                        hintText: 'Örn: Ayşe Yılmaz',
-                      ),
-                      const SizedBox(height: 12),
-                      _PickerTile(
-                        icon: Icons.cake_outlined,
-                        title: 'Doğum tarihi',
-                        value: selectedBirthDate == null
-                            ? 'Zorunlu'
-                            : formatBirthDateForUi(selectedBirthDate!),
-                        onTap: pickBirthDate,
-                      ),
-                      const SizedBox(height: 12),
-                      _PickerTile(
-                        icon: Icons.access_time,
-                        title: 'Doğum saati',
-                        value: selectedBirthTime == null
-                            ? selectedType == 'astrology'
-                                ? 'Önerilir'
-                                : 'Opsiyonel'
-                            : formatBirthTimeForUi(selectedBirthTime!),
-                        onTap: pickBirthTime,
-                      ),
-                      if (selectedBirthTime != null) ...[
+                      if (selectedType == null) ...[
+                        const SizedBox(height: 4),
+                        const _SelectionHintCard(),
+                      ] else ...[
+                        const SizedBox(height: 10),
+                        const _SectionTitle(
+                          title: '2. Kişi bilgileri',
+                          subtitle:
+                              'Analiz kendi adına ya da başka biri adına yapılabilir.',
+                        ),
+                        const SizedBox(height: 12),
+                        _TextInputCard(
+                          controller: fullNameController,
+                          icon: Icons.badge_outlined,
+                          label: 'Analiz yapılacak kişinin adı soyadı',
+                          hintText: 'Örn: Ayşe Yılmaz',
+                        ),
+                        const SizedBox(height: 12),
+                        _PickerTile(
+                          icon: Icons.cake_outlined,
+                          title: 'Doğum tarihi',
+                          value: selectedBirthDate == null
+                              ? 'Zorunlu'
+                              : formatBirthDateForUi(selectedBirthDate!),
+                          onTap: pickBirthDate,
+                        ),
+                        const SizedBox(height: 12),
+                        _PickerTile(
+                          icon: Icons.access_time,
+                          title: 'Doğum saati',
+                          value: selectedBirthTime == null
+                              ? selectedType == 'astrology'
+                                  ? 'Önerilir'
+                                  : 'Opsiyonel'
+                              : formatBirthTimeForUi(selectedBirthTime!),
+                          onTap: pickBirthTime,
+                        ),
+                        if (selectedBirthTime != null) ...[
+                          const SizedBox(height: 8),
+                          Align(
+                            alignment: Alignment.centerRight,
+                            child: TextButton.icon(
+                              onPressed: () {
+                                setState(() {
+                                  selectedBirthTime = null;
+                                });
+                              },
+                              icon: const Icon(Icons.close, size: 18),
+                              label: const Text('Saati kaldır'),
+                              style: TextButton.styleFrom(
+                                foregroundColor: const Color(0xFF536B4E),
+                              ),
+                            ),
+                          ),
+                        ],
+                        const SizedBox(height: 12),
+                        _TextInputCard(
+                          controller: birthPlaceController,
+                          icon: Icons.location_on_outlined,
+                          label: selectedType == 'astrology'
+                              ? 'Doğum yeri - Astroloji için zorunlu'
+                              : 'Doğum yeri - Opsiyonel',
+                          hintText: 'Örn: Antalya, Türkiye',
+                        ),
+                        const SizedBox(height: 10),
+                        const _SectionTitle(
+                          title: '3. Ek detay',
+                          subtitle:
+                              'Yapay zekanın özellikle odaklanmasını istediğin konuyu yazabilirsin.',
+                        ),
+                        const SizedBox(height: 12),
+                        buildExtraInfoField(),
                         const SizedBox(height: 8),
-                        Align(
-                          alignment: Alignment.centerRight,
-                          child: TextButton.icon(
-                            onPressed: () {
-                              setState(() {
-                                selectedBirthTime = null;
-                              });
-                            },
-                            icon: const Icon(Icons.close, size: 18),
-                            label: const Text('Saati kaldır'),
-                            style: TextButton.styleFrom(
-                              foregroundColor: const Color(0xFF536B4E),
+                        const Padding(
+                          padding: EdgeInsets.symmetric(horizontal: 4),
+                          child: Text(
+                            'Sağlık bilgisi, teşhis, tıbbi kayıt veya diğer hassas kişisel bilgilerinizi bu alana yazmayınız.',
+                            style: TextStyle(
+                              color: Color(0xFF7A6D62),
+                              fontSize: 12,
+                              height: 1.4,
                             ),
                           ),
                         ),
+                        const SizedBox(height: 24),
+                        buildSubmitButton(),
                       ],
-                      const SizedBox(height: 12),
-                      _TextInputCard(
-                        controller: birthPlaceController,
-                        icon: Icons.location_on_outlined,
-                        label: selectedType == 'astrology'
-                            ? 'Doğum yeri - Astroloji için zorunlu'
-                            : 'Doğum yeri - Opsiyonel',
-                        hintText: 'Örn: Antalya, Türkiye',
-                      ),
-                      const SizedBox(height: 10),
-                      const _SectionTitle(
-                        title: '3. Ek detay',
-                        subtitle:
-                            'Yapay zekanın özellikle odaklanmasını istediğin konuyu yazabilirsin.',
-                      ),
-                       const SizedBox(height: 12),
-                       buildExtraInfoField(),
-                       const SizedBox(height: 8),
-                       const Padding(
-                         padding: EdgeInsets.symmetric(horizontal: 4),
-                         child: Text(
-                           'Sağlık bilgisi, teşhis, tıbbi kayıt veya diğer hassas kişisel bilgilerinizi bu alana yazmayınız.',
-                           style: TextStyle(
-                             color: Color(0xFF7A6D62),
-                             fontSize: 12,
-                             height: 1.4,
-                           ),
-                         ),
-                       ),
-                       const SizedBox(height: 24),
-                      buildSubmitButton(),
                       if (resultText != null) ...[
                         const SizedBox(height: 24),
                         _ResultCard(
@@ -587,6 +603,45 @@ class _GuidancePageState extends State<GuidancePage> {
                   ),
                 ),
         ),
+      ),
+    );
+  }
+}
+
+class _SelectionHintCard extends StatelessWidget {
+  const _SelectionHintCard();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.72),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(
+          color: Colors.white.withOpacity(0.78),
+        ),
+      ),
+      child: const Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(
+            Icons.touch_app_outlined,
+            color: Color(0xFF536B4E),
+          ),
+          SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              'Devam etmek için yukarıdaki rehberlik türlerinden birini seç. Seçiminden sonra kişi bilgilerini girebilirsin.',
+              style: TextStyle(
+                color: Color(0xFF606A61),
+                height: 1.4,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

@@ -7,7 +7,7 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
-	<string>Flutter Application 1</string>
+	<string>Yeniden Kendine</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>Profil fotoğrafınızı seçebilmeniz için fotoğraf kitaplığınıza erişim gerekir.</string>
 	<key>NSCameraUsageDescription</key>
