@@ -605,7 +605,8 @@ class _FullScreenDailyMessageDialogState
     super.initState();
 
     timer = Timer(
-      const Duration(seconds: 4),
+      // Kartın kapanış animasyonuyla birlikte yaklaşık 10 saniye görünmesi için.
+      const Duration(seconds: 9, milliseconds: 500),
       closeDialog,
     );
   }
