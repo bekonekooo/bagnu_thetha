@@ -386,7 +386,7 @@ class _MeditationDetailPageState extends State<MeditationDetailPage> {
       widget.meditation.id,
     );
 
-    if (!hasRecordedView) {
+    if (!widget.meditation.isVideo && !hasRecordedView) {
       try {
         final nextViewCount = await meditationService.recordMeditationView(
           widget.meditation.id,
@@ -399,8 +399,8 @@ class _MeditationDetailPageState extends State<MeditationDetailPage> {
         }
 
         hasRecordedView = true;
-      } catch (_) {
-        // Sayaç hatası içeriğin oynatılmasını engellememeli.
+      } catch (error) {
+        debugPrint('Meditation view count error: $error');
       }
     }
 
@@ -1086,10 +1086,12 @@ class MeditationDetailVideoPlayerPage extends StatefulWidget {
 class _MeditationDetailVideoPlayerPageState
     extends State<MeditationDetailVideoPlayerPage> {
   VideoPlayerController? controller;
+  final MeditationService meditationService = MeditationService();
 
   bool isLoading = true;
   bool hasError = false;
   String? errorMessage;
+  bool hasRecordedView = false;
 
   @override
   void initState() {
@@ -1111,6 +1113,7 @@ class _MeditationDetailVideoPlayerPageState
       await videoController.initialize();
       await videoController.setLooping(false);
       await videoController.play();
+      await recordVideoView();
 
       if (!mounted) return;
 
@@ -1127,6 +1130,21 @@ class _MeditationDetailVideoPlayerPageState
         hasError = true;
         errorMessage = e.toString();
       });
+    }
+  }
+
+  Future<void> recordVideoView() async {
+    if (hasRecordedView) return;
+
+    try {
+      final nextViewCount = await meditationService.recordMeditationView(
+        widget.meditation.id,
+      );
+      if (nextViewCount != null) {
+        hasRecordedView = true;
+      }
+    } catch (error) {
+      debugPrint('Meditation video view count error: $error');
     }
   }
 

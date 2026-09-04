@@ -37,7 +37,7 @@ where w.id = source.workshop_id
   and coalesce(w.view_count, 0) = 0;
 
 create or replace function public.increment_meditation_view(
-  target_meditation_id uuid
+  p_meditation_id uuid
 )
 returns bigint
 language plpgsql
@@ -53,7 +53,7 @@ begin
 
   update public.meditations as m
   set view_count = coalesce(m.view_count, 0) + 1
-  where m.id = target_meditation_id
+  where m.id = p_meditation_id
     and m.is_active = true
     and (
       m.is_plus_only = false

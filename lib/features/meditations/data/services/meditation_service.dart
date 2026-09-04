@@ -123,7 +123,7 @@ class MeditationService {
     final response = await supabase.rpc(
       'increment_meditation_view',
       params: {
-        'target_meditation_id': cleanedId,
+        'p_meditation_id': cleanedId,
       },
     );
 
@@ -476,12 +476,58 @@ class MeditationService {
   }
 
   Future<void> deleteMeditation(
-    String meditationId,
+    MeditationModel meditation,
   ) async {
-    await supabase
-        .from('meditations')
-        .delete()
-        .eq('id', meditationId);
+    await _removeOwnedStorageObject(
+      bucket: mediaBucket,
+      publicUrl: meditation.mediaUrl,
+    );
+    await _removeOwnedStorageObject(
+      bucket: thumbnailsBucket,
+      publicUrl: meditation.thumbnailUrl,
+    );
+
+    final deleted = await supabase.rpc(
+      'delete_meditation_owned_by_current_user',
+      params: {
+        'target_meditation_id': meditation.id,
+      },
+    );
+
+    if (deleted != true) {
+      throw Exception(
+        'İçerik silinemedi. Silme yetkin veya içerik sahibi eşleşmesi yok.',
+      );
+    }
+  }
+
+  Future<void> _removeOwnedStorageObject({
+    required String bucket,
+    required String publicUrl,
+  }) async {
+    final path = _storagePathFromPublicUrl(
+      bucket: bucket,
+      publicUrl: publicUrl,
+    );
+
+    if (path == null || path.isEmpty) return;
+
+    await supabase.storage.from(bucket).remove([path]);
+  }
+
+  String? _storagePathFromPublicUrl({
+    required String bucket,
+    required String publicUrl,
+  }) {
+    final uri = Uri.tryParse(publicUrl.trim());
+
+    if (uri == null) return null;
+
+    final prefix = '/storage/v1/object/public/$bucket/';
+
+    if (!uri.path.startsWith(prefix)) return null;
+
+    return Uri.decodeComponent(uri.path.substring(prefix.length));
   }
 
   String _cleanExtension(

@@ -318,7 +318,7 @@ class _TeacherMeditationsPageState extends State<TeacherMeditationsPage> {
     if (result != true) return;
 
     try {
-      await meditationService.deleteMeditation(meditation.id);
+      await meditationService.deleteMeditation(meditation);
       await reloadMeditations();
       showMessage('İçerik silindi.');
     } catch (e) {

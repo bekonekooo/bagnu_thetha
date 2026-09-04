@@ -997,10 +997,12 @@ class MeditationVideoPlayerPage extends StatefulWidget {
 
 class _MeditationVideoPlayerPageState extends State<MeditationVideoPlayerPage> {
   VideoPlayerController? controller;
+  final MeditationService meditationService = MeditationService();
 
   bool isLoading = true;
   bool hasError = false;
   String? errorMessage;
+  bool hasRecordedView = false;
 
   @override
   void initState() {
@@ -1023,6 +1025,7 @@ class _MeditationVideoPlayerPageState extends State<MeditationVideoPlayerPage> {
       await videoController.initialize();
       await videoController.setLooping(false);
       await videoController.play();
+      await recordVideoView();
 
       if (!mounted) return;
 
@@ -1039,6 +1042,21 @@ class _MeditationVideoPlayerPageState extends State<MeditationVideoPlayerPage> {
         hasError = true;
         errorMessage = e.toString();
       });
+    }
+  }
+
+  Future<void> recordVideoView() async {
+    if (hasRecordedView) return;
+
+    try {
+      final nextViewCount = await meditationService.recordMeditationView(
+        widget.meditation.id,
+      );
+      if (nextViewCount != null) {
+        hasRecordedView = true;
+      }
+    } catch (error) {
+      debugPrint('Meditation video view count error: $error');
     }
   }
 
