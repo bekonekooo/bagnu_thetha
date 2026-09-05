@@ -1,7 +1,12 @@
+import 'package:file_picker/file_picker.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+
 import 'package:flutter_application_1/core/services/supabase_service.dart';
 import 'package:flutter_application_1/features/trainings/data/models/training_model.dart';
 
 class TrainingService {
+  static const String coverBucket = 'workshop-covers';
+
   Future<List<TrainingModel>> fetchActiveTrainings() async {
     final response = await supabase
         .from('trainings')
@@ -302,6 +307,64 @@ class TrainingService {
     }).toList();
 
     await supabase.from('training_sessions').insert(sessionRows);
+  }
+
+  Future<String> uploadTrainingCover({
+    required PlatformFile file,
+  }) async {
+    final user = supabase.auth.currentUser;
+
+    if (user == null) {
+      throw Exception('Kapak yüklemek için giriş yapmalısın.');
+    }
+
+    final bytes = file.bytes;
+
+    if (bytes == null) {
+      throw Exception('Kapak görseli okunamadı.');
+    }
+
+    final extension = _cleanExtension(file.extension);
+    final fileName = _safeFileName(file.name);
+    final timestamp = DateTime.now().millisecondsSinceEpoch;
+    final path = '${user.id}/training-$timestamp-$fileName';
+
+    await supabase.storage.from(coverBucket).uploadBinary(
+          path,
+          bytes,
+          fileOptions: FileOptions(
+            contentType: _imageContentType(extension),
+            upsert: false,
+          ),
+        );
+
+    return supabase.storage.from(coverBucket).getPublicUrl(path);
+  }
+
+  String _cleanExtension(String? extension) {
+    return (extension ?? '').replaceFirst('.', '').toLowerCase();
+  }
+
+  String _safeFileName(String fileName) {
+    final cleaned = fileName.trim().replaceAll(
+      RegExp(r'[^a-zA-Z0-9._-]'),
+      '-',
+    );
+
+    return cleaned.isEmpty ? 'cover-image' : cleaned;
+  }
+
+  String _imageContentType(String extension) {
+    switch (extension) {
+      case 'png':
+        return 'image/png';
+      case 'webp':
+        return 'image/webp';
+      case 'jpg':
+      case 'jpeg':
+      default:
+        return 'image/jpeg';
+    }
   }
 
   Future<void> toggleTrainingActive({

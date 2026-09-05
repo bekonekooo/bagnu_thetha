@@ -1,3 +1,4 @@
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 
 import 'package:flutter_application_1/core/input_formatters/first_word_capitalization_formatter.dart';
@@ -91,6 +92,7 @@ class _TeacherTrainingsPageState extends State<TeacherTrainingsPage> {
   String selectedMode = 'single';
 
   bool isSaving = false;
+  PlatformFile? selectedCoverFile;
 
   DateTime? selectedSingleDate;
   final List<_TrainingSessionDraft> sessionDrafts = [];
@@ -122,6 +124,28 @@ class _TeacherTrainingsPageState extends State<TeacherTrainingsPage> {
     });
 
     await trainingsFuture;
+  }
+
+  Future<void> pickCoverFile() async {
+    final result = await FilePicker.platform.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: ['jpg', 'jpeg', 'png', 'webp'],
+      allowMultiple: false,
+      withData: true,
+    );
+
+    if (result == null || result.files.isEmpty) return;
+
+    setState(() {
+      selectedCoverFile = result.files.first;
+      imageUrlController.clear();
+    });
+  }
+
+  void clearCoverFile() {
+    setState(() {
+      selectedCoverFile = null;
+    });
   }
 
   String formatDate(DateTime date) {
@@ -252,7 +276,7 @@ class _TeacherTrainingsPageState extends State<TeacherTrainingsPage> {
   Future<void> createTraining() async {
     final title = titleController.text.trim();
     final description = descriptionController.text.trim();
-    final imageUrl = imageUrlController.text.trim();
+    var imageUrl = imageUrlController.text.trim();
     final category = categoryController.text.trim();
     final locationText = locationTextController.text.trim();
 
@@ -272,7 +296,7 @@ class _TeacherTrainingsPageState extends State<TeacherTrainingsPage> {
       return;
     }
 
-    if (!isValidUrl(imageUrl)) {
+    if (selectedCoverFile == null && !isValidUrl(imageUrl)) {
       showMessage('Kapak görseli URL http veya https ile başlamalı.');
       return;
     }
@@ -297,6 +321,12 @@ class _TeacherTrainingsPageState extends State<TeacherTrainingsPage> {
     });
 
     try {
+      if (selectedCoverFile != null) {
+        imageUrl = await trainingService.uploadTrainingCover(
+          file: selectedCoverFile!,
+        );
+      }
+
       await trainingService.createTraining(
         title: title,
         description: description,
@@ -313,6 +343,7 @@ class _TeacherTrainingsPageState extends State<TeacherTrainingsPage> {
       titleController.clear();
       descriptionController.clear();
       imageUrlController.clear();
+      selectedCoverFile = null;
       categoryController.clear();
       locationTextController.clear();
       priceController.clear();
@@ -720,11 +751,7 @@ class _TeacherTrainingsPageState extends State<TeacherTrainingsPage> {
             maxLines: 4,
             capitalizeFirstWord: true,
           ),
-          buildInput(
-            controller: imageUrlController,
-            label: 'Kapak Görseli URL',
-            hint: 'Opsiyonel: https://...',
-          ),
+          buildCoverPicker(),
           buildInput(
             controller: categoryController,
             label: 'Kategori',
@@ -863,6 +890,77 @@ class _TeacherTrainingsPageState extends State<TeacherTrainingsPage> {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget buildCoverPicker() {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: Colors.white.withOpacity(0.78),
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: Colors.white.withOpacity(0.70)),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Kapak Görseli',
+              style: TextStyle(
+                color: Color(0xFF667064),
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            const SizedBox(height: 8),
+            if (selectedCoverFile != null)
+              Row(
+                children: [
+                  const Icon(
+                    Icons.image_outlined,
+                    color: Color(0xFF536B4E),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      selectedCoverFile!.name,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(fontWeight: FontWeight.w700),
+                    ),
+                  ),
+                  IconButton(
+                    onPressed: isSaving ? null : clearCoverFile,
+                    icon: const Icon(Icons.close),
+                  ),
+                ],
+              ),
+            OutlinedButton.icon(
+              onPressed: isSaving ? null : pickCoverFile,
+              icon: const Icon(Icons.upload_file),
+              label: Text(
+                selectedCoverFile == null
+                    ? 'Telefondan Görsel Seç'
+                    : 'Görseli Değiştir',
+              ),
+            ),
+            if (selectedCoverFile == null) ...[
+              const SizedBox(height: 8),
+              TextField(
+                controller: imageUrlController,
+                enabled: !isSaving,
+                keyboardType: TextInputType.url,
+                decoration: const InputDecoration(
+                  labelText: 'Veya kapak görseli URL’si',
+                  hintText: 'Opsiyonel: https://...',
+                ),
+              ),
+            ],
+          ],
+        ),
       ),
     );
   }
