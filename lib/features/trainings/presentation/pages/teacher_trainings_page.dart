@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import 'package:flutter_application_1/core/input_formatters/first_word_capitalization_formatter.dart';
 import 'package:flutter_application_1/features/trainings/data/models/training_model.dart';
 import 'package:flutter_application_1/features/trainings/data/services/training_service.dart';
 
@@ -418,6 +419,7 @@ class _TeacherTrainingsPageState extends State<TeacherTrainingsPage> {
     required String hint,
     TextInputType? keyboardType,
     int maxLines = 1,
+    bool capitalizeFirstWord = false,
   }) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
@@ -425,6 +427,12 @@ class _TeacherTrainingsPageState extends State<TeacherTrainingsPage> {
         controller: controller,
         keyboardType: keyboardType,
         maxLines: maxLines,
+        textCapitalization: capitalizeFirstWord
+            ? TextCapitalization.sentences
+            : TextCapitalization.none,
+        inputFormatters: capitalizeFirstWord
+            ? const [FirstWordCapitalizationFormatter()]
+            : null,
         cursorColor: const Color(0xFF536B4E),
         decoration: InputDecoration(
           labelText: label,
@@ -703,12 +711,14 @@ class _TeacherTrainingsPageState extends State<TeacherTrainingsPage> {
             controller: titleController,
             label: 'Eğitim Başlığı',
             hint: 'Örn: ThetaHealing Temel Eğitim',
+            capitalizeFirstWord: true,
           ),
           buildInput(
             controller: descriptionController,
             label: 'Açıklama',
             hint: 'Eğitimin içeriğini yaz',
             maxLines: 4,
+            capitalizeFirstWord: true,
           ),
           buildInput(
             controller: imageUrlController,

@@ -1,6 +1,7 @@
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 
+import 'package:flutter_application_1/core/input_formatters/first_word_capitalization_formatter.dart';
 import '../../data/services/workshop_service.dart';
 
 class CreateWorkshopPage extends StatefulWidget {
@@ -450,6 +451,7 @@ class _CreateWorkshopPageState extends State<CreateWorkshopPage> {
     required String hint,
     int maxLines = 1,
     TextInputType? keyboardType,
+    bool capitalizeFirstWord = false,
   }) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
@@ -457,6 +459,12 @@ class _CreateWorkshopPageState extends State<CreateWorkshopPage> {
         controller: controller,
         maxLines: maxLines,
         keyboardType: keyboardType,
+        textCapitalization: capitalizeFirstWord
+            ? TextCapitalization.sentences
+            : TextCapitalization.none,
+        inputFormatters: capitalizeFirstWord
+            ? const [FirstWordCapitalizationFormatter()]
+            : null,
         enabled: !isSaving,
         cursorColor: primaryColor,
         decoration: inputDecoration(
@@ -561,6 +569,7 @@ class _CreateWorkshopPageState extends State<CreateWorkshopPage> {
             controller: titleController,
             label: 'Atölye Başlığı',
             hint: 'Örn: 7 Günlük Bolluk Atölyesi',
+            capitalizeFirstWord: true,
           ),
           buildInput(
             controller: descriptionController,
@@ -568,6 +577,7 @@ class _CreateWorkshopPageState extends State<CreateWorkshopPage> {
             hint:
                 'Atölyenin amacı ve içeriği hakkında bilgi ver.',
             maxLines: 5,
+            capitalizeFirstWord: true,
           ),
           buildInput(
             controller: categoryController,
@@ -876,6 +886,7 @@ class _CreateWorkshopPageState extends State<CreateWorkshopPage> {
             label: '${draft.dayNumber}. Gün Başlığı',
             hint:
                 'Örn: Niyet Belirleme Çalışması',
+            capitalizeFirstWord: true,
           ),
           buildInput(
             controller:
@@ -885,6 +896,7 @@ class _CreateWorkshopPageState extends State<CreateWorkshopPage> {
             hint:
                 'Bu gün yapılacak çalışmayı açıkla.',
             maxLines: 3,
+            capitalizeFirstWord: true,
           ),
           buildInput(
             controller:

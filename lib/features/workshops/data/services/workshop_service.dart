@@ -1,4 +1,5 @@
 import 'package:file_picker/file_picker.dart';
+import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'package:flutter_application_1/core/services/supabase_service.dart';
@@ -353,22 +354,84 @@ class WorkshopService {
   }
 
   Future<void> deleteWorkshop(
-    String workshopId,
+    WorkshopModel workshop,
   ) async {
-    final cleanWorkshopId =
-        workshopId.trim();
+    final cleanWorkshopId = workshop.id.trim();
 
     if (cleanWorkshopId.isEmpty) {
-      return;
+      throw Exception('Atölye kimliği bulunamadı.');
     }
 
-    await supabase
-        .from('workshops')
-        .delete()
-        .eq(
-          'id',
-          cleanWorkshopId,
+    final deleted = await supabase.rpc(
+      'delete_workshop_owned_by_current_user',
+      params: {
+        'p_workshop_id': cleanWorkshopId,
+      },
+    );
+
+    if (deleted != true) {
+      throw Exception(
+        'Atölye silinemedi. Silme yetkin veya atölye sahibi eşleşmesi yok.',
+      );
+    }
+
+    await _removeWorkshopStorageObjects(workshop);
+  }
+
+  Future<void> _removeWorkshopStorageObjects(
+    WorkshopModel workshop,
+  ) async {
+    final urls = <String, String>{};
+
+    if (workshop.imageUrl.trim().isNotEmpty) {
+      urls[coverBucket] = workshop.imageUrl;
+    }
+
+    for (final day in workshop.days) {
+      if (day.contentType == 'link' || day.contentUrl.trim().isEmpty) {
+        continue;
+      }
+
+      urls['$mediaBucket:${day.id}'] = day.contentUrl;
+    }
+
+    for (final entry in urls.entries) {
+      final bucket = entry.key.startsWith('$mediaBucket:')
+          ? mediaBucket
+          : coverBucket;
+
+      try {
+        final path = _storagePathFromPublicUrl(
+          bucket: bucket,
+          publicUrl: entry.value,
         );
+
+        if (path == null || path.isEmpty) continue;
+
+        await supabase.storage.from(bucket).remove([path]);
+      } catch (error) {
+        debugPrint(
+          'Workshop storage cleanup failed for $bucket: $error',
+        );
+      }
+    }
+  }
+
+  String? _storagePathFromPublicUrl({
+    required String bucket,
+    required String publicUrl,
+  }) {
+    final uri = Uri.tryParse(publicUrl.trim());
+
+    if (uri == null) return null;
+
+    final prefix = '/storage/v1/object/public/$bucket/';
+
+    if (!uri.path.startsWith(prefix)) return null;
+
+    return Uri.decodeComponent(
+      uri.path.substring(prefix.length),
+    );
   }
 
   // =======================================================
@@ -1019,7 +1082,10 @@ class WorkshopService {
               contentType,
               extension,
             ),
-            upsert: true,
+            // Dosya yolu zaman damgalı olduğu için aynı isimdeki mevcut
+            // dosyayı güncellemeye gerek yok. Böylece yükleme yalnızca
+            // INSERT Storage policy'sine ihtiyaç duyar.
+            upsert: false,
           ),
         );
 
@@ -1074,7 +1140,8 @@ class WorkshopService {
                 _imageContentType(
               extension,
             ),
-            upsert: true,
+            // Kapak yolu da zaman damgalı; mevcut dosyayı ezmiyoruz.
+            upsert: false,
           ),
         );
 

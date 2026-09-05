@@ -1,6 +1,7 @@
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 
+import 'package:flutter_application_1/core/input_formatters/first_word_capitalization_formatter.dart';
 import '../../data/models/meditation_model.dart';
 import '../../data/services/meditation_service.dart';
 
@@ -348,12 +349,19 @@ class _TeacherMeditationsPageState extends State<TeacherMeditationsPage> {
     required String label,
     required String hint,
     int maxLines = 1,
+    bool capitalizeFirstWord = false,
   }) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: TextField(
         controller: controller,
         maxLines: maxLines,
+        textCapitalization: capitalizeFirstWord
+            ? TextCapitalization.sentences
+            : TextCapitalization.none,
+        inputFormatters: capitalizeFirstWord
+            ? const [FirstWordCapitalizationFormatter()]
+            : null,
         cursorColor: const Color(0xFF536B4E),
         decoration: InputDecoration(
           labelText: label,
@@ -679,12 +687,14 @@ class _TeacherMeditationsPageState extends State<TeacherMeditationsPage> {
             controller: titleController,
             label: 'Başlık',
             hint: 'Örn: Sabah Sakinliği Meditasyonu',
+            capitalizeFirstWord: true,
           ),
           buildInput(
             controller: descriptionController,
             label: 'Açıklama',
             hint: 'Kısa açıklama yaz',
             maxLines: 3,
+            capitalizeFirstWord: true,
           ),
           buildCategorySelector(),
           buildInput(

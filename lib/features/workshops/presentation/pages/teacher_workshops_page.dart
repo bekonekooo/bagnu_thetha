@@ -152,7 +152,7 @@ class _TeacherWorkshopsPageState
 
     try {
       await workshopService.deleteWorkshop(
-        workshop.id,
+        workshop,
       );
 
       await reloadWorkshops();
