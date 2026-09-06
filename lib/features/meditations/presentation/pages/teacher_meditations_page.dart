@@ -29,6 +29,9 @@ class _TeacherMeditationsPageState extends State<TeacherMeditationsPage> {
 
   PlatformFile? selectedMediaFile;
   PlatformFile? selectedThumbnailFile;
+  MeditationModel? editingMeditation;
+  String existingMediaUrl = '';
+  bool isFormVisible = false;
 
   final Set<String> selectedCategories = {};
 
@@ -152,6 +155,66 @@ class _TeacherMeditationsPageState extends State<TeacherMeditationsPage> {
     });
   }
 
+  void startEditing(MeditationModel meditation) {
+    setState(() {
+      isFormVisible = true;
+      editingMeditation = meditation;
+      titleController.text = meditation.title;
+      descriptionController.text = meditation.description;
+      durationController.text = meditation.durationText;
+      selectedType = meditation.type;
+      isActive = meditation.isActive;
+      selectedMediaFile = null;
+      selectedThumbnailFile = null;
+      existingMediaUrl = meditation.isLink ? '' : meditation.mediaUrl;
+      mediaUrlController.text = meditation.isLink ? meditation.mediaUrl : '';
+      thumbnailUrlController.text = meditation.thumbnailUrl;
+      selectedCategories
+        ..clear()
+        ..addAll(
+          meditation.category
+              .split(',')
+              .map((item) => item.trim())
+              .where((item) => meditationCategories.contains(item)),
+        );
+    });
+
+    Scrollable.ensureVisible(
+      context,
+      duration: const Duration(milliseconds: 300),
+      curve: Curves.easeOut,
+    );
+  }
+
+  void cancelEditing() {
+    resetForm();
+  }
+
+  void openCreateForm() {
+    setState(() {
+      isFormVisible = true;
+    });
+  }
+
+  void resetForm() {
+    titleController.clear();
+    descriptionController.clear();
+    durationController.clear();
+    mediaUrlController.clear();
+    thumbnailUrlController.clear();
+
+    setState(() {
+      isFormVisible = false;
+      editingMeditation = null;
+      existingMediaUrl = '';
+      selectedType = 'audio';
+      isActive = true;
+      selectedMediaFile = null;
+      selectedThumbnailFile = null;
+      selectedCategories.clear();
+    });
+  }
+
   bool isValidUrl(String value) {
     return value.startsWith('http://') || value.startsWith('https://');
   }
@@ -174,7 +237,7 @@ class _TeacherMeditationsPageState extends State<TeacherMeditationsPage> {
     return selectedCategories.join(', ');
   }
 
-  Future<void> createMeditation() async {
+  Future<void> saveMeditation() async {
     final title = titleController.text.trim();
     final description = descriptionController.text.trim();
     final durationText = durationController.text.trim();
@@ -207,11 +270,14 @@ class _TeacherMeditationsPageState extends State<TeacherMeditationsPage> {
         showMessage('Video linki http veya https ile başlamalı.');
         return;
       }
-    } else {
-      if (selectedMediaFile == null) {
+    } else if (selectedMediaFile == null && existingMediaUrl.isEmpty) {
+      if (editingMeditation == null) {
         showMessage('${typeLabel(selectedType)} için dosya seçmelisin.');
         return;
       }
+
+      showMessage('Mevcut dosya bulunamadı. Yeni bir dosya seçmelisin.');
+      return;
     }
 
     if (thumbnailUrlInput.isNotEmpty && !isValidUrl(thumbnailUrlInput)) {
@@ -222,6 +288,8 @@ class _TeacherMeditationsPageState extends State<TeacherMeditationsPage> {
     setState(() {
       isSaving = true;
     });
+
+    final wasEditing = editingMeditation != null;
 
     try {
       String finalMediaUrl = linkUrl;
@@ -234,43 +302,56 @@ class _TeacherMeditationsPageState extends State<TeacherMeditationsPage> {
         );
       }
 
+      if (selectedType != 'link' && selectedMediaFile == null) {
+        finalMediaUrl = existingMediaUrl;
+      }
+
       if (selectedThumbnailFile != null) {
         finalThumbnailUrl = await meditationService.uploadThumbnail(
           file: selectedThumbnailFile!,
         );
       }
 
-      await meditationService.createMeditation(
-        title: title,
-        description: description,
-        type: selectedType,
-        category: category,
-        durationText: durationText,
-        mediaUrl: finalMediaUrl,
-        thumbnailUrl: finalThumbnailUrl,
-        isActive: isActive,
-      );
-
-      titleController.clear();
-      descriptionController.clear();
-      durationController.clear();
-      mediaUrlController.clear();
-      thumbnailUrlController.clear();
+      if (editingMeditation == null) {
+        await meditationService.createMeditation(
+          title: title,
+          description: description,
+          type: selectedType,
+          category: category,
+          durationText: durationText,
+          mediaUrl: finalMediaUrl,
+          thumbnailUrl: finalThumbnailUrl,
+          isActive: isActive,
+        );
+      } else {
+        await meditationService.updateMeditation(
+          meditation: editingMeditation!,
+          title: title,
+          description: description,
+          type: selectedType,
+          category: category,
+          durationText: durationText,
+          mediaUrl: finalMediaUrl,
+          thumbnailUrl: finalThumbnailUrl,
+          isActive: isActive,
+        );
+      }
 
       if (!mounted) return;
 
       setState(() {
-        selectedType = 'audio';
-        isActive = true;
         isSaving = false;
-        selectedMediaFile = null;
-        selectedThumbnailFile = null;
-        selectedCategories.clear();
       });
+
+      resetForm();
 
       await reloadMeditations();
 
-      showMessage('Meditasyon içeriği eklendi.');
+      showMessage(
+        wasEditing
+            ? 'Meditasyon içeriği güncellendi.'
+            : 'Meditasyon içeriği eklendi.',
+      );
     } catch (e) {
       if (!mounted) return;
 
@@ -278,7 +359,9 @@ class _TeacherMeditationsPageState extends State<TeacherMeditationsPage> {
         isSaving = false;
       });
 
-      showMessage('İçerik eklenemedi: $e');
+      showMessage(
+        '${wasEditing ? 'İçerik güncellenemedi' : 'İçerik eklenemedi'}: $e',
+      );
     }
   }
 
@@ -488,6 +571,7 @@ class _TeacherMeditationsPageState extends State<TeacherMeditationsPage> {
     required String subtitle,
     required IconData icon,
     required PlatformFile? file,
+    String? existingUrl,
     required VoidCallback onPick,
     required VoidCallback onClear,
   }) {
@@ -581,6 +665,36 @@ class _TeacherMeditationsPageState extends State<TeacherMeditationsPage> {
                 ],
               ),
             ),
+          if (file == null &&
+              existingUrl != null &&
+              existingUrl.trim().isNotEmpty)
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(11),
+              decoration: BoxDecoration(
+                color: const Color(0xFFEEF3EA),
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: const Row(
+                children: [
+                  Icon(
+                    Icons.check_circle_outline,
+                    color: Color(0xFF536B4E),
+                    size: 20,
+                  ),
+                  SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Mevcut dosya korunacak',
+                      style: TextStyle(
+                        color: Color(0xFF2F3A32),
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
           const SizedBox(height: 10),
           SizedBox(
             width: double.infinity,
@@ -625,24 +739,35 @@ class _TeacherMeditationsPageState extends State<TeacherMeditationsPage> {
       ),
       child: Column(
         children: [
-          const Row(
+          Row(
             children: [
               Icon(
-                Icons.add_circle_outline,
-                color: Color(0xFF536B4E),
+                editingMeditation == null
+                    ? Icons.add_circle_outline
+                    : Icons.edit_note,
+                color: const Color(0xFF536B4E),
                 size: 28,
               ),
-              SizedBox(width: 10),
+              const SizedBox(width: 10),
               Expanded(
                 child: Text(
-                  'Meditasyon İçeriği Ekle',
-                  style: TextStyle(
+                  editingMeditation == null
+                      ? 'Meditasyon İçeriği Ekle'
+                      : 'Meditasyon İçeriğini Düzenle',
+                  style: const TextStyle(
                     fontSize: 19,
                     fontWeight: FontWeight.w900,
                     color: Color(0xFF2F3A32),
                   ),
                 ),
               ),
+              if (isFormVisible)
+                IconButton(
+                  tooltip: 'Formu kapat',
+                  onPressed: isSaving ? null : cancelEditing,
+                  icon: const Icon(Icons.close),
+                  color: const Color(0xFF606A61),
+                ),
             ],
           ),
           const SizedBox(height: 16),
@@ -678,6 +803,7 @@ class _TeacherMeditationsPageState extends State<TeacherMeditationsPage> {
                     setState(() {
                       selectedType = value;
                       selectedMediaFile = null;
+                      existingMediaUrl = '';
                       mediaUrlController.clear();
                     });
                   },
@@ -716,6 +842,7 @@ class _TeacherMeditationsPageState extends State<TeacherMeditationsPage> {
                   ? Icons.headphones
                   : Icons.video_file_outlined,
               file: selectedMediaFile,
+              existingUrl: existingMediaUrl,
               onPick: pickMediaFile,
               onClear: clearMediaFile,
             ),
@@ -725,6 +852,7 @@ class _TeacherMeditationsPageState extends State<TeacherMeditationsPage> {
                 'Opsiyonel. JPG, PNG veya WEBP görsel seçebilirsin. Seçmezsen URL girebilirsin.',
             icon: Icons.image_outlined,
             file: selectedThumbnailFile,
+            existingUrl: thumbnailUrlController.text,
             onPick: pickThumbnailFile,
             onClear: clearThumbnailFile,
           ),
@@ -757,7 +885,7 @@ class _TeacherMeditationsPageState extends State<TeacherMeditationsPage> {
           SizedBox(
             width: double.infinity,
             child: ElevatedButton.icon(
-              onPressed: isSaving ? null : createMeditation,
+              onPressed: isSaving ? null : saveMeditation,
               icon: isSaving
                   ? const SizedBox(
                       width: 18,
@@ -768,7 +896,13 @@ class _TeacherMeditationsPageState extends State<TeacherMeditationsPage> {
                       ),
                     )
                   : const Icon(Icons.save_outlined),
-              label: Text(isSaving ? 'Yükleniyor...' : 'İçeriği Kaydet'),
+              label: Text(
+                isSaving
+                    ? 'Yükleniyor...'
+                    : editingMeditation == null
+                        ? 'İçeriği Kaydet'
+                        : 'Değişiklikleri Kaydet',
+              ),
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF536B4E),
                 foregroundColor: Colors.white,
@@ -861,6 +995,14 @@ class _TeacherMeditationsPageState extends State<TeacherMeditationsPage> {
             ),
           ),
           IconButton(
+            tooltip: 'Düzenle',
+            onPressed: isSaving ? null : () => startEditing(meditation),
+            icon: const Icon(
+              Icons.edit_outlined,
+              color: Color(0xFF536B4E),
+            ),
+          ),
+          IconButton(
             onPressed: () => deleteMeditation(meditation),
             icon: const Icon(
               Icons.delete_outline,
@@ -939,6 +1081,40 @@ class _TeacherMeditationsPageState extends State<TeacherMeditationsPage> {
     );
   }
 
+  Widget buildAddContentButton() {
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.only(bottom: 24),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.78),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(
+          color: const Color(0xFF536B4E).withOpacity(0.35),
+        ),
+      ),
+      child: OutlinedButton.icon(
+        onPressed: openCreateForm,
+        icon: const Icon(Icons.add_circle_outline),
+        label: const Text('Meditasyon İçeriği Ekle'),
+        style: OutlinedButton.styleFrom(
+          foregroundColor: const Color(0xFF536B4E),
+          side: const BorderSide(
+            color: Color(0xFF536B4E),
+          ),
+          padding: const EdgeInsets.symmetric(vertical: 15),
+          textStyle: const TextStyle(
+            fontWeight: FontWeight.w900,
+            fontSize: 15,
+          ),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(18),
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -956,6 +1132,14 @@ class _TeacherMeditationsPageState extends State<TeacherMeditationsPage> {
         elevation: 0,
         surfaceTintColor: Colors.transparent,
         foregroundColor: const Color(0xFF2F3A32),
+        actions: [
+          if (!isFormVisible)
+            IconButton(
+              tooltip: 'Yeni meditasyon ekle',
+              onPressed: openCreateForm,
+              icon: const Icon(Icons.add_circle_outline),
+            ),
+        ],
       ),
       body: buildBackgroundBody(
         child: SafeArea(
@@ -964,8 +1148,7 @@ class _TeacherMeditationsPageState extends State<TeacherMeditationsPage> {
             child: ListView(
               padding: const EdgeInsets.fromLTRB(18, 18, 18, 28),
               children: [
-                buildFormCard(),
-                const SizedBox(height: 24),
+                if (isFormVisible) buildFormCard() else buildAddContentButton(),
                 buildMyContentsCard(),
               ],
             ),

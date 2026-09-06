@@ -463,6 +463,65 @@ class MeditationService {
     });
   }
 
+  Future<void> updateMeditation({
+    required MeditationModel meditation,
+    required String title,
+    required String description,
+    required String type,
+    required String category,
+    required String durationText,
+    required String mediaUrl,
+    required String thumbnailUrl,
+    required bool isActive,
+  }) async {
+    final user = supabase.auth.currentUser;
+
+    if (user == null) {
+      throw Exception(
+        'Devam etmek için giriş yapmalısın.',
+      );
+    }
+
+    final updated = await supabase
+        .from('meditations')
+        .update({
+          'title': title,
+          'description': description,
+          'type': type,
+          'category': category,
+          'duration_text': durationText,
+          'media_url': mediaUrl,
+          'thumbnail_url': thumbnailUrl.trim().isEmpty
+              ? null
+              : thumbnailUrl.trim(),
+          'is_active': isActive,
+        })
+        .eq('id', meditation.id)
+        .eq('created_by', user.id)
+        .select('id')
+        .maybeSingle();
+
+    if (updated == null) {
+      throw Exception(
+        'İçerik güncellenemedi. Düzenleme yetkin veya içerik sahibi eşleşmesi yok.',
+      );
+    }
+
+    if (mediaUrl != meditation.mediaUrl) {
+      await _removeStorageObjectSafely(
+        bucket: mediaBucket,
+        publicUrl: meditation.mediaUrl,
+      );
+    }
+
+    if (thumbnailUrl != meditation.thumbnailUrl) {
+      await _removeStorageObjectSafely(
+        bucket: thumbnailsBucket,
+        publicUrl: meditation.thumbnailUrl,
+      );
+    }
+  }
+
   Future<void> toggleMeditationActive({
     required String meditationId,
     required bool isActive,
@@ -513,6 +572,23 @@ class MeditationService {
     if (path == null || path.isEmpty) return;
 
     await supabase.storage.from(bucket).remove([path]);
+  }
+
+  Future<void> _removeStorageObjectSafely({
+    required String bucket,
+    required String publicUrl,
+  }) async {
+    try {
+      await _removeOwnedStorageObject(
+        bucket: bucket,
+        publicUrl: publicUrl,
+      );
+    } catch (error) {
+      // Kayıt güncellendi; eski dosyanın temizlenememesi düzenlemeyi bozmasın.
+      // Bir sonraki temizlikte tekrar ele alınabilir.
+      // ignore: avoid_print
+      print('Eski meditasyon dosyası silinemedi: $error');
+    }
   }
 
   String? _storagePathFromPublicUrl({
