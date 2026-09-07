@@ -8,6 +8,7 @@ class MeditationModel {
   final String durationText;
   final String mediaUrl;
   final String thumbnailUrl;
+  final String teacherImageUrl;
   final bool isActive;
   final bool isPlusOnly;
   final int viewCount;
@@ -24,6 +25,7 @@ class MeditationModel {
     required this.durationText,
     required this.mediaUrl,
     required this.thumbnailUrl,
+    this.teacherImageUrl = '',
     required this.isActive,
     required this.isPlusOnly,
     required this.viewCount,
@@ -42,6 +44,7 @@ class MeditationModel {
       durationText: map['duration_text']?.toString() ?? '',
       mediaUrl: map['media_url']?.toString() ?? '',
       thumbnailUrl: map['thumbnail_url']?.toString() ?? '',
+      teacherImageUrl: map['teacher_image_url']?.toString() ?? '',
       isActive: map['is_active'] == true,
       isPlusOnly: map['is_plus_only'] == true,
       viewCount: _readInt(map['view_count']),

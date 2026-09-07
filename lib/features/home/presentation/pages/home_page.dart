@@ -11,6 +11,7 @@ import '../../data/services/home_daily_message_service.dart';
 import '../widgets/home_menu_grid.dart';
 import '../widgets/home_recently_played_section.dart';
 import '../widgets/home_meditation_spotlight_section.dart';
+import '../widgets/home_workshop_spotlight_section.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -395,6 +396,12 @@ class _HomePageState extends State<HomePage> {
                     HomeMeditationSpotlightSection(
                       onSeeAllTap: () {
                         context.go('/meditations');
+                      },
+                    ),
+                    const SizedBox(height: 30),
+                    HomeWorkshopSpotlightSection(
+                      onSeeAllTap: () {
+                        context.go('/workshops');
                       },
                     ),
                     const SizedBox(height: 30),

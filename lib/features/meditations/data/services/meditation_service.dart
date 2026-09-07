@@ -18,13 +18,58 @@ class MeditationService {
         .order('sort_order', ascending: true)
         .order('created_at', ascending: false);
 
-    return (response as List)
+    final rows = (response as List)
+        .map((item) => Map<String, dynamic>.from(item))
+        .toList();
+
+    await _attachTeacherImages(rows);
+
+    return rows
         .map(
-          (item) => MeditationModel.fromMap(
-            Map<String, dynamic>.from(item),
-          ),
+          MeditationModel.fromMap,
         )
         .toList();
+  }
+
+  Future<void> _attachTeacherImages(
+    List<Map<String, dynamic>> rows,
+  ) async {
+    final teacherUserIds = rows
+        .map((row) => row['created_by']?.toString() ?? '')
+        .where((id) => id.trim().isNotEmpty)
+        .toSet()
+        .toList();
+
+    if (teacherUserIds.isEmpty) return;
+
+    try {
+      final response = await supabase
+          .from('teachers')
+          .select('user_id, image_url')
+          .inFilter('user_id', teacherUserIds);
+
+      final imageByUserId = <String, String>{};
+
+      for (final item in response as List) {
+        final row = Map<String, dynamic>.from(item);
+        final userId = row['user_id']?.toString() ?? '';
+        final imageUrl = row['image_url']?.toString() ?? '';
+
+        if (userId.isNotEmpty) {
+          imageByUserId[userId] = imageUrl;
+        }
+      }
+
+      for (final row in rows) {
+        final createdBy = row['created_by']?.toString() ?? '';
+        row['teacher_image_url'] = imageByUserId[createdBy] ?? '';
+      }
+    } catch (_) {
+      // Öğretmen bilgisi alınamazsa meditasyon kartları yine görüntülensin.
+      for (final row in rows) {
+        row['teacher_image_url'] = '';
+      }
+    }
   }
 
   Future<List<MeditationModel>> fetchMyFavoriteMeditations() async {

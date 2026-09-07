@@ -225,12 +225,11 @@ class _SpotlightMeditationCard extends StatelessWidget {
                       height: 42,
                       decoration: BoxDecoration(
                         color: Colors.white.withOpacity(0.92),
-                        borderRadius: BorderRadius.circular(13),
+                        shape: BoxShape.circle,
                       ),
-                      child: Icon(
-                        _mediaIcon,
-                        color: const Color(0xFF536B4E),
-                        size: 24,
+                      child: _TeacherAvatar(
+                        imageUrl: meditation.teacherImageUrl,
+                        fallbackIcon: _mediaIcon,
                       ),
                     ),
                   ),
@@ -263,21 +262,83 @@ class _SpotlightMeditationCard extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 8),
-            Text(
-              meditation.category.trim().isEmpty
-                  ? 'Yeniden Kendine'
-                  : meditation.category,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                color: const Color(0xFF2F3A32).withOpacity(0.55),
-                fontSize: 15,
-                fontWeight: FontWeight.w700,
+            GestureDetector(
+              onTap: _categories.length > 2
+                  ? () => _showAllCategories(context)
+                  : null,
+              child: Text(
+                _categoryPreview,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: const Color(0xFF2F3A32).withOpacity(0.55),
+                  fontSize: 15,
+                  fontWeight: FontWeight.w700,
+                ),
               ),
             ),
           ],
         ),
       ),
+    );
+  }
+
+  List<String> get _categories {
+    return meditation.category
+        .split(RegExp(r'[,•\n]'))
+        .map((category) => category.trim())
+        .where((category) => category.isNotEmpty)
+        .toList();
+  }
+
+  String get _categoryPreview {
+    if (_categories.isEmpty) {
+      return 'Yeniden Kendine';
+    }
+
+    final visibleCategories = _categories.take(2).join(', ');
+
+    return _categories.length > 2
+        ? '$visibleCategories, ...'
+        : visibleCategories;
+  }
+
+  Future<void> _showAllCategories(BuildContext context) async {
+    await showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: const Color(0xFFF5F0E8),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+      ),
+      builder: (context) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(22, 18, 22, 24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Meditasyon Kategorileri',
+                  style: TextStyle(
+                    color: Color(0xFF2F3A32),
+                    fontSize: 20,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+                const SizedBox(height: 14),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: _categories
+                      .map((category) => _CategoryPill(text: category))
+                      .toList(),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 
@@ -366,6 +427,70 @@ class _PlusBadge extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _TeacherAvatar extends StatelessWidget {
+  final String imageUrl;
+  final IconData fallbackIcon;
+
+  const _TeacherAvatar({
+    required this.imageUrl,
+    required this.fallbackIcon,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final cleanImageUrl = imageUrl.trim();
+
+    if (cleanImageUrl.isEmpty) {
+      return Icon(
+        fallbackIcon,
+        color: const Color(0xFF536B4E),
+        size: 24,
+      );
+    }
+
+    return ClipOval(
+      child: Image.network(
+        cleanImageUrl,
+        width: 42,
+        height: 42,
+        fit: BoxFit.cover,
+        errorBuilder: (context, error, stackTrace) {
+          return Icon(
+            fallbackIcon,
+            color: const Color(0xFF536B4E),
+            size: 24,
+          );
+        },
+      ),
+    );
+  }
+}
+
+class _CategoryPill extends StatelessWidget {
+  final String text;
+
+  const _CategoryPill({required this.text});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: const Color(0xFFE8F0E4),
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Text(
+        text,
+        style: const TextStyle(
+          color: Color(0xFF536B4E),
+          fontSize: 13,
+          fontWeight: FontWeight.w800,
+        ),
       ),
     );
   }
