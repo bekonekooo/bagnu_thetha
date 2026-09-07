@@ -1,5 +1,6 @@
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 
 import 'package:flutter_application_1/core/input_formatters/first_word_capitalization_formatter.dart';
 import '../../data/services/workshop_service.dart';
@@ -13,6 +14,7 @@ class CreateWorkshopPage extends StatefulWidget {
 
 class _CreateWorkshopPageState extends State<CreateWorkshopPage> {
   final WorkshopService workshopService = WorkshopService();
+  final ImagePicker imagePicker = ImagePicker();
 
   final titleController = TextEditingController();
   final descriptionController = TextEditingController();
@@ -159,24 +161,22 @@ class _CreateWorkshopPageState extends State<CreateWorkshopPage> {
   }
 
   Future<void> pickCoverFile() async {
-    final result = await FilePicker.platform.pickFiles(
-      type: FileType.custom,
-      allowedExtensions: [
-        'jpg',
-        'jpeg',
-        'png',
-        'webp',
-      ],
-      allowMultiple: false,
-      withData: true,
+    final pickedImage = await imagePicker.pickImage(
+      source: ImageSource.gallery,
+      imageQuality: 90,
+      maxWidth: 1600,
     );
 
-    if (result == null || result.files.isEmpty) {
-      return;
-    }
+    if (pickedImage == null) return;
+
+    final bytes = await pickedImage.readAsBytes();
 
     setState(() {
-      selectedCoverFile = result.files.first;
+      selectedCoverFile = PlatformFile(
+        name: pickedImage.name,
+        size: bytes.length,
+        bytes: bytes,
+      );
       coverUrlController.clear();
     });
   }
