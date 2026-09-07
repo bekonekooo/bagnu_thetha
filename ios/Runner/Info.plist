@@ -9,7 +9,7 @@
 	<key>CFBundleDisplayName</key>
 	<string>Yeniden Kendine</string>
 	<key>NSPhotoLibraryUsageDescription</key>
-	<string>Profil fotoğrafınızı seçebilmeniz için fotoğraf kitaplığınıza erişim gerekir.</string>
+	<string>Profil fotoğrafı veya meditasyon kapak görseli seçebilmeniz için fotoğraf kitaplığınıza erişim gerekir.</string>
 	<key>NSCameraUsageDescription</key>
 	<string>Profil fotoğrafı çekebilmeniz için kameraya erişim gerekir.</string>
 	<key>CFBundleExecutable</key>

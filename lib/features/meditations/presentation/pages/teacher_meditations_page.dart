@@ -1,5 +1,6 @@
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 
 import 'package:flutter_application_1/core/input_formatters/first_word_capitalization_formatter.dart';
 import '../../data/models/meditation_model.dart';
@@ -14,6 +15,7 @@ class TeacherMeditationsPage extends StatefulWidget {
 
 class _TeacherMeditationsPageState extends State<TeacherMeditationsPage> {
   final MeditationService meditationService = MeditationService();
+  final ImagePicker imagePicker = ImagePicker();
 
   final titleController = TextEditingController();
   final descriptionController = TextEditingController();
@@ -128,17 +130,22 @@ class _TeacherMeditationsPageState extends State<TeacherMeditationsPage> {
   }
 
   Future<void> pickThumbnailFile() async {
-    final result = await FilePicker.platform.pickFiles(
-      type: FileType.custom,
-      allowedExtensions: ['jpg', 'jpeg', 'png', 'webp'],
-      allowMultiple: false,
-      withData: true,
+    final pickedImage = await imagePicker.pickImage(
+      source: ImageSource.gallery,
+      imageQuality: 90,
+      maxWidth: 1600,
     );
 
-    if (result == null || result.files.isEmpty) return;
+    if (pickedImage == null) return;
+
+    final bytes = await pickedImage.readAsBytes();
 
     setState(() {
-      selectedThumbnailFile = result.files.first;
+      selectedThumbnailFile = PlatformFile(
+        name: pickedImage.name,
+        size: bytes.length,
+        bytes: bytes,
+      );
       thumbnailUrlController.clear();
     });
   }
