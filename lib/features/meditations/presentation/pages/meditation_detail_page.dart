@@ -2,6 +2,7 @@ import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:video_player/video_player.dart';
+import 'package:webview_flutter/webview_flutter.dart';
 
 import 'package:flutter_application_1/core/services/supabase_service.dart';
 import 'package:flutter_application_1/core/services/plus_access_service.dart';
@@ -316,7 +317,41 @@ class _MeditationDetailPageState extends State<MeditationDetailPage> {
     }
   }
 
-  Future<void> openLink() async {
+  String? extractYouTubeVideoId(String value) {
+    final uri = Uri.tryParse(value.trim());
+
+    if (uri == null) return null;
+
+    final host = uri.host.toLowerCase().replaceFirst('www.', '');
+    String? videoId;
+
+    if (host == 'youtu.be') {
+      videoId = uri.pathSegments.isEmpty ? null : uri.pathSegments.first;
+    } else if (host == 'youtube.com' ||
+        host == 'm.youtube.com' ||
+        host == 'music.youtube.com') {
+      videoId = uri.queryParameters['v'];
+
+      if (videoId == null && uri.pathSegments.length >= 2) {
+        final firstSegment = uri.pathSegments.first;
+
+        if (firstSegment == 'embed' ||
+            firstSegment == 'shorts' ||
+            firstSegment == 'live') {
+          videoId = uri.pathSegments[1];
+        }
+      }
+    }
+
+    if (videoId == null ||
+        !RegExp(r'^[a-zA-Z0-9_-]{6,}$').hasMatch(videoId)) {
+      return null;
+    }
+
+    return videoId;
+  }
+
+  Future<void> openExternalLink() async {
     final uri = Uri.tryParse(widget.meditation.mediaUrl);
 
     if (uri == null) {
@@ -340,6 +375,25 @@ class _MeditationDetailPageState extends State<MeditationDetailPage> {
         ),
       );
     }
+  }
+
+  Future<void> openLink() async {
+    final videoId = extractYouTubeVideoId(widget.meditation.mediaUrl);
+
+    if (videoId != null) {
+      await Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (_) => MeditationDetailYoutubePlayerPage(
+            title: widget.meditation.title,
+            videoId: videoId,
+            youtubeUrl: widget.meditation.mediaUrl,
+          ),
+        ),
+      );
+      return;
+    }
+
+    await openExternalLink();
   }
 
   Future<void> openVideo() async {
@@ -430,7 +484,7 @@ class _MeditationDetailPageState extends State<MeditationDetailPage> {
     }
 
     if (widget.meditation.isLink) {
-      return Icons.open_in_new_rounded;
+      return Icons.play_circle_outline_rounded;
     }
 
     if (isPlaying && !isPaused) {
@@ -450,7 +504,7 @@ class _MeditationDetailPageState extends State<MeditationDetailPage> {
     }
 
     if (widget.meditation.isLink) {
-      return 'Bağlantıyı Aç';
+      return 'Videoyu Uygulama İçinde Aç';
     }
 
     if (isPlaying && !isPaused) {
@@ -536,37 +590,48 @@ class _MeditationDetailPageState extends State<MeditationDetailPage> {
           Positioned(
             left: 18,
             bottom: 18,
-            child: Container(
-              padding: const EdgeInsets.symmetric(
-                horizontal: 13,
-                vertical: 9,
-              ),
-              decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.90),
+            child: Material(
+              color: Colors.transparent,
+              child: InkWell(
+                onTap: widget.meditation.isLink
+                    ? () => handleMainAction()
+                    : null,
                 borderRadius: BorderRadius.circular(999),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(
-                    widget.meditation.isVideo
-                        ? Icons.videocam_rounded
-                        : widget.meditation.isLink
-                            ? Icons.link_rounded
-                            : Icons.graphic_eq_rounded,
-                    color: const Color(0xFF536B4E),
-                    size: 18,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 13,
+                    vertical: 9,
                   ),
-                  const SizedBox(width: 6),
-                  Text(
-                    widget.meditation.typeLabel,
-                    style: const TextStyle(
-                      color: Color(0xFF536B4E),
-                      fontWeight: FontWeight.w900,
-                      fontSize: 12.5,
-                    ),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.90),
+                    borderRadius: BorderRadius.circular(999),
                   ),
-                ],
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        widget.meditation.isVideo
+                            ? Icons.videocam_rounded
+                            : widget.meditation.isLink
+                                ? Icons.play_circle_outline_rounded
+                                : Icons.graphic_eq_rounded,
+                        color: const Color(0xFF536B4E),
+                        size: 18,
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        widget.meditation.isLink
+                            ? 'Videoyu Aç'
+                            : widget.meditation.typeLabel,
+                        style: const TextStyle(
+                          color: Color(0xFF536B4E),
+                          fontWeight: FontWeight.w900,
+                          fontSize: 12.5,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               ),
             ),
           ),
@@ -1064,6 +1129,169 @@ class _MeditationDetailPageState extends State<MeditationDetailPage> {
               ],
             ),
           ),
+        ),
+      ),
+    );
+  }
+}
+
+class MeditationDetailYoutubePlayerPage extends StatefulWidget {
+  final String title;
+  final String videoId;
+  final String youtubeUrl;
+
+  const MeditationDetailYoutubePlayerPage({
+    super.key,
+    required this.title,
+    required this.videoId,
+    required this.youtubeUrl,
+  });
+
+  @override
+  State<MeditationDetailYoutubePlayerPage> createState() =>
+      _MeditationDetailYoutubePlayerPageState();
+}
+
+class _MeditationDetailYoutubePlayerPageState
+    extends State<MeditationDetailYoutubePlayerPage> {
+  late final WebViewController webController;
+  bool isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+
+    final embedUrl = Uri.https(
+      'www.youtube.com',
+      '/embed/${widget.videoId}',
+      {
+        'playsinline': '1',
+        'rel': '0',
+        'autoplay': '0',
+        'fs': '1',
+        'enablejsapi': '1',
+        'origin': 'https://yenidenkendine.com',
+      },
+    ).toString().replaceAll('&', '&amp;');
+
+    final html = '''
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+      html, body { margin: 0; padding: 0; background: #101510; height: 100%; }
+      iframe { border: 0; width: 100%; height: 100%; }
+    </style>
+  </head>
+  <body>
+    <iframe
+      src="$embedUrl"
+      title="YouTube video"
+      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+      allowfullscreen>
+    </iframe>
+  </body>
+</html>
+''';
+
+    webController = WebViewController()
+      ..setJavaScriptMode(JavaScriptMode.unrestricted)
+      ..setBackgroundColor(const Color(0xFF101510))
+      ..setNavigationDelegate(
+        NavigationDelegate(
+          onPageFinished: (_) {
+            if (!mounted) return;
+
+            setState(() {
+              isLoading = false;
+            });
+          },
+          onWebResourceError: (_) {
+            if (!mounted) return;
+
+            setState(() {
+              isLoading = false;
+            });
+          },
+        ),
+      )
+      ..loadHtmlString(
+        html,
+        // iOS WKWebView'da iframe için HTTP Referer oluşturur.
+        baseUrl: 'https://yenidenkendine.com/',
+      );
+  }
+
+  Future<void> openInYouTube() async {
+    final uri = Uri.tryParse(widget.youtubeUrl);
+
+    if (uri == null) return;
+
+    final launched = await launchUrl(
+      uri,
+      mode: LaunchMode.externalApplication,
+    );
+
+    if (!launched && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('YouTube bağlantısı açılamadı.'),
+        ),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: const Color(0xFF101510),
+      appBar: AppBar(
+        title: Text(
+          widget.title,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
+        backgroundColor: const Color(0xFF101510),
+        foregroundColor: Colors.white,
+        elevation: 0,
+      ),
+      body: SafeArea(
+        child: Column(
+          children: [
+            Expanded(
+              child: Stack(
+                children: [
+                  WebViewWidget(controller: webController),
+                  if (isLoading)
+                    const Center(
+                      child: CircularProgressIndicator(
+                        color: Color(0xFFD7E1D0),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(18, 10, 18, 18),
+              child: SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed: openInYouTube,
+                  icon: const Icon(Icons.open_in_new),
+                  label: const Text('YouTube’da aç'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: Colors.white,
+                    side: const BorderSide(color: Color(0xFFD7E1D0)),
+                    padding: const EdgeInsets.symmetric(vertical: 13),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );

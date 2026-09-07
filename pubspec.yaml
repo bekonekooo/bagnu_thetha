@@ -2,7 +2,7 @@ name: flutter_application_1
 description: "A new Flutter project."
 publish_to: 'none'
 
-version: 1.0.0+14
+version: 1.0.0+19
 environment:
   sdk: ^3.11.4
 
@@ -25,6 +25,7 @@ dependencies:
   url_launcher: ^6.3.1
   file_picker: ^8.1.7
   video_player: ^2.9.2
+  webview_flutter: ^4.10.0
 
   # Video görüşme
   livekit_client: ^2.11.0

@@ -8,6 +8,8 @@ import 'package:go_router/go_router.dart';
 
 import 'package:flutter_application_1/features/meditations/data/models/meditation_model.dart';
 import 'package:flutter_application_1/features/meditations/data/services/meditation_service.dart';
+import 'package:flutter_application_1/features/meditations/presentation/pages/meditation_detail_page.dart';
+import 'package:flutter_application_1/core/services/plus_access_service.dart';
 
 class MeditationsPage extends StatefulWidget {
   const MeditationsPage({super.key});
@@ -19,6 +21,7 @@ class MeditationsPage extends StatefulWidget {
 class _MeditationsPageState extends State<MeditationsPage> {
   final MeditationService meditationService = MeditationService();
   final AudioPlayer audioPlayer = AudioPlayer();
+  final PlusAccessService plusAccessService = PlusAccessService();
 
   late Future<List<MeditationModel>> meditationsFuture;
 
@@ -324,6 +327,126 @@ class _MeditationsPageState extends State<MeditationsPage> {
         ),
       );
     }
+  }
+
+  String? extractYouTubeVideoId(String value) {
+    final uri = Uri.tryParse(value.trim());
+
+    if (uri == null) return null;
+
+    final host = uri.host.toLowerCase().replaceFirst('www.', '');
+    String? videoId;
+
+    if (host == 'youtu.be') {
+      videoId = uri.pathSegments.isEmpty ? null : uri.pathSegments.first;
+    } else if (host == 'youtube.com' ||
+        host == 'm.youtube.com' ||
+        host == 'music.youtube.com') {
+      videoId = uri.queryParameters['v'];
+
+      if (videoId == null && uri.pathSegments.length >= 2) {
+        final firstSegment = uri.pathSegments.first;
+
+        if (firstSegment == 'embed' ||
+            firstSegment == 'shorts' ||
+            firstSegment == 'live') {
+          videoId = uri.pathSegments[1];
+        }
+      }
+    }
+
+    if (videoId == null ||
+        !RegExp(r'^[a-zA-Z0-9_-]{6,}$').hasMatch(videoId)) {
+      return null;
+    }
+
+    return videoId;
+  }
+
+  Future<void> openLinkInApp(MeditationModel meditation) async {
+    final canOpen = await plusAccessService.ensureAccess(
+      context,
+      isPlusOnly: meditation.isPlusOnly,
+    );
+
+    if (!canOpen) return;
+
+    final videoId = extractYouTubeVideoId(meditation.mediaUrl);
+
+    if (videoId == null) {
+      await openMediaUrl(meditation.mediaUrl);
+      return;
+    }
+
+    await stopAudioIfPlaying();
+    try {
+      await meditationService.saveRecentlyPlayedMeditation(meditation.id);
+    } catch (error) {
+      debugPrint('Recently played save error: $error');
+    }
+
+    try {
+      await meditationService.recordMeditationView(meditation.id);
+    } catch (error) {
+      debugPrint('Meditation link view error: $error');
+    }
+
+    if (!mounted) return;
+
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => MeditationDetailYoutubePlayerPage(
+          title: meditation.title,
+          videoId: videoId,
+          youtubeUrl: meditation.mediaUrl,
+        ),
+      ),
+    );
+
+    if (!mounted) return;
+
+    setState(() {
+      meditationsFuture = meditationService.fetchActiveMeditations();
+    });
+  }
+
+  Future<void> showAllCategories(List<String> categories) async {
+    await showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: const Color(0xFFF5F0E8),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+      ),
+      builder: (context) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(22, 18, 22, 24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Kategoriler',
+                  style: TextStyle(
+                    color: Color(0xFF2F3A32),
+                    fontSize: 20,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+                const SizedBox(height: 14),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: categories
+                      .map((category) => _MiniTag(text: category))
+                      .toList(),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
   }
 
   Future<void> handleMeditationTap(MeditationModel meditation) async {
@@ -678,9 +801,41 @@ class _MeditationsPageState extends State<MeditationsPage> {
     );
   }
 
+  Widget buildMeditationTypeTag(MeditationModel meditation) {
+    if (!meditation.isLink) {
+      return _MiniTag(text: meditation.typeLabel);
+    }
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: () => openLinkInApp(meditation),
+        borderRadius: BorderRadius.circular(999),
+        child: const _MiniTag(
+          text: 'Videoyu Aç',
+          icon: Icons.play_circle_outline,
+        ),
+      ),
+    );
+  }
+
+  Widget buildMoreCategoriesTag(List<String> categories) {
+    if (categories.length <= 2) return const SizedBox.shrink();
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: () => showAllCategories(categories),
+        borderRadius: BorderRadius.circular(999),
+        child: const _MiniTag(text: '...'),
+      ),
+    );
+  }
+
   Widget buildMeditationCard(MeditationModel meditation) {
     final isPlaying = playingMeditationId == meditation.id;
     final isPaused = isPlaying && isAudioPaused;
+    final categories = categoriesForMeditation(meditation);
 
     return Container(
       width: double.infinity,
@@ -741,15 +896,16 @@ class _MeditationsPageState extends State<MeditationsPage> {
                               spacing: 7,
                               runSpacing: 7,
                               children: [
-                                _MiniTag(text: meditation.typeLabel),
+                                buildMeditationTypeTag(meditation),
                                 if (meditation.isPlusOnly)
                                   const _PlusBadge(compact: true),
                                 buildLikeCountBadge(meditation),
                                 buildCommentCountBadge(meditation),
                                 buildViewCountBadge(meditation),
-                                ...categoriesForMeditation(meditation).map(
+                                ...categories.take(2).map(
                                   (category) => _MiniTag(text: category),
                                 ),
+                                buildMoreCategoriesTag(categories),
                                 if (meditation.durationText.trim().isNotEmpty)
                                   _MiniTag(text: meditation.durationText),
                               ],
@@ -796,7 +952,7 @@ class _MeditationsPageState extends State<MeditationsPage> {
                                   : Icons.play_arrow
                               : meditation.isVideo
                                   ? Icons.play_circle_outline
-                                  : Icons.open_in_new,
+                                  : Icons.play_circle_outline,
                           color: const Color(0xFF536B4E),
                         ),
                       ),
@@ -924,8 +1080,6 @@ class _MeditationsPageState extends State<MeditationsPage> {
                   return ListView(
                     padding: const EdgeInsets.fromLTRB(18, 18, 18, 28),
                     children: [
-                      buildHeroCard(),
-                      const SizedBox(height: 18),
                       Container(
                         padding: const EdgeInsets.all(20),
                         decoration: BoxDecoration(
@@ -950,8 +1104,6 @@ class _MeditationsPageState extends State<MeditationsPage> {
                 return ListView(
                   padding: const EdgeInsets.fromLTRB(18, 18, 18, 28),
                   children: [
-                    buildHeroCard(),
-                    const SizedBox(height: 18),
                     SingleChildScrollView(
                       scrollDirection: Axis.horizontal,
                       child: Row(
