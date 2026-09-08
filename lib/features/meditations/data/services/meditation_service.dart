@@ -542,7 +542,6 @@ class MeditationService {
           'is_active': isActive,
         })
         .eq('id', meditation.id)
-        .eq('created_by', user.id)
         .select('id');
 
     if (updatedRows is! List || updatedRows.isEmpty) {
