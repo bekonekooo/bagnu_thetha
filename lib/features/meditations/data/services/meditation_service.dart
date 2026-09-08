@@ -527,7 +527,7 @@ class MeditationService {
       );
     }
 
-    final updated = await supabase
+    final updatedRows = await supabase
         .from('meditations')
         .update({
           'title': title,
@@ -543,12 +543,11 @@ class MeditationService {
         })
         .eq('id', meditation.id)
         .eq('created_by', user.id)
-        .select('id')
-        .maybeSingle();
+        .select('id');
 
-    if (updated == null) {
+    if (updatedRows is! List || updatedRows.isEmpty) {
       throw Exception(
-        'İçerik güncellenemedi. Düzenleme yetkin veya içerik sahibi eşleşmesi yok.',
+        'İçerik güncellenemedi. Meditasyon sahibi veya düzenleme yetkisi eşleşmiyor.',
       );
     }
 
@@ -565,6 +564,20 @@ class MeditationService {
         publicUrl: meditation.thumbnailUrl,
       );
     }
+  }
+
+  Future<void> removeUploadedThumbnail(String publicUrl) async {
+    await _removeStorageObjectSafely(
+      bucket: thumbnailsBucket,
+      publicUrl: publicUrl,
+    );
+  }
+
+  Future<void> removeUploadedMedia(String publicUrl) async {
+    await _removeStorageObjectSafely(
+      bucket: mediaBucket,
+      publicUrl: publicUrl,
+    );
   }
 
   Future<void> toggleMeditationActive({

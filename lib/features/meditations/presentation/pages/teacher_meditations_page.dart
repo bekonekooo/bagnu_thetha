@@ -297,16 +297,20 @@ class _TeacherMeditationsPageState extends State<TeacherMeditationsPage> {
     });
 
     final wasEditing = editingMeditation != null;
+    String? uploadedMediaUrl;
+    String? uploadedThumbnailUrl;
+    var databaseWriteSucceeded = false;
 
     try {
       String finalMediaUrl = linkUrl;
       String finalThumbnailUrl = thumbnailUrlInput;
 
       if (selectedType != 'link' && selectedMediaFile != null) {
-        finalMediaUrl = await meditationService.uploadMeditationMedia(
+        uploadedMediaUrl = await meditationService.uploadMeditationMedia(
           file: selectedMediaFile!,
           type: selectedType,
         );
+        finalMediaUrl = uploadedMediaUrl!;
       }
 
       if (selectedType != 'link' && selectedMediaFile == null) {
@@ -314,9 +318,10 @@ class _TeacherMeditationsPageState extends State<TeacherMeditationsPage> {
       }
 
       if (selectedThumbnailFile != null) {
-        finalThumbnailUrl = await meditationService.uploadThumbnail(
+        uploadedThumbnailUrl = await meditationService.uploadThumbnail(
           file: selectedThumbnailFile!,
         );
+        finalThumbnailUrl = uploadedThumbnailUrl!;
       }
 
       if (editingMeditation == null) {
@@ -344,6 +349,8 @@ class _TeacherMeditationsPageState extends State<TeacherMeditationsPage> {
         );
       }
 
+      databaseWriteSucceeded = true;
+
       if (!mounted) return;
 
       setState(() {
@@ -360,6 +367,18 @@ class _TeacherMeditationsPageState extends State<TeacherMeditationsPage> {
             : 'Meditasyon içeriği eklendi.',
       );
     } catch (e) {
+      if (!databaseWriteSucceeded) {
+        if (uploadedMediaUrl != null) {
+          await meditationService.removeUploadedMedia(uploadedMediaUrl!);
+        }
+
+        if (uploadedThumbnailUrl != null) {
+          await meditationService.removeUploadedThumbnail(
+            uploadedThumbnailUrl!,
+          );
+        }
+      }
+
       if (!mounted) return;
 
       setState(() {
