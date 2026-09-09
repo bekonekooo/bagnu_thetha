@@ -519,7 +519,8 @@ class MeditationService {
     required String thumbnailUrl,
     required bool isActive,
   }) async {
-    final user = supabase.auth.currentUser;
+    final refreshedSession = await supabase.auth.refreshSession();
+    final user = refreshedSession.user ?? supabase.auth.currentUser;
 
     if (user == null) {
       throw Exception(
@@ -544,7 +545,8 @@ class MeditationService {
               : cleanThumbnailUrl,
           'is_active': isActive,
         })
-        .eq('id', cleanMeditationId);
+        .eq('id', cleanMeditationId)
+        .eq('created_by', user.id);
 
     // UPDATE isteği her zaman değişen satırı döndürmeyebilir. Bu yüzden
     // başarılı kabul etmeden önce kaydı tekrar okuyup değerleri doğrula.
@@ -552,7 +554,7 @@ class MeditationService {
         .from('meditations')
         .select(
           'id, title, description, type, category, duration_text, '
-          'media_url, thumbnail_url, is_active',
+          'media_url, thumbnail_url, is_active, created_by',
         )
         .eq('id', cleanMeditationId)
         .maybeSingle();
@@ -561,7 +563,42 @@ class MeditationService {
         ? null
         : Map<String, dynamic>.from(savedRow);
 
-    final updateWasPersisted = saved != null &&
+    final mismatchedFields = <String>[];
+
+    if (saved == null) {
+      mismatchedFields.add('kayıt bulunamadı');
+    } else {
+      if (saved['created_by']?.toString() != user.id) {
+        mismatchedFields.add('sahiplik');
+      }
+      if (saved['title']?.toString() != title) {
+        mismatchedFields.add('başlık');
+      }
+      if (saved['description']?.toString() != description) {
+        mismatchedFields.add('açıklama');
+      }
+      if (saved['type']?.toString() != type) {
+        mismatchedFields.add('tip');
+      }
+      if (saved['category']?.toString() != category) {
+        mismatchedFields.add('kategori');
+      }
+      if (saved['duration_text']?.toString() != durationText) {
+        mismatchedFields.add('süre');
+      }
+      if (saved['media_url']?.toString() != mediaUrl) {
+        mismatchedFields.add('medya');
+      }
+      if ((saved['thumbnail_url']?.toString() ?? '') != cleanThumbnailUrl) {
+        mismatchedFields.add('kapak görseli');
+      }
+      if (saved['is_active'] != isActive) {
+        mismatchedFields.add('görünürlük');
+      }
+    }
+
+    final updateWasPersisted = mismatchedFields.isEmpty &&
+        saved != null &&
         saved['title']?.toString() == title &&
         saved['description']?.toString() == description &&
         saved['type']?.toString() == type &&
@@ -573,7 +610,9 @@ class MeditationService {
 
     if (!updateWasPersisted) {
       throw Exception(
-        'İçerik güncellenemedi. Supabase kaydı değişikliği doğrulayamadı.',
+        'İçerik güncellenemedi. Değişmeyen alanlar: '
+        '${mismatchedFields.join(', ')}. '
+        'Oturum kullanıcısı: ${user.id}.',
       );
     }
 

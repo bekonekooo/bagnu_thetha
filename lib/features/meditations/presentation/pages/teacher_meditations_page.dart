@@ -6,6 +6,8 @@ import 'package:flutter_application_1/core/input_formatters/first_word_capitaliz
 import '../../data/models/meditation_model.dart';
 import '../../data/services/meditation_service.dart';
 
+enum _VideoPickerSource { photos, files }
+
 class TeacherMeditationsPage extends StatefulWidget {
   const TeacherMeditationsPage({super.key});
 
@@ -91,7 +93,7 @@ class _TeacherMeditationsPageState extends State<TeacherMeditationsPage> {
       case 'audio':
         return 'MP3, WAV, M4A, AAC veya OGG ses dosyası seç.';
       case 'video':
-        return 'MP4, MOV veya WEBM video dosyası seç.';
+        return 'MP4, MOV veya WEBM videoyu Fotoğraflarından ya da Dosyalar\'dan seç.';
       case 'link':
         return 'YouTube, Vimeo veya başka bir video bağlantısı gir.';
       default:
@@ -112,6 +114,64 @@ class _TeacherMeditationsPageState extends State<TeacherMeditationsPage> {
   }
 
   Future<void> pickMediaFile() async {
+    if (selectedType == 'video') {
+      final source = await showModalBottomSheet<_VideoPickerSource>(
+        context: context,
+        builder: (context) {
+          return SafeArea(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                ListTile(
+                  leading: const Icon(Icons.photo_library_outlined),
+                  title: const Text('Fotoğraflardan video seç'),
+                  onTap: () => Navigator.pop(
+                    context,
+                    _VideoPickerSource.photos,
+                  ),
+                ),
+                ListTile(
+                  leading: const Icon(Icons.folder_outlined),
+                  title: const Text('Dosyalardan video seç'),
+                  onTap: () => Navigator.pop(
+                    context,
+                    _VideoPickerSource.files,
+                  ),
+                ),
+                const SizedBox(height: 8),
+              ],
+            ),
+          );
+        },
+      );
+
+      if (source == null) return;
+
+      if (source == _VideoPickerSource.photos) {
+        final pickedVideo = await imagePicker.pickVideo(
+          source: ImageSource.gallery,
+        );
+
+        if (pickedVideo == null) return;
+
+        final bytes = await pickedVideo.readAsBytes();
+
+        if (!mounted) return;
+
+        setState(() {
+          selectedMediaFile = PlatformFile(
+            name: pickedVideo.name,
+            size: bytes.length,
+            path: pickedVideo.path,
+            bytes: bytes,
+          );
+          mediaUrlController.clear();
+        });
+
+        return;
+      }
+    }
+
     final allowedExtensions = allowedMediaExtensions();
 
     final result = await FilePicker.platform.pickFiles(
@@ -600,6 +660,8 @@ class _TeacherMeditationsPageState extends State<TeacherMeditationsPage> {
     String? existingUrl,
     required VoidCallback onPick,
     required VoidCallback onClear,
+    String pickLabel = 'Dosya Seç',
+    String changeLabel = 'Dosyayı Değiştir',
   }) {
     return Container(
       width: double.infinity,
@@ -727,7 +789,7 @@ class _TeacherMeditationsPageState extends State<TeacherMeditationsPage> {
             child: OutlinedButton.icon(
               onPressed: isSaving ? null : onPick,
               icon: const Icon(Icons.upload_file),
-              label: Text(file == null ? 'Dosya Seç' : 'Dosyayı Değiştir'),
+              label: Text(file == null ? pickLabel : changeLabel),
               style: OutlinedButton.styleFrom(
                 foregroundColor: const Color(0xFF536B4E),
                 side: const BorderSide(
@@ -871,6 +933,12 @@ class _TeacherMeditationsPageState extends State<TeacherMeditationsPage> {
               existingUrl: existingMediaUrl,
               onPick: pickMediaFile,
               onClear: clearMediaFile,
+              pickLabel: selectedType == 'video'
+                  ? 'Video Seç'
+                  : 'Dosya Seç',
+              changeLabel: selectedType == 'video'
+                  ? 'Videoyu Değiştir'
+                  : 'Dosyayı Değiştir',
             ),
           buildFileBox(
             title: 'Kapak Görseli',
