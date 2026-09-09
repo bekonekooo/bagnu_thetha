@@ -531,88 +531,26 @@ class MeditationService {
     final cleanMeditationId = meditation.id.trim();
     final cleanThumbnailUrl = thumbnailUrl.trim();
 
-    await supabase
-        .from('meditations')
-        .update({
-          'title': title,
-          'description': description,
-          'type': type,
-          'category': category,
-          'duration_text': durationText,
-          'media_url': mediaUrl,
-          'thumbnail_url': cleanThumbnailUrl.isEmpty
-              ? null
-              : cleanThumbnailUrl,
-          'is_active': isActive,
-        })
-        .eq('id', cleanMeditationId)
-        .eq('created_by', user.id);
+    final response = await supabase.rpc(
+      'update_owned_meditation',
+      params: {
+        'p_meditation_id': cleanMeditationId,
+        'p_title': title,
+        'p_description': description,
+        'p_type': type,
+        'p_category': category,
+        'p_duration_text': durationText,
+        'p_media_url': mediaUrl,
+        'p_thumbnail_url': cleanThumbnailUrl.isEmpty
+            ? null
+            : cleanThumbnailUrl,
+        'p_is_active': isActive,
+      },
+    );
 
-    // UPDATE isteği her zaman değişen satırı döndürmeyebilir. Bu yüzden
-    // başarılı kabul etmeden önce kaydı tekrar okuyup değerleri doğrula.
-    final savedRow = await supabase
-        .from('meditations')
-        .select(
-          'id, title, description, type, category, duration_text, '
-          'media_url, thumbnail_url, is_active, created_by',
-        )
-        .eq('id', cleanMeditationId)
-        .maybeSingle();
-
-    final saved = savedRow == null
-        ? null
-        : Map<String, dynamic>.from(savedRow);
-
-    final mismatchedFields = <String>[];
-
-    if (saved == null) {
-      mismatchedFields.add('kayıt bulunamadı');
-    } else {
-      if (saved['created_by']?.toString() != user.id) {
-        mismatchedFields.add('sahiplik');
-      }
-      if (saved['title']?.toString() != title) {
-        mismatchedFields.add('başlık');
-      }
-      if (saved['description']?.toString() != description) {
-        mismatchedFields.add('açıklama');
-      }
-      if (saved['type']?.toString() != type) {
-        mismatchedFields.add('tip');
-      }
-      if (saved['category']?.toString() != category) {
-        mismatchedFields.add('kategori');
-      }
-      if (saved['duration_text']?.toString() != durationText) {
-        mismatchedFields.add('süre');
-      }
-      if (saved['media_url']?.toString() != mediaUrl) {
-        mismatchedFields.add('medya');
-      }
-      if ((saved['thumbnail_url']?.toString() ?? '') != cleanThumbnailUrl) {
-        mismatchedFields.add('kapak görseli');
-      }
-      if (saved['is_active'] != isActive) {
-        mismatchedFields.add('görünürlük');
-      }
-    }
-
-    final updateWasPersisted = mismatchedFields.isEmpty &&
-        saved != null &&
-        saved['title']?.toString() == title &&
-        saved['description']?.toString() == description &&
-        saved['type']?.toString() == type &&
-        saved['category']?.toString() == category &&
-        saved['duration_text']?.toString() == durationText &&
-        saved['media_url']?.toString() == mediaUrl &&
-        (saved['thumbnail_url']?.toString() ?? '') == cleanThumbnailUrl &&
-        saved['is_active'] == isActive;
-
-    if (!updateWasPersisted) {
+    if (response is! List || response.isEmpty) {
       throw Exception(
-        'İçerik güncellenemedi. Değişmeyen alanlar: '
-        '${mismatchedFields.join(', ')}. '
-        'Oturum kullanıcısı: ${user.id}.',
+        'İçerik güncellenemedi. Güncelleme fonksiyonu kayıt döndürmedi.',
       );
     }
 
