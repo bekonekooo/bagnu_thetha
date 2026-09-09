@@ -527,7 +527,10 @@ class MeditationService {
       );
     }
 
-    final updatedRows = await supabase
+    final cleanMeditationId = meditation.id.trim();
+    final cleanThumbnailUrl = thumbnailUrl.trim();
+
+    await supabase
         .from('meditations')
         .update({
           'title': title,
@@ -536,17 +539,41 @@ class MeditationService {
           'category': category,
           'duration_text': durationText,
           'media_url': mediaUrl,
-          'thumbnail_url': thumbnailUrl.trim().isEmpty
+          'thumbnail_url': cleanThumbnailUrl.isEmpty
               ? null
-              : thumbnailUrl.trim(),
+              : cleanThumbnailUrl,
           'is_active': isActive,
         })
-        .eq('id', meditation.id)
-        .select('id');
+        .eq('id', cleanMeditationId);
 
-    if (updatedRows is! List || updatedRows.isEmpty) {
+    // UPDATE isteği her zaman değişen satırı döndürmeyebilir. Bu yüzden
+    // başarılı kabul etmeden önce kaydı tekrar okuyup değerleri doğrula.
+    final savedRow = await supabase
+        .from('meditations')
+        .select(
+          'id, title, description, type, category, duration_text, '
+          'media_url, thumbnail_url, is_active',
+        )
+        .eq('id', cleanMeditationId)
+        .maybeSingle();
+
+    final saved = savedRow == null
+        ? null
+        : Map<String, dynamic>.from(savedRow);
+
+    final updateWasPersisted = saved != null &&
+        saved['title']?.toString() == title &&
+        saved['description']?.toString() == description &&
+        saved['type']?.toString() == type &&
+        saved['category']?.toString() == category &&
+        saved['duration_text']?.toString() == durationText &&
+        saved['media_url']?.toString() == mediaUrl &&
+        (saved['thumbnail_url']?.toString() ?? '') == cleanThumbnailUrl &&
+        saved['is_active'] == isActive;
+
+    if (!updateWasPersisted) {
       throw Exception(
-        'İçerik güncellenemedi. Meditasyon sahibi veya düzenleme yetkisi eşleşmiyor.',
+        'İçerik güncellenemedi. Supabase kaydı değişikliği doğrulayamadı.',
       );
     }
 
