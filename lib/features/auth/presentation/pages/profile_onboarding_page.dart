@@ -72,6 +72,7 @@ class _ProfileOnboardingPageState extends State<ProfileOnboardingPage> {
       initialDate: DateTime(now.year - 25),
       firstDate: DateTime(1940),
       lastDate: now,
+      locale: const Locale('tr', 'TR'),
       helpText: 'Doğum tarihini seç',
       cancelText: 'İptal',
       confirmText: 'Seç',

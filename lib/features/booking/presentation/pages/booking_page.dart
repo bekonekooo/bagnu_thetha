@@ -170,6 +170,7 @@ class _BookingPageState extends State<BookingPage> {
       initialDate: selectedDate ?? now,
       firstDate: DateTime(now.year, now.month, now.day),
       lastDate: DateTime(now.year + 1),
+      locale: const Locale('tr', 'TR'),
       helpText: 'Seans tarihi seç',
       cancelText: 'Vazgeç',
       confirmText: 'Seç',

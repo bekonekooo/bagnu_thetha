@@ -353,6 +353,104 @@ class WorkshopService {
         );
   }
 
+  Future<void> updateWorkshop({
+    required WorkshopModel workshop,
+    required String title,
+    required String description,
+    required String imageUrl,
+    required String category,
+    required int durationDays,
+    required double price,
+    required String currency,
+    required int? capacity,
+    required List<Map<String, dynamic>> days,
+  }) async {
+    final user = supabase.auth.currentUser;
+
+    if (user == null) {
+      throw Exception(
+        'Atölyeyi güncellemek için giriş yapmalısın.',
+      );
+    }
+
+    if (days.length != durationDays) {
+      throw Exception(
+        'Her atölye günü için bir içerik eklemelisin.',
+      );
+    }
+
+    final cleanTitle = title.trim();
+    final cleanDescription = description.trim();
+    final cleanCategory = category.trim();
+    final cleanCurrency = currency.trim().toLowerCase();
+    final cleanImageUrl = imageUrl.trim();
+
+    final response = await supabase.rpc(
+      'update_owned_workshop',
+      params: {
+        'p_workshop_id': workshop.id.trim(),
+        'p_title': cleanTitle,
+        'p_description': cleanDescription,
+        'p_image_url': cleanImageUrl.isEmpty ? null : cleanImageUrl,
+        'p_category': cleanCategory.isEmpty ? null : cleanCategory,
+        'p_duration_days': durationDays,
+        'p_price': price,
+        'p_currency': cleanCurrency.isEmpty ? 'try' : cleanCurrency,
+        'p_capacity': capacity,
+        'p_days': days,
+      },
+    );
+
+    if (response is! Map || response['id'] == null) {
+      throw Exception(
+        'Atölye güncellenemedi. Güncelleme fonksiyonu kayıt döndürmedi.',
+      );
+    }
+
+    final retainedUrls = <String>{
+      if (cleanImageUrl.isNotEmpty) cleanImageUrl,
+      for (final day in days)
+        if (day['content_type'] != 'link' &&
+            (day['content_url']?.toString().trim() ?? '').isNotEmpty)
+          day['content_url'].toString().trim(),
+    };
+
+    final oldFiles = <String, String>{};
+
+    if (workshop.imageUrl.trim().isNotEmpty) {
+      oldFiles[coverBucket] = workshop.imageUrl.trim();
+    }
+
+    for (final day in workshop.days) {
+      if (day.contentType != 'link' && day.contentUrl.trim().isNotEmpty) {
+        oldFiles['$mediaBucket:${day.id}'] = day.contentUrl.trim();
+      }
+    }
+
+    for (final entry in oldFiles.entries) {
+      if (retainedUrls.contains(entry.value)) continue;
+
+      final bucket = entry.key.startsWith('$mediaBucket:')
+          ? mediaBucket
+          : coverBucket;
+
+      try {
+        final path = _storagePathFromPublicUrl(
+          bucket: bucket,
+          publicUrl: entry.value,
+        );
+
+        if (path != null && path.isNotEmpty) {
+          await supabase.storage.from(bucket).remove([path]);
+        }
+      } catch (error) {
+        debugPrint(
+          'Workshop old file cleanup failed for $bucket: $error',
+        );
+      }
+    }
+  }
+
   Future<void> deleteWorkshop(
     WorkshopModel workshop,
   ) async {

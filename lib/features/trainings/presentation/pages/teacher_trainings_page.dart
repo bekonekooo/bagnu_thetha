@@ -173,6 +173,7 @@ class _TeacherTrainingsPageState extends State<TeacherTrainingsPage> {
       initialDate: initialDate ?? now,
       firstDate: DateTime(now.year - 1),
       lastDate: DateTime(now.year + 5),
+      locale: const Locale('tr', 'TR'),
       helpText: 'Eğitim gününü seç',
       cancelText: 'İptal',
       confirmText: 'Seç',

@@ -3,10 +3,16 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 
 import 'package:flutter_application_1/core/input_formatters/first_word_capitalization_formatter.dart';
+import '../../data/models/workshop_model.dart';
 import '../../data/services/workshop_service.dart';
 
 class CreateWorkshopPage extends StatefulWidget {
-  const CreateWorkshopPage({super.key});
+  final WorkshopModel? workshop;
+
+  const CreateWorkshopPage({
+    super.key,
+    this.workshop,
+  });
 
   @override
   State<CreateWorkshopPage> createState() => _CreateWorkshopPageState();
@@ -43,7 +49,45 @@ class _CreateWorkshopPageState extends State<CreateWorkshopPage> {
   @override
   void initState() {
     super.initState();
-    _updateDayDrafts(1);
+
+    if (widget.workshop == null) {
+      _updateDayDrafts(1);
+    } else {
+      _loadWorkshop(widget.workshop!);
+    }
+  }
+
+  bool get isEditing => widget.workshop != null;
+
+  void _loadWorkshop(WorkshopModel workshop) {
+    titleController.text = workshop.title;
+    descriptionController.text = workshop.description;
+    categoryController.text = workshop.category;
+    priceController.text = workshop.price.toString();
+    capacityController.text = workshop.capacity?.toString() ?? '';
+    coverUrlController.text = workshop.imageUrl;
+    durationDays = workshop.durationDays;
+    currency = workshop.currency;
+
+    _updateDayDrafts(workshop.durationDays);
+
+    for (final draft in dayDrafts) {
+      final matchingDay = workshop.days.where(
+        (day) => day.dayNumber == draft.dayNumber,
+      );
+
+      if (matchingDay.isEmpty) continue;
+
+      final day = matchingDay.first;
+      draft.contentType = day.contentType;
+      draft.titleController.text = day.title;
+      draft.descriptionController.text = day.description;
+      draft.durationController.text = day.durationText;
+      draft.contentUrlController.text =
+          day.contentType == 'link' ? day.contentUrl : '';
+      draft.existingMediaUrl =
+          day.contentType == 'link' ? '' : day.contentUrl;
+    }
   }
 
   @override
@@ -130,7 +174,7 @@ class _CreateWorkshopPageState extends State<CreateWorkshopPage> {
       case 'audio':
         return 'MP3, WAV, M4A, AAC veya OGG dosyası yükleyebilirsin.';
       case 'video':
-        return 'MP4, MOV veya WEBM video dosyası yükleyebilirsin.';
+        return 'MP4, MOV veya WEBM videoyu Fotoğraflarından seçebilirsin.';
       case 'link':
         return 'YouTube, Vimeo veya başka bir video bağlantısı ekleyebilirsin.';
       default:
@@ -184,6 +228,31 @@ class _CreateWorkshopPageState extends State<CreateWorkshopPage> {
   Future<void> pickDayMediaFile(
     _WorkshopDayDraft draft,
   ) async {
+    if (draft.contentType == 'video') {
+      final pickedVideo = await imagePicker.pickVideo(
+        source: ImageSource.gallery,
+      );
+
+      if (pickedVideo == null) return;
+
+      final bytes = await pickedVideo.readAsBytes();
+
+      if (!mounted) return;
+
+      setState(() {
+        draft.selectedMediaFile = PlatformFile(
+          name: pickedVideo.name,
+          size: bytes.length,
+          path: pickedVideo.path,
+          bytes: bytes,
+        );
+        draft.existingMediaUrl = '';
+        draft.contentUrlController.clear();
+      });
+
+      return;
+    }
+
     final extensions = allowedExtensions(
       draft.contentType,
     );
@@ -205,6 +274,7 @@ class _CreateWorkshopPageState extends State<CreateWorkshopPage> {
 
     setState(() {
       draft.selectedMediaFile = result.files.first;
+      draft.existingMediaUrl = '';
       draft.contentUrlController.clear();
     });
   }
@@ -212,6 +282,10 @@ class _CreateWorkshopPageState extends State<CreateWorkshopPage> {
   void clearCoverFile() {
     setState(() {
       selectedCoverFile = null;
+
+      if (isEditing) {
+        coverUrlController.text = widget.workshop!.imageUrl;
+      }
     });
   }
 
@@ -220,6 +294,7 @@ class _CreateWorkshopPageState extends State<CreateWorkshopPage> {
   ) {
     setState(() {
       draft.selectedMediaFile = null;
+      draft.existingMediaUrl = '';
     });
   }
 
@@ -278,7 +353,8 @@ class _CreateWorkshopPageState extends State<CreateWorkshopPage> {
           return '${draft.dayNumber}. gün bağlantısı http veya https ile başlamalı.';
         }
       } else {
-        if (draft.selectedMediaFile == null) {
+        if (draft.selectedMediaFile == null &&
+            draft.existingMediaUrl.trim().isEmpty) {
           return '${draft.dayNumber}. gün için ${dayTypeLabel(draft.contentType).toLowerCase()} seçmelisin.';
         }
       }
@@ -287,7 +363,7 @@ class _CreateWorkshopPageState extends State<CreateWorkshopPage> {
     return null;
   }
 
-  Future<void> createWorkshop() async {
+  Future<void> saveWorkshop() async {
     if (isSaving) {
       return;
     }
@@ -328,11 +404,15 @@ class _CreateWorkshopPageState extends State<CreateWorkshopPage> {
             draft.contentUrlController.text.trim();
 
         if (draft.contentType != 'link') {
-          finalContentUrl =
-              await workshopService.uploadWorkshopMedia(
-            file: draft.selectedMediaFile!,
-            contentType: draft.contentType,
-          );
+          if (draft.selectedMediaFile != null) {
+            finalContentUrl =
+                await workshopService.uploadWorkshopMedia(
+              file: draft.selectedMediaFile!,
+              contentType: draft.contentType,
+            );
+          } else {
+            finalContentUrl = draft.existingMediaUrl;
+          }
         }
 
         uploadedDays.add({
@@ -347,25 +427,42 @@ class _CreateWorkshopPageState extends State<CreateWorkshopPage> {
         });
       }
 
-      await workshopService.createWorkshop(
-        title: titleController.text.trim(),
-        description:
-            descriptionController.text.trim(),
-        imageUrl: finalCoverUrl,
-        category: categoryController.text.trim(),
-        durationDays: durationDays,
-        price: parsePrice() ?? 0,
-        currency: currency,
-        capacity: parseCapacity(),
-        days: uploadedDays,
-      );
+      if (isEditing) {
+        await workshopService.updateWorkshop(
+          workshop: widget.workshop!,
+          title: titleController.text.trim(),
+          description: descriptionController.text.trim(),
+          imageUrl: finalCoverUrl,
+          category: categoryController.text.trim(),
+          durationDays: durationDays,
+          price: parsePrice() ?? 0,
+          currency: currency,
+          capacity: parseCapacity(),
+          days: uploadedDays,
+        );
+      } else {
+        await workshopService.createWorkshop(
+          title: titleController.text.trim(),
+          description:
+              descriptionController.text.trim(),
+          imageUrl: finalCoverUrl,
+          category: categoryController.text.trim(),
+          durationDays: durationDays,
+          price: parsePrice() ?? 0,
+          currency: currency,
+          capacity: parseCapacity(),
+          days: uploadedDays,
+        );
+      }
 
       if (!mounted) {
         return;
       }
 
       showMessage(
-        'Atölye taslak olarak oluşturuldu.',
+        isEditing
+            ? 'Atölye güncellendi.'
+            : 'Atölye taslak olarak oluşturuldu.',
       );
 
       Navigator.pop(context, true);
@@ -379,7 +476,9 @@ class _CreateWorkshopPageState extends State<CreateWorkshopPage> {
       });
 
       showMessage(
-        'Atölye oluşturulamadı: $error',
+        isEditing
+            ? 'Atölye güncellenemedi: $error'
+            : 'Atölye oluşturulamadı: $error',
       );
     }
   }
@@ -876,6 +975,7 @@ class _CreateWorkshopPageState extends State<CreateWorkshopPage> {
                     setState(() {
                       draft.contentType = value;
                       draft.selectedMediaFile = null;
+                      draft.existingMediaUrl = '';
                       draft.contentUrlController.clear();
                     });
                   },
@@ -997,6 +1097,37 @@ class _CreateWorkshopPageState extends State<CreateWorkshopPage> {
               ),
             ),
           ],
+          if (draft.selectedMediaFile == null &&
+              draft.existingMediaUrl.trim().isNotEmpty) ...[
+            const SizedBox(height: 12),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(11),
+              decoration: BoxDecoration(
+                color: softGreen,
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: const Row(
+                children: [
+                  Icon(
+                    Icons.check_circle_outline,
+                    color: primaryColor,
+                    size: 20,
+                  ),
+                  SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Mevcut içerik korunacak',
+                      style: TextStyle(
+                        color: textColor,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
           const SizedBox(height: 12),
           SizedBox(
             width: double.infinity,
@@ -1011,8 +1142,12 @@ class _CreateWorkshopPageState extends State<CreateWorkshopPage> {
               ),
               label: Text(
                 draft.selectedMediaFile == null
-                    ? 'Dosya Seç'
-                    : 'Dosyayı Değiştir',
+                    ? (draft.contentType == 'video'
+                        ? 'Video Seç'
+                        : 'Dosya Seç')
+                    : (draft.contentType == 'video'
+                        ? 'Videoyu Değiştir'
+                        : 'Dosyayı Değiştir'),
               ),
               style: OutlinedButton.styleFrom(
                 foregroundColor: primaryColor,
@@ -1060,7 +1195,7 @@ class _CreateWorkshopPageState extends State<CreateWorkshopPage> {
       height: 58,
       child: ElevatedButton.icon(
         onPressed:
-            isSaving ? null : createWorkshop,
+            isSaving ? null : saveWorkshop,
         icon: isSaving
             ? const SizedBox(
                 width: 20,
@@ -1076,7 +1211,9 @@ class _CreateWorkshopPageState extends State<CreateWorkshopPage> {
         label: Text(
           isSaving
               ? 'Dosyalar Yükleniyor...'
-              : 'Atölyeyi Taslak Olarak Kaydet',
+              : (isEditing
+                  ? 'Değişiklikleri Kaydet'
+                  : 'Atölyeyi Taslak Olarak Kaydet'),
         ),
         style: ElevatedButton.styleFrom(
           backgroundColor: primaryColor,
@@ -1104,8 +1241,8 @@ class _CreateWorkshopPageState extends State<CreateWorkshopPage> {
       extendBodyBehindAppBar: true,
       backgroundColor: Colors.transparent,
       appBar: AppBar(
-        title: const Text(
-          'Yeni Atölye',
+        title: Text(
+          isEditing ? 'Atölyeyi Düzenle' : 'Yeni Atölye',
           style: TextStyle(
             color: textColor,
             fontWeight: FontWeight.w900,
@@ -1152,6 +1289,7 @@ class _WorkshopDayDraft {
 
   String contentType;
   PlatformFile? selectedMediaFile;
+  String existingMediaUrl = '';
 
   _WorkshopDayDraft({
     required this.dayNumber,

@@ -136,6 +136,7 @@ class _GuidancePageState extends State<GuidancePage> {
       initialDate: selectedBirthDate ?? DateTime(now.year - 25),
       firstDate: DateTime(1900),
       lastDate: now,
+      locale: const Locale('tr', 'TR'),
       helpText: 'Doğum tarihini seç',
       cancelText: 'Vazgeç',
       confirmText: 'Seç',

@@ -376,7 +376,11 @@ final GoRouter appRouter = GoRouter(
     GoRoute(
       path: '/create-workshop',
       builder: (context, state) {
-        return const CreateWorkshopPage();
+        return CreateWorkshopPage(
+          workshop: state.extra is WorkshopModel
+              ? state.extra as WorkshopModel
+              : null,
+        );
       },
     ),
     GoRoute(

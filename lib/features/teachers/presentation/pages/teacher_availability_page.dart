@@ -28,21 +28,6 @@ class _TeacherAvailabilityPageState extends State<TeacherAvailabilityPage> {
   int selectedWeekday = DateTime.now().weekday;
   String selectedTime = '09:00';
 
-  final List<String> timeOptions = const [
-    '09:00',
-    '10:00',
-    '11:00',
-    '12:00',
-    '13:00',
-    '14:00',
-    '15:00',
-    '16:00',
-    '17:00',
-    '18:00',
-    '19:00',
-    '20:00',
-  ];
-
   @override
   void initState() {
     super.initState();
@@ -87,6 +72,19 @@ class _TeacherAvailabilityPageState extends State<TeacherAvailabilityPage> {
   Future<void> addAvailability() async {
     if (isSubmitting) return;
 
+    final conflict = conflictingAvailability(selectedTime);
+
+    if (conflict != null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            '$selectedTime, ${conflict.timeSlot} saatindeki 1 saatlik dersle çakışıyor.',
+          ),
+        ),
+      );
+      return;
+    }
+
     setState(() {
       isSubmitting = true;
     });
@@ -112,82 +110,6 @@ class _TeacherAvailabilityPageState extends State<TeacherAvailabilityPage> {
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Saat eklenemedi: $e')),
-      );
-    } finally {
-      if (!mounted) return;
-
-      setState(() {
-        isSubmitting = false;
-      });
-    }
-  }
-
-  Future<void> addTemplateHours() async {
-    if (isSubmitting) return;
-
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: const Text('Şablon saatleri ekle'),
-          content: Text(
-            '${weekdayName(selectedWeekday)} günü için 10:00 - 18:00 arası saatler eklensin mi?',
-          ),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.pop(context, false);
-              },
-              child: const Text('Vazgeç'),
-            ),
-            ElevatedButton(
-              onPressed: () {
-                Navigator.pop(context, true);
-              },
-              child: const Text('Ekle'),
-            ),
-          ],
-        );
-      },
-    );
-
-    if (confirmed != true) return;
-
-    setState(() {
-      isSubmitting = true;
-    });
-
-    try {
-      final template = [
-        '10:00',
-        '11:00',
-        '12:00',
-        '13:00',
-        '14:00',
-        '15:00',
-        '16:00',
-        '17:00',
-        '18:00',
-      ];
-
-      await availabilityService.addMultipleAvailability(
-        teacherId: widget.teacherId,
-        weekday: selectedWeekday,
-        timeSlots: template,
-      );
-
-      await loadAvailability();
-
-      if (!mounted) return;
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Şablon saatler eklendi')),
-      );
-    } catch (e) {
-      if (!mounted) return;
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Şablon eklenemedi: $e')),
       );
     } finally {
       if (!mounted) return;
@@ -324,6 +246,85 @@ class _TeacherAvailabilityPageState extends State<TeacherAvailabilityPage> {
     return days[day - 1];
   }
 
+  TimeOfDay timeOfDayFromString(String value) {
+    final parts = value.split(':');
+    final hour = parts.isNotEmpty ? int.tryParse(parts[0]) : null;
+    final minute = parts.length > 1 ? int.tryParse(parts[1]) : null;
+
+    return TimeOfDay(
+      hour: hour != null && hour >= 0 && hour <= 23 ? hour : 9,
+      minute: minute != null && minute >= 0 && minute <= 59 ? minute : 0,
+    );
+  }
+
+  String formatTime(TimeOfDay time) {
+    final hour = time.hour.toString().padLeft(2, '0');
+    final minute = time.minute.toString().padLeft(2, '0');
+
+    return '$hour:$minute';
+  }
+
+  int minutesFromTime(String value) {
+    final time = timeOfDayFromString(value);
+    return time.hour * 60 + time.minute;
+  }
+
+  String endTimeFor(String value) {
+    final start = timeOfDayFromString(value);
+    final totalMinutes = start.hour * 60 + start.minute + 60;
+    final end = TimeOfDay(
+      hour: (totalMinutes ~/ 60) % 24,
+      minute: totalMinutes % 60,
+    );
+
+    return formatTime(end);
+  }
+
+  AvailabilityModel? conflictingAvailability(String time) {
+    final requestedMinutes = minutesFromTime(time);
+
+    for (final item in selectedDayAvailability()) {
+      final existingMinutes = minutesFromTime(item.timeSlot);
+
+      if ((requestedMinutes - existingMinutes).abs() < 60) {
+        return item;
+      }
+    }
+
+    return null;
+  }
+
+  Future<void> pickTime() async {
+    final picked = await showTimePicker(
+      context: context,
+      initialTime: timeOfDayFromString(selectedTime),
+      initialEntryMode: TimePickerEntryMode.input,
+      helpText: 'Ders başlangıç saatini seç',
+      cancelText: 'Vazgeç',
+      confirmText: 'Seç',
+      hourLabelText: 'Saat',
+      minuteLabelText: 'Dakika',
+      builder: (context, child) {
+        return MediaQuery(
+          data: MediaQuery.of(context).copyWith(
+            alwaysUse24HourFormat: true,
+          ),
+          child: Localizations.override(
+            context: context,
+            locale: const Locale('tr', 'TR'),
+            child: child ?? const SizedBox.shrink(),
+          ),
+        );
+      },
+    );
+
+    if (picked == null) return;
+
+    setState(() {
+      selectedTime = formatTime(picked);
+    });
+  }
+
   Map<int, List<AvailabilityModel>> grouped() {
     final map = <int, List<AvailabilityModel>>{};
 
@@ -341,10 +342,6 @@ class _TeacherAvailabilityPageState extends State<TeacherAvailabilityPage> {
 
   List<AvailabilityModel> selectedDayAvailability() {
     return grouped()[selectedWeekday] ?? [];
-  }
-
-  bool isTimeAlreadyAdded(String time) {
-    return selectedDayAvailability().any((item) => item.timeSlot == time);
   }
 
   Widget buildHeaderCard() {
@@ -472,6 +469,8 @@ class _TeacherAvailabilityPageState extends State<TeacherAvailabilityPage> {
   }
 
   Widget buildTimeSelector() {
+    final conflict = conflictingAvailability(selectedTime);
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -491,50 +490,64 @@ class _TeacherAvailabilityPageState extends State<TeacherAvailabilityPage> {
           ),
         ),
         const SizedBox(height: 14),
-        Wrap(
-          spacing: 10,
-          runSpacing: 10,
-          children: timeOptions.map((time) {
-            final isSelected = selectedTime == time;
-            final alreadyAdded = isTimeAlreadyAdded(time);
-
-            return ChoiceChip(
-              selected: isSelected,
-              label: Text(alreadyAdded ? '$time ✓' : time),
-              onSelected: (_) {
-                setState(() {
-                  selectedTime = time;
-                });
-              },
-              selectedColor: Colors.deepPurple,
-              backgroundColor: alreadyAdded ? Colors.green.shade50 : Colors.white,
-              labelStyle: TextStyle(
-                color: isSelected
-                    ? Colors.white
-                    : alreadyAdded
-                        ? Colors.green.shade800
-                        : Colors.black87,
-                fontWeight: FontWeight.w600,
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(
+              color: conflict == null
+                  ? Colors.deepPurple.shade100
+                  : Colors.orange.shade300,
+            ),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  const Icon(
+                    Icons.access_time,
+                    color: Colors.deepPurple,
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      '$selectedTime - ${endTimeFor(selectedTime)}',
+                      style: const TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                  OutlinedButton(
+                    onPressed: isSubmitting ? null : pickTime,
+                    child: const Text('Saat seç'),
+                  ),
+                ],
               ),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(30),
-                side: BorderSide(
-                  color: isSelected
-                      ? Colors.deepPurple
-                      : alreadyAdded
-                          ? Colors.green.shade200
-                          : Colors.grey.shade300,
+              const SizedBox(height: 8),
+              Text(
+                conflict == null
+                    ? 'Ders süresi otomatik olarak 1 saat olacak.'
+                    : '${conflict.timeSlot} ile çakışıyor. Başka bir saat seç.',
+                style: TextStyle(
+                  color: conflict == null
+                      ? Colors.grey.shade700
+                      : Colors.orange.shade800,
+                  height: 1.35,
                 ),
               ),
-            );
-          }).toList(),
+            ],
+          ),
         ),
       ],
     );
   }
 
   Widget buildActionPanel() {
-    final alreadyAdded = isTimeAlreadyAdded(selectedTime);
+    final conflict = conflictingAvailability(selectedTime);
 
     return Container(
       width: double.infinity,
@@ -552,9 +565,9 @@ class _TeacherAvailabilityPageState extends State<TeacherAvailabilityPage> {
               const SizedBox(width: 10),
               Expanded(
                 child: Text(
-                  alreadyAdded
-                      ? '$selectedTime zaten ${weekdayName(selectedWeekday)} gününe ekli.'
-                      : '$selectedTime saatini ${weekdayName(selectedWeekday)} gününe ekleyebilirsin.',
+                  conflict != null
+                      ? '$selectedTime, ${conflict.timeSlot} ile çakışıyor.'
+                      : '$selectedTime - ${endTimeFor(selectedTime)} aralığını ${weekdayName(selectedWeekday)} gününe ekleyebilirsin.',
                   style: const TextStyle(height: 1.35),
                 ),
               ),
@@ -564,7 +577,9 @@ class _TeacherAvailabilityPageState extends State<TeacherAvailabilityPage> {
           SizedBox(
             width: double.infinity,
             child: ElevatedButton.icon(
-              onPressed: isSubmitting || alreadyAdded ? null : addAvailability,
+              onPressed: isSubmitting || conflict != null
+                  ? null
+                  : addAvailability,
               icon: isSubmitting
                   ? const SizedBox(
                       width: 18,
@@ -581,32 +596,18 @@ class _TeacherAvailabilityPageState extends State<TeacherAvailabilityPage> {
             ),
           ),
           const SizedBox(height: 10),
-          Row(
-            children: [
-              Expanded(
-                child: OutlinedButton.icon(
-                  onPressed: isSubmitting ? null : addTemplateHours,
-                  icon: const Icon(Icons.auto_awesome),
-                  label: const Text('Şablon Ekle'),
-                  style: OutlinedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 13),
-                  ),
-                ),
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              onPressed: isSubmitting ? null : clearDay,
+              icon: const Icon(Icons.delete_outline),
+              label: const Text('Günü Temizle'),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: Colors.red,
+                side: const BorderSide(color: Colors.red),
+                padding: const EdgeInsets.symmetric(vertical: 13),
               ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: OutlinedButton.icon(
-                  onPressed: isSubmitting ? null : clearDay,
-                  icon: const Icon(Icons.delete_outline),
-                  label: const Text('Günü Temizle'),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: Colors.red,
-                    side: const BorderSide(color: Colors.red),
-                    padding: const EdgeInsets.symmetric(vertical: 13),
-                  ),
-                ),
-              ),
-            ],
+            ),
           ),
         ],
       ),

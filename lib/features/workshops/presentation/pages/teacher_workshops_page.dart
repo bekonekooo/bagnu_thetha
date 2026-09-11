@@ -62,6 +62,19 @@ class _TeacherWorkshopsPageState
     }
   }
 
+  Future<void> openEditWorkshop(
+    WorkshopModel workshop,
+  ) async {
+    final result = await context.push(
+      '/create-workshop',
+      extra: workshop,
+    );
+
+    if (result == true) {
+      await reloadWorkshops();
+    }
+  }
+
   Future<void> toggleWorkshopActive(
     WorkshopModel workshop,
   ) async {
@@ -547,6 +560,31 @@ class _TeacherWorkshopsPageState
                 ),
                 const SizedBox(
                   height: 15,
+                ),
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton.icon(
+                    onPressed: () {
+                      openEditWorkshop(workshop);
+                    },
+                    icon: const Icon(Icons.edit_outlined),
+                    label: const Text('Atölyeyi Düzenle'),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: primaryColor,
+                      side: const BorderSide(
+                        color: primaryColor,
+                      ),
+                      padding: const EdgeInsets.symmetric(
+                        vertical: 13,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(15),
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(
+                  height: 10,
                 ),
                 Row(
                   children: [
