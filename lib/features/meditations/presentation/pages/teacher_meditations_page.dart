@@ -942,7 +942,7 @@ class _TeacherMeditationsPageState extends State<TeacherMeditationsPage> {
             ),
           buildFileBox(
             title: 'Kapak Görseli',
-            subtitle: isEditing
+            subtitle: editingMeditation != null
                 ? 'İsteğe bağlı. Yeni görsel seçmezsen mevcut kapak korunur.'
                 : 'İsteğe bağlı. JPG, PNG veya WEBP görsel seçebilirsin.',
             icon: Icons.image_outlined,
