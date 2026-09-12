@@ -835,6 +835,34 @@ class _CreateWorkshopPageState extends State<CreateWorkshopPage> {
                 ],
               ),
             ),
+          if (isEditing && selectedCoverFile == null)
+            Container(
+              width: double.infinity,
+              margin: const EdgeInsets.only(bottom: 12),
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: softGreen,
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: const Row(
+                children: [
+                  Icon(
+                    Icons.check_circle_outline,
+                    color: primaryColor,
+                  ),
+                  SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Mevcut kapak görseli korunacak.',
+                      style: TextStyle(
+                        color: textColor,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
           SizedBox(
             width: double.infinity,
             child: OutlinedButton.icon(
@@ -864,7 +892,7 @@ class _CreateWorkshopPageState extends State<CreateWorkshopPage> {
               ),
             ),
           ),
-          if (selectedCoverFile == null) ...[
+          if (selectedCoverFile == null && !isEditing) ...[
             const SizedBox(height: 12),
             TextField(
               controller: coverUrlController,

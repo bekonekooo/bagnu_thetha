@@ -29,7 +29,7 @@ class _GuidancePageState extends State<GuidancePage> {
   String subscriptionPlan = 'free';
 
   int usedCount = 0;
-  int maxAllowedCount = 1;
+  int? maxAllowedCount = 1;
   String periodText = '30 gün';
 
   String? resultText;
@@ -109,7 +109,7 @@ class _GuidancePageState extends State<GuidancePage> {
         isSubscribed = activeSubscription;
         subscriptionPlan = profile['subscription_plan']?.toString() ?? 'free';
         usedCount = requests.length;
-        maxAllowedCount = 1;
+        maxAllowedCount = activeSubscription ? null : 1;
         periodText = activeSubscription ? '7 gün' : '30 gün';
         isLoading = false;
       });
@@ -242,7 +242,7 @@ class _GuidancePageState extends State<GuidancePage> {
       return;
     }
 
-    if (usedCount >= maxAllowedCount) {
+    if (maxAllowedCount != null && usedCount >= maxAllowedCount!) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
@@ -437,8 +437,11 @@ class _GuidancePageState extends State<GuidancePage> {
 
   @override
   Widget build(BuildContext context) {
-    final remainingCount = maxAllowedCount - usedCount;
-    final safeRemainingCount = remainingCount < 0 ? 0 : remainingCount;
+    final remainingCount = maxAllowedCount == null
+        ? null
+        : (maxAllowedCount! - usedCount)
+            .clamp(0, maxAllowedCount!)
+            .toInt();
 
     return Scaffold(
       extendBodyBehindAppBar: true,
@@ -476,7 +479,7 @@ class _GuidancePageState extends State<GuidancePage> {
                         subscriptionPlan: subscriptionPlan,
                         usedCount: usedCount,
                         maxAllowedCount: maxAllowedCount,
-                        remainingCount: safeRemainingCount,
+                        remainingCount: remainingCount,
                         periodText: periodText,
                       ),
                       const SizedBox(height: 22),
@@ -862,8 +865,8 @@ class _SubscriptionInfoCard extends StatelessWidget {
   final bool isSubscribed;
   final String subscriptionPlan;
   final int usedCount;
-  final int maxAllowedCount;
-  final int remainingCount;
+  final int? maxAllowedCount;
+  final int? remainingCount;
   final String periodText;
 
   const _SubscriptionInfoCard({
@@ -916,7 +919,7 @@ class _SubscriptionInfoCard extends StatelessWidget {
               Expanded(
                 child: Text(
                   isSubscribed
-                      ? 'Premium rehberlik aktif'
+                      ? 'Plus rehberlik aktif'
                       : 'Ücretsiz rehberlik',
                   style: const TextStyle(
                     color: Color(0xFF2F3A32),
@@ -930,7 +933,7 @@ class _SubscriptionInfoCard extends StatelessWidget {
           const SizedBox(height: 12),
           Text(
             isSubscribed
-                ? 'Plan: $subscriptionPlan • Her 7 günde 1 hak'
+                ? 'Plan: $subscriptionPlan • Sınırsız rehberlik'
                 : 'Her 30 günde 1 ücretsiz hak',
             style: const TextStyle(
               color: Color(0xFF606A61),
@@ -942,9 +945,9 @@ class _SubscriptionInfoCard extends StatelessWidget {
           ClipRRect(
             borderRadius: BorderRadius.circular(20),
             child: LinearProgressIndicator(
-              value: maxAllowedCount <= 0
+              value: maxAllowedCount == null || maxAllowedCount! <= 0
                   ? 0
-                  : (usedCount / maxAllowedCount).clamp(0.0, 1.0),
+                  : (usedCount / maxAllowedCount!).clamp(0.0, 1.0),
               minHeight: 9,
               backgroundColor: Colors.white.withOpacity(0.75),
               color: mainColor,
@@ -952,7 +955,9 @@ class _SubscriptionInfoCard extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           Text(
-            'Kalan hak: $remainingCount / $maxAllowedCount',
+            maxAllowedCount == null
+                ? 'Kalan hak: Sınırsız'
+                : 'Kalan hak: $remainingCount / $maxAllowedCount',
             style: TextStyle(
               color: mainColor,
               fontSize: 15,

@@ -942,20 +942,15 @@ class _TeacherMeditationsPageState extends State<TeacherMeditationsPage> {
             ),
           buildFileBox(
             title: 'Kapak Görseli',
-            subtitle:
-                'Opsiyonel. JPG, PNG veya WEBP görsel seçebilirsin. Seçmezsen URL girebilirsin.',
+            subtitle: isEditing
+                ? 'İsteğe bağlı. Yeni görsel seçmezsen mevcut kapak korunur.'
+                : 'İsteğe bağlı. JPG, PNG veya WEBP görsel seçebilirsin.',
             icon: Icons.image_outlined,
             file: selectedThumbnailFile,
             existingUrl: thumbnailUrlController.text,
             onPick: pickThumbnailFile,
             onClear: clearThumbnailFile,
           ),
-          if (selectedThumbnailFile == null)
-            buildInput(
-              controller: thumbnailUrlController,
-              label: 'Kapak görseli URL',
-              hint: 'Opsiyonel görsel URL',
-            ),
           SwitchListTile(
             value: isActive,
             onChanged: isSaving

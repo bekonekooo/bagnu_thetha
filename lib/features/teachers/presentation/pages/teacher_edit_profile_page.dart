@@ -453,21 +453,6 @@ class _TeacherEditProfilePageState extends State<TeacherEditProfilePage> {
 
             buildPriceSection(),
 
-            ExpansionTile(
-              tilePadding: EdgeInsets.zero,
-              title: const Text(
-                'Fotoğraf URL',
-                style: TextStyle(fontWeight: FontWeight.bold),
-              ),
-              children: [
-                buildTextField(
-                  label: 'Fotoğraf URL',
-                  controller: imageUrlController,
-                  icon: Icons.link,
-                ),
-              ],
-            ),
-
             const SizedBox(height: 10),
 
             buildTextField(
